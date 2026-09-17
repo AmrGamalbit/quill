@@ -15,19 +15,26 @@ export default function DiaryCard() {
         },
       ]}
     >
-      <View style={style.cardTop}>
-        <CardHeader />
-        <CardCover />
-      </View>
+      <CardHeader />
       <SnippetBox />
+      <CardFooter />
     </View>
   );
 }
 
 function CardHeader() {
-  const { colors } = useTheme();
   return (
     <View style={style.headerContainer}>
+      <CardHeaderInfo />
+      <CardCover />
+    </View>
+  );
+}
+
+function CardHeaderInfo() {
+  const { colors } = useTheme();
+  return (
+    <View style={style.headerInfoContainer}>
       <Text style={[style.headerTitle, { color: colors.text }]}>
         France Holiday
       </Text>
@@ -67,6 +74,15 @@ function SnippetBox() {
   );
 }
 
+function CardFooter() {
+  const { colors } = useTheme();
+  return (
+    <View>
+      <Text>This is footer</Text>
+    </View>
+  );
+}
+
 const style = StyleSheet.create({
   cardContainer: {
     marginVertical: spacing.lg,
@@ -79,8 +95,11 @@ const style = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  cardTop: { flexDirection: "row", justifyContent: "space-between" },
-  headerContainer: { justifyContent: "space-around" },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  headerInfoContainer: { justifyContent: "space-around" },
   headerTitle: { fontSize: fontSizes.lg },
   headerMeta: {
     flexDirection: "row",
