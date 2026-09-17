@@ -1,9 +1,10 @@
+import DatePill from "@/src/components/DatePill";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import useTheme from "@/src/hooks/useTheme";
 import { View } from "react-native";
 
 export default function Home() {
-  const { colors, fonts, fontSizes, spacing } = useTheme();
+  const { spacing } = useTheme();
   return (
     <>
       <View
@@ -15,6 +16,7 @@ export default function Home() {
         }}
       >
         <GreetingHeader name="Alex" />
+        <DatePill />
       </View>
     </>
   );
