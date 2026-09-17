@@ -1,0 +1,36 @@
+const primitives = {
+  cream: "#FAF7F2",
+  creamLight: "#FCF9F4",
+  eggshell: "#EFECE6",
+  linen: "#E5DDD3",
+  umber: "#3F2B24",
+  charcoal: "#2D2522",
+
+  terracotta: "#D96B43",
+  terracottaDark: "#C85A32",
+  rust: "#A23D1B",
+
+  sage: "#6B8E7B",
+  moss: "#5C7F6C",
+  deepForest: "#2C332E",
+  mist: "#E2E8E2",
+} as const;
+
+export const colors = {
+  light: {
+    background: primitives.cream,
+    surface: primitives.creamLight,
+    text: primitives.charcoal,
+    textMuted: primitives.umber,
+    textOnAccent: primitives.cream,
+    accent: primitives.terracotta,
+    border: primitives.linen,
+    navigationBackground: primitives.eggshell,
+    navigationIcon: primitives.umber,
+    navigationSelectedBackground: primitives.rust,
+    pillBackground: primitives.mist,
+    pillText: primitives.deepForest,
+    pillIcon: primitives.sage,
+  },
+  dark: {},
+};
