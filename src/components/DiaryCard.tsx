@@ -2,6 +2,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
+import Pill from "./Pill";
+
 export default function DiaryCard() {
   const { colors } = useTheme();
   return (
@@ -77,8 +79,15 @@ function SnippetBox() {
 function CardFooter() {
   const { colors } = useTheme();
   return (
-    <View>
-      <Text>This is footer</Text>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <Text>Updated by Sam 1 hour ago</Text>
+      <Pill text="3 new entries" />
     </View>
   );
 }

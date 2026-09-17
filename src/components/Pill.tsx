@@ -9,10 +9,15 @@ export default function Pill({ text }: { text: string }) {
       style={{
         backgroundColor: colors.pillBackground,
         borderRadius: radius.md,
-        padding: spacing.md,
+        paddingVertical: spacing.xs,
+        paddingHorizontal: spacing.sm,
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
-      <Text style={{ color: colors.pillText, fontFamily: fonts.label }}>
+      <Text
+        style={{ color: colors.pillText, fontFamily: fonts.label }}
+      >
         {text}
       </Text>
     </View>
