@@ -15,7 +15,7 @@ export default function GreetingHeader({ name }: { name: string }) {
         Good Morning, {"\n"}
         {name}
       </Text>
-      <Text style={{ padding: spacing.sm, color: colors.textMuted }}>
+      <Text style={{ marginVertical: spacing.sm, color: colors.textMuted }}>
         What's on your mind today?
       </Text>
     </View>
