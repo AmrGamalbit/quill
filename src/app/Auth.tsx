@@ -10,10 +10,7 @@ export default function Auth() {
     const isDark = colorScheme === "dark";
     const redirectUrl = Linking.createURL('login-callback');
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
+    const styles = getStyles(isDark);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -87,8 +84,6 @@ export default function Auth() {
             <Editor />
         );
     }
-  }
-  if (session && session.user) {
     return (
         <View style={styles.container}>
 
