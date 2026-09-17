@@ -1,15 +1,8 @@
 import { Session } from "@supabase/supabase-js";
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from "react";
-import {
-    Alert,
-    Button,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    useColorScheme,
-} from "react-native";
+import { Alert, Button, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import Editor from "./Editor";
 import { supabase } from "./utils/supabase";
 
 export default function Auth() {
@@ -91,10 +84,7 @@ export default function Auth() {
     }
     if (session && session.user) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.header}>You're logged in, {session.user.email}!</Text>
-                <Button title="Sign out" onPress={() => supabase.auth.signOut()} />
-            </View>
+            <Editor />
         );
     }
   }
