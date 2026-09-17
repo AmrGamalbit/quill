@@ -1,9 +1,15 @@
-
-
 import { Session } from "@supabase/supabase-js";
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import {
+    Alert,
+    Button,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+    useColorScheme,
+} from "react-native";
 import { supabase } from "./utils/supabase";
 
 export default function Auth() {
@@ -11,7 +17,10 @@ export default function Auth() {
     const isDark = colorScheme === "dark";
     const redirectUrl = Linking.createURL('login-callback');
 
-    const styles = getStyles(isDark);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -88,6 +97,8 @@ export default function Auth() {
             </View>
         );
     }
+  }
+  if (session && session.user) {
     return (
         <View style={styles.container}>
 
