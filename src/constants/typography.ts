@@ -1,4 +1,8 @@
-export const fonts = {} as const;
+export const fonts = {
+  heading: "Merriweather_500Medium",
+  label: "PlusJakartaSans_500Medium",
+  body: "PlusJakartaSans_400Regular",
+} as const;
 
 export const fontSizes = {
   xs: 12,
