@@ -1,5 +1,5 @@
 export const fonts = {
-  heading: "Merriweather_500Medium",
+  heading: "Merriweather_400Regular",
   label: "PlusJakartaSans_500Medium",
   body: "PlusJakartaSans_400Regular",
 } as const;
