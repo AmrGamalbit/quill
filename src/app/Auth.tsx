@@ -1,16 +1,17 @@
 import { Session } from "@supabase/supabase-js";
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import { Alert, Button, StyleSheet, Text, TextInput, useColorScheme, View } from "react-native";
 import Editor from "./Editor";
 import JournalList from "./JournalList";
-import { initDatabase } from "./utils/db";
+import { initDatabase, JournalEntry } from "./utils/db";
 import { supabase } from "./utils/supabase";
 
 export default function Auth() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const redirectUrl = Linking.createURL('login-callback');
+    const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
     const styles = getStyles(isDark);
 
@@ -52,8 +53,8 @@ export default function Auth() {
             setSession(session);
         })
         return () => {
-         subscription.unsubscribe()
-         linkingSub.remove();
+            subscription.unsubscribe()
+            linkingSub.remove();
         };
     }, []);
     async function signInWithEmail() {
@@ -87,15 +88,36 @@ export default function Auth() {
             setLoading(false);
         }
     }
-if (session && session.user) {
+    if (session && session.user) {
         if (currentScreen === 'editor') {
             return (
-                <Editor onSaved={() => setCurrentScreen('list')} />
+                <Editor
+                    key={selectedEntry ? `entry-${selectedEntry.id}` : 'new-entry'}
+                    entryToEdit={selectedEntry}
+                    initialReadOnly={!!selectedEntry}
+                    onBack={() => {
+                        setSelectedEntry(null);
+                        setCurrentScreen('list');
+                    }}
+                    onSaved={() => {
+                        setSelectedEntry(null);
+                        setCurrentScreen('list');
+                    }}
+                />
             );
         }
 
         return (
-            <JournalList onNewEntry={() => setCurrentScreen('editor')} />
+            <JournalList
+                onNewEntry={() => {
+                    setSelectedEntry(null);
+                    setCurrentScreen('editor');
+                }}
+                onSelectEntry={(entry) => {
+                    setSelectedEntry(entry);
+                    setCurrentScreen('editor');
+                }}
+            />
         );
     }
     return (

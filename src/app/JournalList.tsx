@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,9 +8,10 @@ import { getAllEntries, initDatabase, JournalEntry } from './utils/db';
 interface JournalListProps {
     onNewEntry: () => void;
     onSelectEntry?: (entry: JournalEntry) => void;
+    onOpenSettings?: () => void;
 }
 
-export default function journalList({onNewEntry, onSelectEntry}: JournalListProps) {
+export default function JournalList({onNewEntry, onSelectEntry, onOpenSettings}: JournalListProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const styles = getStyles(isDark);
@@ -49,8 +51,8 @@ export default function journalList({onNewEntry, onSelectEntry}: JournalListProp
         <SafeAreaView style={styles.container}>
             <View style={styles.topBar}>
                 <Text style={styles.heading}>My Journals</Text>
-                <TouchableOpacity style={styles.newBtn} onPress={onNewEntry}>
-                    <Text style={styles.newBtnText}>+ Write</Text>
+                <TouchableOpacity style={styles.iconBtn} onPress={onOpenSettings} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                    <Ionicons name='settings-outline' size={22} color={isDark ? '#fff' : '#1c1917'}/>
                 </TouchableOpacity>
             </View>
 
@@ -65,6 +67,9 @@ export default function journalList({onNewEntry, onSelectEntry}: JournalListProp
                 </View>
             }
             />
+            <TouchableOpacity style={styles.fab} onPress={onNewEntry} activeOpacity={0.8}>
+                <Ionicons name='pencil' size={24} color='#ffffff'/>
+            </TouchableOpacity>
         </SafeAreaView>
     )
 }
@@ -101,6 +106,7 @@ const getStyles = (isDark: boolean) =>
     },
     listContent: {
       padding: 16,
+      paddingBottom: 100,
     },
     card: {
       backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
@@ -140,5 +146,25 @@ const getStyles = (isDark: boolean) =>
     emptyText: {
       fontSize: 15,
       color: '#a8a29e',
+    },
+    iconBtn: {
+        padding: 6,
+        borderRadius: 20,
+    },
+    fab:{
+        position: 'absolute',
+        right: 24,
+        bottom: 30,
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: '#1c1917',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 4,},
+        shadowOpacity: 0.3,
+        shadowRadius: 4.5,
+        elevation: 6,
     },
   });
