@@ -3,6 +3,8 @@ import * as Linking from 'expo-linking';
 import { useEffect, useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
 import Editor from "./Editor";
+import JournalList from "./JournalList";
+import { initDatabase } from "./utils/db";
 import { supabase } from "./utils/supabase";
 
 export default function Auth() {
@@ -16,6 +18,12 @@ export default function Auth() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [session, setSession] = useState<Session | null>(null);
+
+    const [currentScreen, setCurrentScreen] = useState<'list' | 'editor'>('list');
+
+    useEffect(() => {
+        initDatabase(); // <-- Guarantees SQLite table exists
+    }, []);
 
     useEffect(() => {
         const handleUrl = (url: string) => {
@@ -79,9 +87,15 @@ export default function Auth() {
             setLoading(false);
         }
     }
-    if (session && session.user) {
+if (session && session.user) {
+        if (currentScreen === 'editor') {
+            return (
+                <Editor onSaved={() => setCurrentScreen('list')} />
+            );
+        }
+
         return (
-            <Editor />
+            <JournalList onNewEntry={() => setCurrentScreen('editor')} />
         );
     }
     return (

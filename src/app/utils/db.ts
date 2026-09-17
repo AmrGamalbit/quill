@@ -13,12 +13,14 @@ export function initDatabase() {
   db.execSync(`
         CREATE TABLE IF NOT EXISTS entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        text TEXT NOT NULL,
+        title TEXT NOT NULL,
         content TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         `);
 }
+
+initDatabase();
 
 export function saveEntry(title: string, content: string) {
   const statement = db.prepareSync(
