@@ -1,19 +1,18 @@
-import { useColorScheme } from "@/src/components/useColorScheme";
 import { Merriweather_400Regular } from "@expo-google-fonts/merriweather";
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { colors } from "../constants/colors";
+import useTheme from "../hooks/useTheme";
 
 export {
   // Catch any errors thrown by the Layout component.
-  ErrorBoundary
+  ErrorBoundary,
 } from "expo-router";
 
 export const unstable_settings = {
@@ -50,17 +49,15 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          contentStyle: { backgroundColor: colors.light.background },
-        }}
-      >
-        <Stack.Screen name="(app)" options={{ headerShown: true }} />
-      </Stack>
-    </ThemeProvider>
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <Stack.Screen name="(app)" />
+    </Stack>
   );
 }
