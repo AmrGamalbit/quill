@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { FlatList, Text, View } from 'react-native';
-import { supabase } from './utils/supabase';
+import { useEffect, useState } from "react";
+import { FlatList, Text, View } from "react-native";
+import { supabase } from "../utils/supabase";
 
 type Todo = {
   id: number;
@@ -13,10 +13,10 @@ export default function App() {
   useEffect(() => {
     const getTodos = async () => {
       try {
-        const { data: todos, error } = await supabase.from('todos').select();
+        const { data: todos, error } = await supabase.from("todos").select();
 
         if (error) {
-          console.error('Error fetching todos:', error.message);
+          console.error("Error fetching todos:", error.message);
           return;
         }
 
@@ -25,7 +25,7 @@ export default function App() {
         }
       } catch (error) {
         if (error instanceof Error) {
-          console.error('Error fetching todos:', error.message);
+          console.error("Error fetching todos:", error.message);
         }
       }
     };
@@ -34,7 +34,7 @@ export default function App() {
   }, []);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Todo List</Text>
       <FlatList
         data={todos}

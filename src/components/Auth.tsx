@@ -9,7 +9,7 @@ import {
     View,
     useColorScheme,
 } from "react-native";
-import { supabase } from "./utils/supabase";
+import { supabase } from "../utils/supabase";
 
 export default function Auth() {
   const colorScheme = useColorScheme();
@@ -122,6 +122,6 @@ const getStyles = (isDark: boolean) =>
       padding: 20,
       borderRadius: 8,
       marginBottom: 20,
-      color: isDark ? "colors.light.accent" : "#000",
+      color: isDark ? "#fff" : "#000",
     },
   });
