@@ -1,5 +1,6 @@
 import DatePill from "@/src/components/DatePill";
 import DiaryCard from "@/src/components/DiaryCard";
+import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import useTheme from "@/src/hooks/useTheme";
 import type { Diary } from "@/src/types/diary";
@@ -74,6 +75,11 @@ export default function Home() {
           renderItem={({ item, index }) => (
             <DiaryCard key={index} diary={item} />
           )}
+        />
+        <FloatingActionButton
+          onPress={() => {
+            console.log("pressed");
+          }}
         />
       </View>
     </>
