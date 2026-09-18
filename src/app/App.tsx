@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
-import { supabase } from './utils/supabase';
+import { supabase } from '../utils/supabase';
 
 type Todo = {
   id: number;

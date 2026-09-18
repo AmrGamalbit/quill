@@ -1,0 +1,125 @@
+name: Build Android (debug-signed) & iOS (unsigned IPA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  android:
+    name: Build Android (release, debug-signed)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo prebuild (android)
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Force release build type to sign with debug key
+        working-directory: android/app
+        run: |
+          # Expo's default template already does this, but we force it
+          # explicitly in case a release signingConfig was ever added.
+          if grep -q "signingConfig signingConfigs.release" build.gradle; then
+            sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/' build.gradle
+            echo "Patched release buildType to use debug signingConfig"
+          else
+            echo "release buildType already uses debug signingConfig (Expo default)"
+          fi
+
+      - name: Build release APK (debug-signed)
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-debugsigned-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+  ios:
+    name: Build iOS (unsigned IPA, for SideStore)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo prebuild (ios)
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+
+      - name: Build unsigned .app for device (iphoneos)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          WORKSPACE=$(ls | grep .xcworkspace | head -n 1)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | xargs)
+          echo "Using workspace: $WORKSPACE, scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM="" \
+            ENABLE_BITCODE=NO \
+            build
+
+      - name: Package unsigned .app into .ipa
+        working-directory: ios
+        run: |
+          APP_PATH=$(find build/Build/Products -maxdepth 1 -name "*.app" | head -n 1)
+          echo "Found app at $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r "$GITHUB_WORKSPACE/app-unsigned.ipa" Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-ipa
+          path: app-unsigned.ipa
+          if-no-files-found: error
