@@ -8,7 +8,11 @@
     "scheme": "quill",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nicesapien.quill",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",

@@ -1,15 +1,17 @@
 import { Session } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, useColorScheme, View } from "react-native";
 import { signIn, signUp, subscribeToAuthState } from "../utils/auth";
-import { initDatabase, JournalEntry } from "../utils/db";
+import { ensureDefaultDiary, getEntriesByDiaryId, initDatabase, JournalEntry } from '../utils/db';
 import Editor from "./Editor";
-import JournalList from "./JournalList";
+import EntriesList from "./EntriesList";
 
 export default function Auth() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
+    const [entries, setEntries] = useState<JournalEntry[]>([]);
     const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+    
 
     const styles = getStyles(isDark);
 
@@ -19,6 +21,21 @@ export default function Auth() {
     const [session, setSession] = useState<Session | null>(null);
 
     const [currentScreen, setCurrentScreen] = useState<'list' | 'editor'>('list');
+    const [selectedDiaryId, setSelectedDiaryId] = useState<number | null>(null);
+    useEffect(() => {
+    initDatabase();
+    const defaultDiaryId = ensureDefaultDiary();
+    setSelectedDiaryId(defaultDiaryId);
+  }, []);
+
+const loadEntries = useCallback(() => {
+    if (selectedDiaryId === null) return;
+    const data = getEntriesByDiaryId(selectedDiaryId);
+    setEntries(data);
+  }, [selectedDiaryId]);
+  useEffect(() => {
+    loadEntries();
+  }, [loadEntries]);
 
 useEffect(() => {
     initDatabase();
@@ -53,27 +70,29 @@ setLoading(true);
   }
     }
     if (session && session.user) {
-        if (currentScreen === 'editor') {
-            return (
-                <Editor
-                    key={selectedEntry ? `entry-${selectedEntry.id}` : 'new-entry'}
-                    diaryId={selectedEntry ? selectedEntry.diary_id : 1}
-                    entryToEdit={selectedEntry}
-                    initialReadOnly={!!selectedEntry}
-                    onBack={() => {
-                        setSelectedEntry(null);
-                        setCurrentScreen('list');
-                    }}
-                    onSaved={() => {
-                        setSelectedEntry(null);
-                        setCurrentScreen('list');
-                    }}
-                />
-            );
-        }
+  if (currentScreen === 'editor' && selectedDiaryId !== null) {
+    return (
+      <Editor
+        key={selectedEntry ? `entry-${selectedEntry.id}` : 'new-entry'}
+        diaryId={selectedEntry ? selectedEntry.diary_id : selectedDiaryId}
+        entryToEdit={selectedEntry}
+        initialReadOnly={!!selectedEntry}
+        onBack={() => {
+          setSelectedEntry(null);
+          setCurrentScreen('list');
+        }}
+        onSaved={() => {
+          setSelectedEntry(null);
+          loadEntries();
+          setCurrentScreen('list');
+        }}
+      />
+    );
+  }
 
         return (
-            <JournalList
+            <EntriesList
+            entries={entries}
                 onNewEntry={() => {
                     setSelectedEntry(null);
                     setCurrentScreen('editor');

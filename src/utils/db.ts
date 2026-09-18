@@ -16,6 +16,15 @@ export interface JournalEntry {
   created_at: string;
   updated_at: string;
 }
+export const ensureDefaultDiary = (): number => {
+  const existingDiaries = getAllDiaries();
+
+  if (existingDiaries.length > 0) {
+    return existingDiaries[0].id;
+  }
+
+  return saveDiary("My Diary");
+};
 
 export function initDatabase() {
   db.execSync(`
@@ -36,13 +45,14 @@ export function initDatabase() {
         FOREIGN KEY (diary_id) REFERENCES diaries (id) ON DELETE CASCADE
         );
         `);
+  ensureDefaultDiary();
 }
 
-export const getAllDiaries = (): Diary[] => {
+export function getAllDiaries(): Diary[] {
   return db.getAllSync<Diary>(
     `SELECT * FROM  diaries ORDER BY created_at DESC;`,
   );
-};
+}
 export const saveDiary = (name: string): number => {
   const statement = db.prepareSync(`
     INSERT INTO diaries (name) VALUES (?)`);
@@ -77,8 +87,6 @@ export const saveEntry = (
     statement.finalizeSync();
   }
 };
-
-initDatabase();
 
 /*export function saveEntry(title: string, content: string) {
   const statement = db.prepareSync(

@@ -1,31 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View } from '../components/Themed';
-import { getAllEntries, initDatabase, JournalEntry } from '../utils/db';
+import { JournalEntry } from '../utils/db';
 
-interface JournalListProps {
+interface EntriesListProps {
+    entries: JournalEntry[];
     onNewEntry: () => void;
     onSelectEntry?: (entry: JournalEntry) => void;
     onOpenSettings?: () => void;
 }
 
-export default function JournalList({onNewEntry, onSelectEntry, onOpenSettings}: JournalListProps) {
+export default function EntriesList({entries, onNewEntry, onSelectEntry, onOpenSettings}: EntriesListProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const styles = getStyles(isDark);
 
-    const [entries, setEntries] = useState<JournalEntry[]>([]);
 
-    useEffect(() => {
-        initDatabase();
-        loadEntries();
-    }, []);
-    const loadEntries = () => {
-        const data = getAllEntries();
-        setEntries(data);
-    }
     const renderItem = ({item} : {item : JournalEntry}) => (
         <TouchableOpacity 
         style={styles.card}
