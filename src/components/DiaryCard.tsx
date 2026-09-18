@@ -1,10 +1,16 @@
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime.js";
 import { StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
+import type { Diary } from "../types/diary";
+import type { Entry } from "../types/entry";
 import Pill from "./Pill";
 
-export default function DiaryCard() {
+dayjs.extend(relativeTime);
+
+export default function DiaryCard({ diary }: { diary: Diary }) {
   const { colors } = useTheme();
   return (
     <View
@@ -17,36 +23,36 @@ export default function DiaryCard() {
         },
       ]}
     >
-      <CardHeader />
-      <SnippetBox />
-      <CardFooter />
+      <CardHeader diary={diary} />
+      <SnippetBox diary={diary} />
+      <CardFooter diary={diary} />
     </View>
   );
 }
 
-function CardHeader() {
+function CardHeader({ diary }: { diary: Diary }) {
   return (
     <View style={style.headerContainer}>
-      <CardHeaderInfo />
+      <CardHeaderInfo diary={diary} />
       <CardCover />
     </View>
   );
 }
 
-function CardHeaderInfo() {
+function CardHeaderInfo({ diary }: { diary: Diary }) {
   const { colors } = useTheme();
   return (
     <View style={style.headerInfoContainer}>
       <Text style={[style.headerTitle, { color: colors.text }]}>
-        France Holiday
+        {diary.name}
       </Text>
       <View style={style.headerMeta}>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          4 members
+          {diary.members.length} members
         </Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>•</Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          5 entries
+          {diary.entries.length} entries
         </Text>
       </View>
     </View>
@@ -57,7 +63,7 @@ function CardCover() {
   return <View style={style.coverContainer}></View>;
 }
 
-function SnippetBox() {
+function SnippetBox({ diary }: { diary: Diary }) {
   const { colors } = useTheme();
   return (
     <View
@@ -68,16 +74,16 @@ function SnippetBox() {
         },
       ]}
     >
-      <Text>
-        “We got up before sunrise because Sam insisted the light over the old
-        town would be worth it, and honestly, standing on that hill with...
-      </Text>
+      <Text>{diary.entries[0].body}</Text>
     </View>
   );
 }
 
-function CardFooter() {
-  const { colors } = useTheme();
+function CardFooter({ diary }: { diary: Diary }) {
+  const newEntries = diary.entries.filter(
+    (e) => diary.lastOpenedAt > e.createdAt,
+  );
+  const latestEntry = getLatestEntry(diary.entries);
   return (
     <View
       style={{
@@ -86,10 +92,21 @@ function CardFooter() {
         justifyContent: "space-between",
       }}
     >
-      <Text>Updated by Sam 1 hour ago</Text>
-      <Pill text="3 new entries" />
+      <Text>
+        Updated by {latestEntry?.author}{" "}
+        {dayjs().to(dayjs(latestEntry?.createdAt))}
+      </Text>
+      <Pill text={`${newEntries.length} new entries`} />
     </View>
   );
+}
+
+function getLatestEntry(entries: Entry[]) {
+  if (entries.length == 0) return;
+  const latestEntry = entries.reduce((latest, entry) =>
+    new Date(latest.createdAt) > new Date(entry.createdAt) ? latest : entry,
+  );
+  return latestEntry;
 }
 
 const style = StyleSheet.create({
