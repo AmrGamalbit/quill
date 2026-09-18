@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View } from '../components/Themed';
-import { getAllEntries, initDatabase, JournalEntry } from './utils/db';
+import { getAllEntries, initDatabase, JournalEntry } from '../utils/db';
 
 interface JournalListProps {
     onNewEntry: () => void;
@@ -43,7 +43,7 @@ export default function JournalList({onNewEntry, onSelectEntry, onOpenSettings}:
             </View>
 
             <Text style={styles.cardPreview} numberOfLines={2}>
-                {item.content.replace(/<[^>]+>/g, '').trim() || 'No text content.'}
+                {item.body.replace(/<[^>]+>/g, '').trim() || 'No text content.'}
             </Text>
         </TouchableOpacity>
     )

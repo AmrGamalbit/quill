@@ -3,16 +3,17 @@ import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { JournalEntry, saveEntry } from './utils/db';
+import { JournalEntry, saveEntry } from '../utils/db';
 
 interface EditorProps {
+    diaryId: number;
     onSaved?: () => void;
     onBack?: () => void;
     entryToEdit?: JournalEntry | null;
     initialReadOnly?: boolean;
 }
 
-export default function Editor({ onSaved, onBack, entryToEdit, initialReadOnly = false }: EditorProps) {
+export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialReadOnly = false }: EditorProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const styles = getStyles(isDark);
@@ -30,7 +31,7 @@ export default function Editor({ onSaved, onBack, entryToEdit, initialReadOnly =
     const editor = useEditorBridge({
         autofocus: !initialReadOnly,
         avoidIosKeyboard: true,
-        initialContent: entryToEdit ? entryToEdit.content : '<p></p>',
+        initialContent: entryToEdit ? entryToEdit.body : '<p></p>',
         editable: !isReadOnly,
     })
 
@@ -41,7 +42,7 @@ export default function Editor({ onSaved, onBack, entryToEdit, initialReadOnly =
         }
 
         const contentHtml = await editor.getHTML();
-        saveEntry(title, contentHtml);
+        saveEntry(diaryId, title, contentHtml);
         Alert.alert('Saved!', 'Entry saved succesfully.');
         if (onSaved) onSaved();
     }
