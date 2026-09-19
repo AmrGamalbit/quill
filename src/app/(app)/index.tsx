@@ -73,6 +73,10 @@ export default function Home() {
       },
     ]);
   };
+
+  const handleDeleteDiary = (id) => {
+    setDiaries((prevDiaries) => [...prevDiaries.filter((d) => d.id != id)]);
+  };
   return (
     <>
       <View style={{ padding: spacing.lg }}>
@@ -89,7 +93,11 @@ export default function Home() {
         <FlatList
           data={diaries}
           renderItem={({ item, index }) => (
-            <DiaryCard key={index} diary={item} />
+            <DiaryCard
+              key={index}
+              diary={item}
+              onDelete={(id) => handleDeleteDiary(id)}
+            />
           )}
         />
         <Modal

@@ -6,11 +6,18 @@ import { fontSizes } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import type { Diary } from "../types/diary";
 import type { Entry } from "../types/entry";
+import Button from "./Button";
 import Pill from "./Pill";
 
 dayjs.extend(relativeTime);
 
-export default function DiaryCard({ diary }: { diary: Diary }) {
+export default function DiaryCard({
+  diary,
+  onDelete,
+}: {
+  diary: Diary;
+  onDelete: (id) => void;
+}) {
   const { colors } = useTheme();
   return (
     <View
@@ -25,7 +32,7 @@ export default function DiaryCard({ diary }: { diary: Diary }) {
     >
       <CardHeader diary={diary} />
       <SnippetBox diary={diary} />
-      <CardFooter diary={diary} />
+      <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
     </View>
   );
 }
@@ -79,7 +86,13 @@ function SnippetBox({ diary }: { diary: Diary }) {
   );
 }
 
-function CardFooter({ diary }: { diary: Diary }) {
+function CardFooter({
+  diary,
+  onDelete,
+}: {
+  diary: Diary;
+  onDelete: () => void;
+}) {
   const newEntries = diary.entries.filter(
     (e) => diary.lastOpenedAt > e.createdAt,
   );
@@ -96,7 +109,17 @@ function CardFooter({ diary }: { diary: Diary }) {
         Updated by {latestEntry?.author}{" "}
         {dayjs().to(dayjs(latestEntry?.createdAt))}
       </Text>
-      <Pill text={`${newEntries.length} new entries`} />
+      <View
+        style={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexDirection: "row",
+          gap: spacing.sm,
+        }}
+      >
+        <Pill text={`${newEntries.length} new entries`} />
+        <Button label="Delete" onPress={onDelete} />
+      </View>
     </View>
   );
 }
