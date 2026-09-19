@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef } from "react";
 import { Animated, Pressable, StyleSheet } from "react-native";
+import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 
 export default function FloatingActionButton({
@@ -9,17 +9,10 @@ export default function FloatingActionButton({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
-  const color = useRef(new Animated.Value(0)).current;
-  const animatePress = (pressed: boolean) =>
-    Animated.timing(color, {
-      toValue: pressed ? 1 : 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  const backgroundColor = color.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.fabBackground, colors.fabBackgroundPressed],
-  });
+  const { animatePress, animatedColor } = usePressAnimation(
+    colors.accent,
+    colors.accentPressed,
+  );
   return (
     <Pressable
       style={styles.fabContainer}
@@ -28,7 +21,10 @@ export default function FloatingActionButton({
       onPressOut={() => animatePress(false)}
     >
       <Animated.View
-        style={[styles.fab, { backgroundColor, shadowColor: colors.shadow }]}
+        style={[
+          styles.fab,
+          { backgroundColor: animatedColor, shadowColor: colors.shadow },
+        ]}
       >
         <Ionicons name="pencil" size={22} color={colors.textOnAccent} />
       </Animated.View>
