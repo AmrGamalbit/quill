@@ -1,12 +1,17 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { radius } from "../constants/radius";
+import { StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
+import Button from "./Button";
 import FormField from "./FormField";
 
-type DiaryFormProps = { onClose: () => void; onSubmit: (data) => void };
+type DiaryFormData = { name: string; description: string };
+type DiaryFormProps = {
+  onClose: () => void;
+  onSubmit: (data: DiaryFormData) => void;
+};
+
 export default function DiaryForm({ onClose, onSubmit }: DiaryFormProps) {
   const { colors } = useTheme();
   const [formData, setFormData] = useState({ name: "", description: "" });
@@ -35,12 +40,7 @@ export default function DiaryForm({ onClose, onSubmit }: DiaryFormProps) {
             setFormData((prevData) => ({ ...prevData, description: newText }))
           }
         />
-        <Pressable
-          style={[styles.button, { backgroundColor: colors.accent }]}
-          onPress={handleSubmit}
-        >
-          <Text style={{ color: colors.textOnAccent }}>Create</Text>
-        </Pressable>
+        <Button label="Create" onPress={handleSubmit} />
       </View>
     </View>
   );
@@ -49,10 +49,4 @@ export default function DiaryForm({ onClose, onSubmit }: DiaryFormProps) {
 const styles = StyleSheet.create({
   modal: { width: "100%", padding: spacing.xl },
   title: { fontSize: fontSizes.lg, fontFamily: fonts.label },
-  button: {
-    borderRadius: radius.sm,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: spacing.sm,
-  },
 });
