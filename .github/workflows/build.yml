@@ -3,7 +3,6 @@ name: Build Android (debug-signed) & iOS (unsigned IPA)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
 
 jobs:
   android:
@@ -24,6 +23,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Setup Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Install dependencies
         run: npm ci
@@ -86,9 +88,27 @@ jobs:
       - name: Expo prebuild (ios)
         run: npx expo prebuild --platform ios --no-install
 
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
       - name: Install CocoaPods
         working-directory: ios
         run: pod install
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ios/build
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
 
       - name: Build unsigned .app for device (iphoneos)
         working-directory: ios
@@ -111,6 +131,9 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             DEVELOPMENT_TEAM="" \
             ENABLE_BITCODE=NO \
+            SUPPORTS_MACCATALYST=NO \
+            SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD=NO \
+            SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD=NO \
             build
 
       - name: Package unsigned .app into .ipa
