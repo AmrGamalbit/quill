@@ -8,11 +8,12 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
 
 export {
   // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
+  ErrorBoundary
 } from "expo-router";
 
 export const unstable_settings = {
@@ -52,12 +53,15 @@ function RootLayoutNav() {
   const { colors } = useTheme();
 
   return (
-    <Stack
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
-      <Stack.Screen name="(app)" />
-    </Stack>
+    <SafeAreaProvider>
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: colors.background },
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="(app)" />
+      </Stack>
+    </SafeAreaProvider>
   );
 }

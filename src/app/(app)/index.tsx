@@ -7,6 +7,7 @@ import { spacing } from "@/src/constants/spacings";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
 import { useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const [diaries, setDiaries] = useState<Diary[]>([
@@ -77,47 +78,49 @@ export default function Home() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <GreetingHeader name="Alex" />
-          <DatePill />
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={styles.screen}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <GreetingHeader name="Alex" />
+            <DatePill />
+          </View>
+          <FlatList
+            data={diaries}
+            renderItem={({ item, index }) => (
+              <DiaryCard
+                key={index}
+                diary={item}
+                onDelete={(id) => handleDeleteDiary(id)}
+              />
+            )}
+          />
         </View>
-        <FlatList
-          data={diaries}
-          renderItem={({ item, index }) => (
-            <DiaryCard
-              key={index}
-              diary={item}
-              onDelete={(id) => handleDeleteDiary(id)}
+        <Modal
+          visible={showDiaryForm}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowDiaryForm(false)}
+        >
+          <Pressable
+            style={styles.overlay}
+            onPress={() => setShowDiaryForm(false)}
+          >
+            <DiaryForm
+              onClose={() => {
+                setShowDiaryForm(false);
+              }}
+              onSubmit={(data) => handleAddDiary(data)}
             />
-          )}
+          </Pressable>
+        </Modal>
+        <FloatingActionButton
+          onPress={() => {
+            setShowDiaryForm(true);
+          }}
         />
       </View>
-      <Modal
-        visible={showDiaryForm}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDiaryForm(false)}
-      >
-        <Pressable
-          style={styles.overlay}
-          onPress={() => setShowDiaryForm(false)}
-        >
-          <DiaryForm
-            onClose={() => {
-              setShowDiaryForm(false);
-            }}
-            onSubmit={(data) => handleAddDiary(data)}
-          />
-        </Pressable>
-      </Modal>
-      <FloatingActionButton
-        onPress={() => {
-          setShowDiaryForm(true);
-        }}
-      />
-    </View>
+    </SafeAreaView>
   );
 }
 
