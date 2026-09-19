@@ -74,7 +74,7 @@ function SnippetBox({ diary }: { diary: Diary }) {
         },
       ]}
     >
-      <Text>{diary.entries[0].body}</Text>
+      <Text>{diary.entries[0]?.body}</Text>
     </View>
   );
 }
