@@ -3,10 +3,10 @@ import { StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
+import type { DiaryFormData } from "../types/diary";
 import Button from "./Button";
 import FormField from "./FormField";
 
-type DiaryFormData = { name: string; description: string };
 type DiaryFormProps = {
   onClose: () => void;
   onSubmit: (data: DiaryFormData) => void;

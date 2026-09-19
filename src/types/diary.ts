@@ -8,3 +8,5 @@ export type Diary = {
   createdAt: string;
   lastOpenedAt: string;
 };
+
+export type DiaryFormData = { name: string; description: string };

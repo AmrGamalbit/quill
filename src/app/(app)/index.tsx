@@ -3,13 +3,12 @@ import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
-import useTheme from "@/src/hooks/useTheme";
-import type { Diary } from "@/src/types/diary";
+import { spacing } from "@/src/constants/spacings";
+import type { Diary, DiaryFormData } from "@/src/types/diary";
 import { useState } from "react";
-import { FlatList, Modal, Pressable, View } from "react-native";
+import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
 
 export default function Home() {
-  const { spacing } = useTheme();
   const [diaries, setDiaries] = useState<Diary[]>([
     {
       id: "1",
@@ -60,33 +59,27 @@ export default function Home() {
   ]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
 
-  const handleAddDiary = (data) => {
+  const handleAddDiary = (data: DiaryFormData) => {
     const createdAt = new Date().toString();
-    setDiaries((prevDiaries) => [
-      ...prevDiaries,
-      {
-        id: createdAt,
-        name: data.name,
-        members: ["You"],
-        createdAt: createdAt,
-        entries: [],
-      },
-    ]);
+    const newDiary = {
+      id: createdAt,
+      name: data.name,
+      members: ["You"],
+      createdAt: createdAt,
+      lastOpenedAt: createdAt,
+      entries: [],
+    };
+    setDiaries((prevDiaries) => [...prevDiaries, newDiary]);
   };
 
-  const handleDeleteDiary = (id) => {
+  const handleDeleteDiary = (id: string) => {
     setDiaries((prevDiaries) => [...prevDiaries.filter((d) => d.id != id)]);
   };
+
   return (
-    <>
-      <View style={{ padding: spacing.lg }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-          }}
-        >
+    <View style={styles.screen}>
+      <View style={styles.content}>
+        <View style={styles.header}>
           <GreetingHeader name="Alex" />
           <DatePill />
         </View>
@@ -100,34 +93,45 @@ export default function Home() {
             />
           )}
         />
-        <Modal
-          visible={showDiaryForm}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowDiaryForm(false)}
-        >
-          <Pressable
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-              justifyContent: "flex-end",
-            }}
-            onPress={() => setShowDiaryForm(false)}
-          >
-            <DiaryForm
-              onClose={() => {
-                setShowDiaryForm(false);
-              }}
-              onSubmit={(data) => handleAddDiary(data)}
-            />
-          </Pressable>
-        </Modal>
-        <FloatingActionButton
-          onPress={() => {
-            setShowDiaryForm(true);
-          }}
-        />
       </View>
-    </>
+      <Modal
+        visible={showDiaryForm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDiaryForm(false)}
+      >
+        <Pressable
+          style={styles.overlay}
+          onPress={() => setShowDiaryForm(false)}
+        >
+          <DiaryForm
+            onClose={() => {
+              setShowDiaryForm(false);
+            }}
+            onSubmit={(data) => handleAddDiary(data)}
+          />
+        </Pressable>
+      </Modal>
+      <FloatingActionButton
+        onPress={() => {
+          setShowDiaryForm(true);
+        }}
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  content: { padding: spacing.lg },
+  header: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "flex-end",
+  },
+});
