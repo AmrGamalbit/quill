@@ -95,7 +95,7 @@ jobs:
         run: |
           set -o pipefail
           WORKSPACE=$(ls | grep .xcworkspace | head -n 1)
-          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | xargs)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           echo "Using workspace: $WORKSPACE, scheme: $SCHEME"
           xcodebuild \
             -workspace "$WORKSPACE" \
