@@ -6,7 +6,15 @@ import GreetingHeader from "@/src/components/GreetingHeader";
 import { spacing } from "@/src/constants/spacings";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
 import { useState } from "react";
-import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
@@ -106,12 +114,18 @@ export default function Home() {
             style={styles.overlay}
             onPress={() => setShowDiaryForm(false)}
           >
-            <DiaryForm
-              onClose={() => {
-                setShowDiaryForm(false);
-              }}
-              onSubmit={(data) => handleAddDiary(data)}
-            />
+            <KeyboardAvoidingView
+              behavior={Platform.OS == "ios" ? "padding" : "height"}
+            >
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                <DiaryForm
+                  onClose={() => {
+                    setShowDiaryForm(false);
+                  }}
+                  onSubmit={(data) => handleAddDiary(data)}
+                />
+              </Pressable>
+            </KeyboardAvoidingView>
           </Pressable>
         </Modal>
         <FloatingActionButton
