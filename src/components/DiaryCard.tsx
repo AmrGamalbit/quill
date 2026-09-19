@@ -1,8 +1,9 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
-import { StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes } from "../constants/typography";
+import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import type { Diary } from "../types/diary";
 import type { Entry } from "../types/entry";
@@ -16,24 +17,34 @@ export default function DiaryCard({
   onDelete,
 }: {
   diary: Diary;
-  onDelete: (id) => void;
+  onDelete: (id: string) => void;
 }) {
   const { colors } = useTheme();
+  const { animatePress, animatedColor } = usePressAnimation(
+    colors.card,
+    colors.cardPressed,
+  );
+
   return (
-    <View
-      style={[
-        style.cardContainer,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-          shadowColor: colors.shadow,
-        },
-      ]}
+    <Pressable
+      onPressIn={() => animatePress(true)}
+      onPressOut={() => animatePress(false)}
     >
-      <CardHeader diary={diary} />
-      <SnippetBox diary={diary} />
-      <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
-    </View>
+      <Animated.View
+        style={[
+          style.cardContainer,
+          {
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+            backgroundColor: animatedColor,
+          },
+        ]}
+      >
+        <CardHeader diary={diary} />
+        <SnippetBox diary={diary} />
+        <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
+      </Animated.View>
+    </Pressable>
   );
 }
 
