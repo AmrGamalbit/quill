@@ -1,183 +1,113 @@
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime.js";
-import { Link } from "expo-router";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
-import { fontSizes } from "../constants/typography";
+import { fontSizes, fonts } from "../constants/typography";
 import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import type { Diary } from "../types/diary";
-import type { Entry } from "../types/entry";
-import { getEntryCount } from "../utils/db";
-import Button from "./Button";
-import Pill from "./Pill";
 
-dayjs.extend(relativeTime);
-
-export default function DiaryCard({
-  diary,
-  onDelete,
-}: {
+type DiaryCardProps = {
   diary: Diary;
+  onPress: () => void;
   onDelete: (id: string) => void;
-}) {
+};
+
+export default function DiaryCard({ diary, onPress, onDelete }: DiaryCardProps) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
     colors.cardPressed,
   );
 
-  return (
-    <Link href={`/(app)/diary/${diary.id}`} asChild>
-      <Pressable
-        onPressIn={() => animatePress(true)}
-        onPressOut={() => animatePress(false)}
-      >
-        <Animated.View
-          style={[
-            style.cardContainer,
-            {
-              borderColor: colors.border,
-              shadowColor: colors.shadow,
-              backgroundColor: animatedColor,
-            },
-          ]}
-        >
-          <CardHeader diary={diary} />
-          <SnippetBox diary={diary} />
-          <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
-        </Animated.View>
-      </Pressable>
-    </Link>
-  );
-}
-
-function CardHeader({ diary }: { diary: Diary }) {
-  return (
-    <View style={style.headerContainer}>
-      <CardHeaderInfo diary={diary} />
-      <CardCover />
-    </View>
-  );
-}
-
-function CardHeaderInfo({ diary }: { diary: Diary }) {
-  const { colors } = useTheme();
-  return (
-    <View style={style.headerInfoContainer}>
-      <Text style={[style.headerTitle, { color: colors.text }]}>
-        {diary.name}
-      </Text>
-      <View style={style.headerMeta}>
-        <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {diary.members?.length || 1} members
-        </Text>
-        <Text style={[style.headerMetaText, { color: colors.text }]}>•</Text>
-        <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {getEntryCount(diary.id) || 0} entries
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function CardCover() {
-  return <View style={style.coverContainer}></View>;
-}
-
-function SnippetBox({ diary }: { diary: Diary }) {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        style.snippetContainer,
+  const handleLongPress = () => {
+    Alert.alert(
+      "Delete Diary",
+      `Are you sure you want to delete "${diary.name}"? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
         {
-          backgroundColor: colors.surface,
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onDelete(diary.id),
         },
-      ]}
-    >
-      <Text>{diary.entries?.[0]?.body || diary.description}</Text>
-    </View>
-  );
-}
+      ]
+    );
+  };
 
-function CardFooter({
-  diary,
-  onDelete,
-}: {
-  diary: Diary;
-  onDelete: () => void;
-}) {
-  const newEntries = diary.entries?.filter(
-    (e) => diary.lastOpenedAt > e.createdAt,
-  );
-  const latestEntry = diary.entries ? getLatestEntry(diary.entries) : {};
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
+    <Pressable
+      onPress={onPress}
+      onLongPress={handleLongPress}
+      delayLongPress={500}
+      onPressIn={() => animatePress(true)}
+      onPressOut={() => animatePress(false)}
+      style={styles.pressableWrapper}
     >
-      <Text>
-        Updated by {latestEntry?.author || "You"}{" "}
-        {dayjs().to(dayjs(latestEntry?.createdAt))}
-      </Text>
-      <View
-        style={{
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexDirection: "row",
-          gap: spacing.sm,
-        }}
+      <Animated.View
+        style={[
+          styles.cardContainer,
+          {
+            borderColor: colors.border,
+            backgroundColor: animatedColor,
+          },
+        ]}
       >
-        <Pill text={`${newEntries?.length || 0} new entries`} />
-        <Button label="Delete" onPress={onDelete} />
-      </View>
-    </View>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>{diary.name}</Text>
+          <Text style={[styles.entryCount, { color: colors.textMuted }]}>
+            {diary.entries?.length || 0} {diary.entries?.length === 1 ? "entry" : "entries"}
+          </Text>
+        </View>
+
+        {diary.entries && diary.entries.length > 0 && diary.entries[0]?.body ? (
+          <Text
+            style={[styles.preview, { color: colors.textMuted }]}
+            numberOfLines={2}
+          >
+            {diary.entries[0].body.replace(/<[^>]+>/g, "").trim()}
+          </Text>
+        ) : (
+          <Text style={[styles.emptyPreview, { color: colors.textMuted }]}>
+            No entries yet. Tap to open and start writing.
+          </Text>
+        )}
+      </Animated.View>
+    </Pressable>
   );
 }
 
-function getLatestEntry(entries: Entry[]) {
-  if (entries.length == 0) return;
-  const latestEntry = entries.reduce((latest, entry) =>
-    new Date(latest.createdAt) > new Date(entry.createdAt) ? latest : entry,
-  );
-  return latestEntry;
-}
-
-const style = StyleSheet.create({
+const styles = StyleSheet.create({
+  pressableWrapper: {
+    marginBottom: spacing.sm,
+  },
   cardContainer: {
-    marginVertical: spacing.lg,
     borderWidth: 1,
-    gap: 10,
-    padding: spacing.lg,
-    borderRadius: spacing.lg,
-    shadowOffset: { width: 1, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    padding: spacing.md,
+    borderRadius: radius.md,
   },
-  headerContainer: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.xs,
   },
-  headerInfoContainer: { justifyContent: "space-around" },
-  headerTitle: { fontSize: fontSizes.lg },
-  headerMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 5,
+  title: {
+    fontSize: fontSizes.md,
+    fontFamily: fonts.heading,
+    fontWeight: "600",
   },
-  headerMetaText: {
+  entryCount: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.label,
+  },
+  preview: {
     fontSize: fontSizes.sm,
+    lineHeight: 20,
+    marginTop: spacing.xs,
   },
-  coverContainer: {
-    backgroundColor: "red",
-    width: 60,
-    height: 60,
-    borderRadius: 10,
+  emptyPreview: {
+    fontSize: fontSizes.xs,
+    fontStyle: "italic",
+    marginTop: spacing.xs,
   },
-  snippetContainer: { padding: 10, borderRadius: 10 },
 });

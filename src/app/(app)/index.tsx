@@ -1,114 +1,281 @@
-import DatePill from "@/src/components/DatePill";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
+import Editor from "@/src/components/Editor";
+import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
+import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
-import { getAllDiaries, saveDiary } from "@/src/utils/db";
-import { useEffect, useState } from "react";
+import { subscribeToAuthState } from "@/src/utils/auth";
 import {
+  deleteDiary,
+  deleteEntry,
+  getAllDiaries,
+  getEntriesByDiaryId,
+  initDatabase,
+  JournalEntry,
+  saveDiary,
+} from "@/src/utils/db";
+import { Ionicons } from "@expo/vector-icons";
+import { Session } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Dimensions,
   FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   StyleSheet,
-  View,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
 export default function Home() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const [session, setSession] = useState<Session | null>(null);
+const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
+  const [currentView, setCurrentView] = useState<'diaries' | 'entries' | 'editor'>('diaries');
+  const [selectedDiary, setSelectedDiary] = useState<Diary | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
 
-  useEffect(() => {
-    const result = getAllDiaries();
-    setDiaries(result);
+  const slideInEntries = () => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const slideOutEntries = (onComplete?: () => void) => {
+    Animated.timing(slideAnim, {
+      toValue: SCREEN_WIDTH,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => {
+      if (onComplete) onComplete();
+    })
+  }
+
+  const loadDiaries = useCallback(() => {
+    const rawDiaries = getAllDiaries();
+    const formattedDiaries: Diary[] = rawDiaries.map((d) => {
+      const dbEntries = getEntriesByDiaryId(d.id);
+      return {
+        id: d.id.toString(),
+        name: d.name,
+        createdAt: d.created_at,
+        lastOpenedAt: d.created_at,
+        members: ["You"],
+        entries: dbEntries.map((e) => ({
+          id: e.id.toString(),
+          title: e.title,
+          body: e.body,
+          author: "You",
+          createdAt: e.created_at,
+        })),
+      };
+    });
+    setDiaries(formattedDiaries);
   }, []);
-
+useEffect(() => {
+  const unsubscribe = subscribeToAuthState((newSession) => {
+    setSession(newSession);
+  });
+  return () => {
+    unsubscribe();
+  };
+}, []);
+  useEffect(() => {
+    initDatabase();
+    loadDiaries();
+  }, [loadDiaries]);
   const handleAddDiary = (data: DiaryFormData) => {
-    // const createdAt = new Date().toString();
-    // const newDiary = {
-    //   id: createdAt,
-    //   name: data.name,
-    //   members: ["You"],
-    //   createdAt: createdAt,
-    //   lastOpenedAt: createdAt,
-    //   entries: [],
-    // };
-    const newDiary = saveDiary(data.name, data.description);
-    setDiaries((prevDiaries) => [...prevDiaries, newDiary]);
+    if (!data.name.trim()) return;
+    saveDiary(data.name.trim());
+    loadDiaries();
+    setShowDiaryForm(false);
   };
 
   const handleDeleteDiary = (id: string) => {
-    setDiaries((prevDiaries) => [...prevDiaries.filter((d) => d.id != id)]);
+    deleteDiary(Number(id));
+    loadDiaries();
   };
-
+  const loadEntriesForDiary = useCallback((diaryId: string) => {
+    const data = getEntriesByDiaryId(Number(diaryId));
+    setEntries(data);
+  }, []);
+  const handleDeleteEntry = (entryId: number) => {
+    deleteEntry(entryId);
+    if (selectedDiary) {
+      loadEntriesForDiary(selectedDiary.id);
+      loadDiaries();
+    }
+  }
+  if (currentView === 'editor' && selectedDiary) {
+    return (
+      <Editor
+        key={selectedEntry ? `entry-${selectedEntry.id}` : `new-entry`}
+        diaryId={Number(selectedDiary.id)}
+        entryToEdit={selectedEntry}
+        initialReadOnly={!!selectedEntry}
+        onBack={() => {
+          setSelectedEntry(null);
+          setCurrentView('entries');
+        }}
+        onSaved={() => {
+          setSelectedEntry(null);
+          loadEntriesForDiary(selectedDiary.id);
+          loadDiaries();
+          setCurrentView('entries');
+        }}
+      />
+    );
+  }
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <GreetingHeader name="You" />
-            <DatePill />
+            <View style={styles.headerTextGroup}>
+              <GreetingHeader name="Alex" />
+              {/*   <DatePill /> */}
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setIsSettingsOpen(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="settings-outline" size={22} color={styles.settingsIconColor.color} />
+            </TouchableOpacity>
           </View>
           <FlatList
             data={diaries}
-            renderItem={({ item, index }) => (
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
               <DiaryCard
-                key={index}
                 diary={item}
+                onPress={() => {
+                  setSelectedDiary(item);
+                  loadEntriesForDiary(item.id);
+                  setCurrentView('entries');
+                  slideInEntries();
+                }}
                 onDelete={(id) => handleDeleteDiary(id)}
               />
             )}
           />
         </View>
-        <Modal
-          visible={showDiaryForm}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowDiaryForm(false)}
-        >
-          <Pressable
-            style={styles.overlay}
-            onPress={() => setShowDiaryForm(false)}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS == "ios" ? "padding" : "height"}
-            >
-              <Pressable onPress={(e) => e.stopPropagation()}>
-                <DiaryForm
-                  onClose={() => {
-                    setShowDiaryForm(false);
-                  }}
-                  onSubmit={(data) => handleAddDiary(data)}
-                />
-              </Pressable>
-            </KeyboardAvoidingView>
-          </Pressable>
-        </Modal>
+
+        <DiaryForm
+          isOpen={showDiaryForm}
+          onClose={() => setShowDiaryForm(false)}
+          onSubmit={handleAddDiary}
+        />
+        <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        userEmail={session?.user?.email}
+        />
         <FloatingActionButton
           onPress={() => {
             setShowDiaryForm(true);
           }}
         />
       </View>
+
+      {/* Full-Screen Sliding Entries Layer */}
+      {selectedDiary && (
+        <Animated.View
+          style={[
+            styles.fullScreenSlide,
+            {
+              backgroundColor: isDark ? "#111715" : "#F8FAF9",
+              transform: [{ translateX: slideAnim }],
+            },
+          ]}
+        >
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={[styles.navBar, { borderBottomColor: isDark ? "#283934" : "#E5EBE8" }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  slideOutEntries(() => {
+                    setSelectedDiary(null);
+                    loadDiaries();
+                    setCurrentView('diaries');
+                  });
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text
+                  style={[styles.backButtonText, { color: isDark ? "#4E9E80" : "#1B4938" },
+                  ]}
+                >← {selectedDiary.name}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <EntriesList
+              entries={entries}
+              onNewEntry={() => {
+                setSelectedEntry(null);
+                setCurrentView('editor');
+              }}
+              onSelectEntry={(entry) => {
+                setSelectedEntry(entry);
+                setCurrentView('editor');
+              }}
+              onDeleteEntry={handleDeleteEntry}
+            />
+          </SafeAreaView>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: spacing.lg },
+  content: { padding: spacing.lg, flex: 1 },
   header: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    marginBottom: spacing.md,
   },
-  overlay: {
+  headerTextGroup: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "flex-end",
+  },
+  settingsButton: {
+    padding: 6,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  settingsIconColor: {
+    color: '#62726E',
+  },
+  navBar: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  fullScreenSlide: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "#F8FAF9",
+    zIndex: 10,
   },
 });

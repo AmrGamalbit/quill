@@ -16,15 +16,15 @@ export interface JournalEntry {
   created_at: string;
   updated_at: string;
 }
-export const ensureDefaultDiary = (): number => {
+/*export const ensureDefaultDiary = (): number => {
   const existingDiaries = getAllDiaries();
 
   if (existingDiaries.length > 0) {
     return existingDiaries[0].id;
   }
 
-  return saveDiary("My Diary", "This is my first diary");
-};
+  return saveDiary("My Diary");
+}; */
 
 export function initDatabase() {
   db.execSync(`
@@ -46,7 +46,6 @@ export function initDatabase() {
         FOREIGN KEY (diary_id) REFERENCES diaries (id) ON DELETE CASCADE
         );
         `);
-  ensureDefaultDiary();
 }
 
 export function getAllDiaries(): Diary[] {
@@ -126,3 +125,19 @@ export function getAllEntries(): JournalEntry[] {
     "SELECT * FROM entries ORDER BY created_at DESC;",
   );
 }
+export const deleteDiary = (id: number): void => {
+  const statement = db.prepareSync(`DELETE FROM diaries WHERE id = ?`);
+  try {
+    statement.executeSync([id]);
+  } finally {
+    statement.finalizeSync();
+  }
+};
+export const deleteEntry = (id: number): void => {
+  const statement = db.prepareSync(`DELETE FROM entries WHERE id = ?`);
+  try {
+    statement.executeSync([id]);
+  } finally {
+    statement.finalizeSync();
+  }
+};

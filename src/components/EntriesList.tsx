@@ -1,176 +1,149 @@
-import { useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import useTheme from "../hooks/useTheme";
-import { JournalEntry } from "../utils/db";
-import FloatingActionButton from "./FloatingActionButton";
+import { Ionicons } from '@expo/vector-icons';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { JournalEntry } from '../utils/db';
+
 interface EntriesListProps {
-  entries: JournalEntry[];
-  onNewEntry: () => void;
-  onSelectEntry?: (entry: JournalEntry) => void;
-  onOpenSettings?: () => void;
+    entries: JournalEntry[];
+    onNewEntry: () => void;
+    onSelectEntry?: (entry: JournalEntry) => void;
+    onOpenSettings?: () => void;
+    onDeleteEntry?: (id: number) => void;
 }
 
-export default function EntriesList({
-  entries,
-  onNewEntry,
-  onSelectEntry,
-  onOpenSettings,
-}: EntriesListProps) {
-  const { colors } = useTheme();
-  const router = useRouter();
-  const naviagteToHome = () => {
-    router.navigate("/(app)");
+export default function EntriesList({entries, onNewEntry, onSelectEntry, onOpenSettings, onDeleteEntry}: EntriesListProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+    const styles = getStyles(isDark);
+
+    const handleLongPress = (entry: JournalEntry) => {
+    if (!onDeleteEntry) return;
+
+    Alert.alert(
+      "Delete Entry",
+      `Are you sure you want to delete "${entry.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onDeleteEntry(entry.id),
+        },
+      ]
+    );
   };
-  const renderItem = ({ item }: { item: JournalEntry }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => onSelectEntry && onSelectEntry(item.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.cardDate}>
-          {new Date(item.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
-        </Text>
-      </View>
 
-      <Text style={styles.cardPreview} numberOfLines={2}>
-        {item.body.replace(/<[^>]+>/g, "").trim() || "No text content."}
-      </Text>
-    </TouchableOpacity>
-  );
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View style={[styles.topBar, { backgroundColor: colors.background }]}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={naviagteToHome}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+const renderItem = ({ item }: { item: JournalEntry }) => (
+        <TouchableOpacity 
+            style={styles.card}
+            onPress={() => onSelectEntry && onSelectEntry(item)}
+            activeOpacity={0.7}
+            delayLongPress={500}
+            onLongPress={() => handleLongPress(item)}
         >
-          <SymbolView name="chevron.backward" size={20} />
-        </TouchableOpacity>
-        <Text style={[styles.heading, { color: colors.text }]}>My Entries</Text>
-      </View>
+            <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.cardDate}>
+                    {new Date(item.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                    })}
+                </Text>
+            </View>
 
-      <FlatList
-        data={entries}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View
-            style={[
-              styles.emptyContainer,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <Text style={[styles.emptyText, { color: colors.text }]}>
-              No journals written yet.
+            <Text style={styles.cardPreview} numberOfLines={2}>
+                {item.body.replace(/<[^>]+>/g, '').trim() || 'Empty entry.'}
             </Text>
-          </View>
-        }
-      />
-      <FloatingActionButton onPress={onNewEntry} />
-    </SafeAreaView>
-  );
+        </TouchableOpacity>
+    );
+return (
+        <View style={styles.container}>
+            <FlatList 
+                data={entries}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>No entries yet. Tap the pencil to start writing.</Text>
+                    </View>
+                }
+            />
+            <TouchableOpacity style={styles.fab} onPress={onNewEntry} activeOpacity={0.8}>
+                <Ionicons name='pencil' size={24} color='#ffffff'/>
+            </TouchableOpacity>
+        </View>
+    );
 }
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  newBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  newBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  card: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  backBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    flex: 1,
-    marginRight: 8,
-  },
-  cardDate: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  cardPreview: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  emptyContainer: {
-    paddingTop: 60,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 15,
-  },
-  iconBtn: {
-    padding: 6,
-    borderRadius: 20,
-  },
-  fab: {
-    position: "absolute",
-    right: 24,
-    bottom: 30,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.5,
-    elevation: 6,
-  },
-});
+const getStyles = (isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? '#111715' : '#F8FAF9',
+    },
+    listContent: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: 100,
+    },
+    card: {
+      backgroundColor: isDark ? '#1E2A27' : '#FFFFFF',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: isDark ? '#283934' : '#E5EBE8',
+      shadowColor: isDark ? '#000000' : '#18201E',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: isDark ? 0.2 : 0.04,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginBottom: 6,
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: isDark ? '#ECF2EF' : '#18201E',
+      flex: 1,
+      marginRight: 12,
+    },
+    cardDate: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: isDark ? '#8EA39C' : '#62726E',
+    },
+    cardPreview: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: isDark ? '#8EA39C' : '#62726E',
+    },
+    emptyContainer: {
+      paddingTop: 60,
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: isDark ? '#8EA39C' : '#62726E',
+    },
+    fab: {
+      position: 'absolute',
+      right: 20,
+      bottom: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: isDark ? '#4E9E80' : '#1B4938',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+  });
