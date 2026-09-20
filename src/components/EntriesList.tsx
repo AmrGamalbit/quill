@@ -74,7 +74,10 @@ export default function EntriesList({
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View
-            style={[styles.emptyContainer, { backgroundColor: colors.card }]}
+            style={[
+              styles.emptyContainer,
+              { backgroundColor: colors.background },
+            ]}
           >
             <Text style={[styles.emptyText, { color: colors.text }]}>
               No journals written yet.
