@@ -1,12 +1,13 @@
-import DatePill from "@/src/components/DatePill";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
 import Editor from "@/src/components/Editor";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
+import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
+import { subscribeToAuthState } from "@/src/utils/auth";
 import {
   deleteDiary,
   deleteEntry,
@@ -16,6 +17,8 @@ import {
   JournalEntry,
   saveDiary,
 } from "@/src/utils/db";
+import { Ionicons } from "@expo/vector-icons";
+import { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -24,7 +27,8 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  useColorScheme,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -32,6 +36,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function Home() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const [session, setSession] = useState<Session | null>(null);
+const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
   const [currentView, setCurrentView] = useState<'diaries' | 'entries' | 'editor'>('diaries');
@@ -79,7 +89,14 @@ export default function Home() {
     });
     setDiaries(formattedDiaries);
   }, []);
-
+useEffect(() => {
+  const unsubscribe = subscribeToAuthState((newSession) => {
+    setSession(newSession);
+  });
+  return () => {
+    unsubscribe();
+  };
+}, []);
   useEffect(() => {
     initDatabase();
     loadDiaries();
@@ -106,33 +123,42 @@ export default function Home() {
       loadDiaries();
     }
   }
-if (currentView === 'editor' && selectedDiary) {
-  return(
-  <Editor
-  key={selectedEntry ? `entry-${selectedEntry.id}` : `new-entry`}
-  diaryId={Number(selectedDiary.id)}
-  entryToEdit={selectedEntry}
-  initialReadOnly={!!selectedEntry}
-  onBack={() => {
-    setSelectedEntry(null);
-    setCurrentView('entries');
-  }}
-  onSaved={() => {
-    setSelectedEntry(null);
-    loadEntriesForDiary(selectedDiary.id);
-    loadDiaries();
-    setCurrentView('entries');
-  }}
-  />
-  );
-}
+  if (currentView === 'editor' && selectedDiary) {
+    return (
+      <Editor
+        key={selectedEntry ? `entry-${selectedEntry.id}` : `new-entry`}
+        diaryId={Number(selectedDiary.id)}
+        entryToEdit={selectedEntry}
+        initialReadOnly={!!selectedEntry}
+        onBack={() => {
+          setSelectedEntry(null);
+          setCurrentView('entries');
+        }}
+        onSaved={() => {
+          setSelectedEntry(null);
+          loadEntriesForDiary(selectedDiary.id);
+          loadDiaries();
+          setCurrentView('entries');
+        }}
+      />
+    );
+  }
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <GreetingHeader name="Alex" />
-            <DatePill />
+            <View style={styles.headerTextGroup}>
+              <GreetingHeader name="Alex" />
+              {/*   <DatePill /> */}
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setIsSettingsOpen(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="settings-outline" size={22} color={styles.settingsIconColor.color} />
+            </TouchableOpacity>
           </View>
           <FlatList
             data={diaries}
@@ -157,8 +183,12 @@ if (currentView === 'editor' && selectedDiary) {
           onClose={() => setShowDiaryForm(false)}
           onSubmit={handleAddDiary}
         />
-
-<FloatingActionButton
+        <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        userEmail={session?.user?.email}
+        />
+        <FloatingActionButton
           onPress={() => {
             setShowDiaryForm(true);
           }}
@@ -171,12 +201,13 @@ if (currentView === 'editor' && selectedDiary) {
           style={[
             styles.fullScreenSlide,
             {
+              backgroundColor: isDark ? "#111715" : "#F8FAF9",
               transform: [{ translateX: slideAnim }],
             },
           ]}
         >
           <SafeAreaView style={{ flex: 1 }}>
-            <View style={styles.navBar}>
+            <View style={[styles.navBar, { borderBottomColor: isDark ? "#283934" : "#E5EBE8" }]}>
               <TouchableOpacity
                 onPress={() => {
                   slideOutEntries(() => {
@@ -187,7 +218,10 @@ if (currentView === 'editor' && selectedDiary) {
                 }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.backButtonText}>← {selectedDiary.name}</Text>
+                <Text
+                  style={[styles.backButtonText, { color: isDark ? "#4E9E80" : "#1B4938" },
+                  ]}
+                >← {selectedDiary.name}</Text>
               </TouchableOpacity>
             </View>
 
@@ -215,18 +249,29 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, flex: 1 },
   header: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: spacing.md,
+  },
+  headerTextGroup: {
+    flex: 1,
+  },
+  settingsButton: {
+    padding: 6,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  settingsIconColor: {
+    color: '#62726E',
   },
   navBar: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1B4938",
   },
   fullScreenSlide: {
     ...StyleSheet.absoluteFill,

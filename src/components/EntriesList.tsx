@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { JournalEntry } from '../utils/db';
 
 interface EntriesListProps {
@@ -33,13 +32,13 @@ export default function EntriesList({entries, onNewEntry, onSelectEntry, onOpenS
     );
   };
 
-    const renderItem = ({item} : {item : JournalEntry}) => (
+const renderItem = ({ item }: { item: JournalEntry }) => (
         <TouchableOpacity 
-        style={styles.card}
-        onPress={() => onSelectEntry && onSelectEntry(item)}
-        activeOpacity={0.7}
-        delayLongPress={500}
-        onLongPress={() => handleLongPress(item)}
+            style={styles.card}
+            onPress={() => onSelectEntry && onSelectEntry(item)}
+            activeOpacity={0.7}
+            delayLongPress={500}
+            onLongPress={() => handleLongPress(item)}
         >
             <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
@@ -52,128 +51,99 @@ export default function EntriesList({entries, onNewEntry, onSelectEntry, onOpenS
             </View>
 
             <Text style={styles.cardPreview} numberOfLines={2}>
-                {item.body.replace(/<[^>]+>/g, '').trim() || 'No text content.'}
+                {item.body.replace(/<[^>]+>/g, '').trim() || 'Empty entry.'}
             </Text>
         </TouchableOpacity>
-    )
-    return(
-        <SafeAreaView style={styles.container}>
-            <View style={styles.topBar}>
-                <Text style={styles.heading}>My Journals</Text>
-                <TouchableOpacity style={styles.iconBtn} onPress={onOpenSettings} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                    <Ionicons name='settings-outline' size={22} color={isDark ? '#fff' : '#1c1917'}/>
-                </TouchableOpacity>
-            </View>
-
+    );
+return (
+        <View style={styles.container}>
             <FlatList 
-            data={entries}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No journals written yet.</Text>
-                </View>
-            }
+                data={entries}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>No entries yet. Tap the pencil to start writing.</Text>
+                    </View>
+                }
             />
             <TouchableOpacity style={styles.fab} onPress={onNewEntry} activeOpacity={0.8}>
                 <Ionicons name='pencil' size={24} color='#ffffff'/>
             </TouchableOpacity>
-        </SafeAreaView>
-    )
+        </View>
+    );
 }
 const getStyles = (isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? '#121212' : '#fafaf9',
-    },
-    topBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? '#27272a' : '#f0ede6',
-    },
-    heading: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: isDark ? '#ffffff' : '#1c1917',
-    },
-    newBtn: {
-      backgroundColor: isDark ? '#ffffff' : '#1c1917',
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      borderRadius: 20,
-    },
-    newBtnText: {
-      color: isDark ? '#121212' : '#ffffff',
-      fontSize: 14,
-      fontWeight: '700',
+      backgroundColor: isDark ? '#111715' : '#F8FAF9',
     },
     listContent: {
-      padding: 16,
+      paddingHorizontal: 16,
+      paddingTop: 8,
       paddingBottom: 100,
     },
     card: {
-      backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
+      backgroundColor: isDark ? '#1E2A27' : '#FFFFFF',
       borderRadius: 12,
       padding: 16,
-      marginBottom: 12,
+      marginBottom: 10,
       borderWidth: 1,
-      borderColor: isDark ? '#27272a' : '#e7e5e4',
+      borderColor: isDark ? '#283934' : '#E5EBE8',
+      shadowColor: isDark ? '#000000' : '#18201E',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: isDark ? 0.2 : 0.04,
+      shadowRadius: 3,
+      elevation: 2,
     },
     cardHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'baseline',
       marginBottom: 6,
     },
     cardTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: isDark ? '#ffffff' : '#1c1917',
+      fontSize: 16,
+      fontWeight: '600',
+      color: isDark ? '#ECF2EF' : '#18201E',
       flex: 1,
-      marginRight: 8,
+      marginRight: 12,
     },
     cardDate: {
       fontSize: 12,
-      color: '#a8a29e',
       fontWeight: '500',
+      color: isDark ? '#8EA39C' : '#62726E',
     },
     cardPreview: {
       fontSize: 14,
-      color: isDark ? '#a1a1aa' : '#78716c',
       lineHeight: 20,
+      color: isDark ? '#8EA39C' : '#62726E',
     },
     emptyContainer: {
       paddingTop: 60,
       alignItems: 'center',
     },
     emptyText: {
-      fontSize: 15,
-      color: '#a8a29e',
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: isDark ? '#8EA39C' : '#62726E',
     },
-    iconBtn: {
-        padding: 6,
-        borderRadius: 20,
-    },
-    fab:{
-        position: 'absolute',
-        right: 24,
-        bottom: 30,
-        width: 58,
-        height: 58,
-        borderRadius: 29,
-        backgroundColor: '#1c1917',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 4,},
-        shadowOpacity: 0.3,
-        shadowRadius: 4.5,
-        elevation: 6,
+    fab: {
+      position: 'absolute',
+      right: 20,
+      bottom: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: isDark ? '#4E9E80' : '#1B4938',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
     },
   });
