@@ -105,6 +105,14 @@ export function getEntryById(entryId: number): JournalEntry | null {
   } finally {
     statement.finalizeSync();
   }
+}  
+
+export function getEntryCount(diaryId: number): number {
+  const result = db.getFirstSync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM entries WHERE diary_id = ?;`,
+    [diaryId]
+  );
+  return result?.count ?? 0;
 }
 /*export function saveEntry(title: string, content: string) {
   const statement = db.prepareSync(

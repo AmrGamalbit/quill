@@ -8,6 +8,7 @@ import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import type { Diary } from "../types/diary";
 import type { Entry } from "../types/entry";
+import { getEntryCount } from "../utils/db";
 import Button from "./Button";
 import Pill from "./Pill";
 
@@ -73,7 +74,7 @@ function CardHeaderInfo({ diary }: { diary: Diary }) {
         </Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>•</Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {diary.entries?.length || 0} entries
+          {getEntryCount(diary.id) || 0} entries
         </Text>
       </View>
     </View>
@@ -120,7 +121,7 @@ function CardFooter({
       }}
     >
       <Text>
-        Updated by {latestEntry?.author}{" "}
+        Updated by {latestEntry?.author || "You"}{" "}
         {dayjs().to(dayjs(latestEntry?.createdAt))}
       </Text>
       <View
