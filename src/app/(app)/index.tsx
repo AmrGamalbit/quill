@@ -50,7 +50,7 @@ export default function Home() {
       <View style={styles.screen}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <GreetingHeader name="Alex" />
+            <GreetingHeader name="You" />
             <DatePill />
           </View>
           <FlatList
