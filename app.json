@@ -42,7 +42,7 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "@react-native-vector-icons/ionicons"
+      "@react-native-vector-icons/ionicons",
       "expo-sqlite"
     ],
     "experiments": {
