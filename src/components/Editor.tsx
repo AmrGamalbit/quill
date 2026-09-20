@@ -6,17 +6,38 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { JournalEntry, saveEntry } from '../utils/db';
 
 interface EditorProps {
-    diaryId: number;
-    onSaved?: () => void;
-    onBack?: () => void;
-    entryToEdit?: JournalEntry | null;
-    initialReadOnly?: boolean;
+  diaryId: number;
+  onSaved?: () => void;
+  onBack?: () => void;
+  entryToEdit?: JournalEntry | null;
+  initialReadOnly?: boolean;
 }
 
-export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialReadOnly = false }: EditorProps) {
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === "dark";
-    const styles = getStyles(isDark);
+export default function Editor({
+  diaryId,
+  onSaved,
+  onBack,
+  entryToEdit,
+  initialReadOnly = false,
+}: EditorProps) {
+  const { colors } = useTheme();
+  const displayDate = new Date(
+    entryToEdit ? entryToEdit.created_at : Date.now(),
+  ).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
+  const [title, setTitle] = useState(entryToEdit ? entryToEdit.title : "");
+  const editor = useEditorBridge({
+    autofocus: !initialReadOnly,
+    avoidIosKeyboard: true,
+    initialContent: entryToEdit ? entryToEdit.body : "<p></p>",
+    editable: !isReadOnly,
+  });
+  const router = useRouter();
 
     const displayDate = new Date(
         entryToEdit ? entryToEdit.created_at : Date.now()
@@ -41,18 +62,13 @@ export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialR
         theme: isDark? darkEditorTheme : undefined,
     });
 
-    const handleSave = async () => {
-        if (!title.trim()) {
-            Alert.alert('Missing Title', 'Please enter a title for your entry.')
-            return;
-        }
+    const contentHtml = await editor.getHTML();
+    saveEntry(diaryId, title, contentHtml);
+    router.back();
+    if (onSaved) onSaved();
+  };
 
-        const contentHtml = await editor.getHTML();
-        saveEntry(diaryId, title, contentHtml);
-        Alert.alert('Saved!', 'Entry saved succesfully.');
-        if (onSaved) onSaved();
-    }
-    return (
+  return (
     <SafeAreaView style={styles.container}>
       {/* 1. Top Navigation Bar: Back on the left, Save on the right */}
       <View style={styles.topBar}>
@@ -61,9 +77,9 @@ export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialR
           onPress={onBack}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <SymbolView name="chevron.backward" size={20} tintColor={isDark ? '#fff' : '#1c1917'} />
+          <SymbolView name="chevron.backward" size={20} />
         </TouchableOpacity>
-          <Text style={styles.newJournalText}>Add new Journal</Text>
+        <Text style={styles.newJournalText}>Add new Journal</Text>
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveBtnText}>Save</Text>
         </TouchableOpacity>
@@ -85,7 +101,10 @@ export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialR
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
 
         {/* Rich Text Editor */}
-        <RichText editor={editor} style={styles.editor} />
+        <RichText
+          editor={editor}
+          style={[styles.editor, { backgroundColor: colors.background }]}
+        />
       </View>
 
         <KeyboardAvoidingView

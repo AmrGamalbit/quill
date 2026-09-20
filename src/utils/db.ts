@@ -32,6 +32,7 @@ export function initDatabase() {
         CREATE TABLE IF NOT EXISTS diaries( 
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        description Text,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -52,15 +53,19 @@ export function getAllDiaries(): Diary[] {
     `SELECT * FROM  diaries ORDER BY created_at DESC;`,
   );
 }
-export const saveDiary = (name: string): number => {
+export const saveDiary = (name: string, description: string): number => {
   const statement = db.prepareSync(`
-    INSERT INTO diaries (name) VALUES (?)`);
+    INSERT INTO diaries (name, description) VALUES (?, ?)`);
+  let newId: number;
   try {
-    const result = statement.executeSync([name]);
-    return result.lastInsertRowId;
+    const result = statement.executeSync([name, description]);
+    newId = result.lastInsertRowId;
   } finally {
     statement.finalizeSync();
   }
+  return db.getFirstSync<Diary>(`SELECT * FROM diaries WHERE id = ?;`, [
+    newId,
+  ])!;
 };
 export const getEntriesByDiaryId = (diaryId: number): JournalEntry[] => {
   const statement = db.prepareSync(`
@@ -87,6 +92,27 @@ export const saveEntry = (
   }
 };
 
+export function getEntryById(entryId: number): JournalEntry | null {
+  const statement = db.prepareSync(`
+    SELECT * FROM entries WHERE id = ?
+    `);
+  try {
+    const result = statement
+      .executeSync([entryId])
+      .getAllSync() as JournalEntry[];
+    return result.length > 0 ? result[0] : null;
+  } finally {
+    statement.finalizeSync();
+  }
+}  
+
+export function getEntryCount(diaryId: number): number {
+  const result = db.getFirstSync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM entries WHERE diary_id = ?;`,
+    [diaryId]
+  );
+  return result?.count ?? 0;
+}
 /*export function saveEntry(title: string, content: string) {
   const statement = db.prepareSync(
     "INSERT INTO entries (title, content) VALUES ($title, $content);",
