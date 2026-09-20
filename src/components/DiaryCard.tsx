@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
+import { Link } from "expo-router";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes } from "../constants/typography";
@@ -26,25 +27,27 @@ export default function DiaryCard({
   );
 
   return (
-    <Pressable
-      onPressIn={() => animatePress(true)}
-      onPressOut={() => animatePress(false)}
-    >
-      <Animated.View
-        style={[
-          style.cardContainer,
-          {
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-            backgroundColor: animatedColor,
-          },
-        ]}
+    <Link href={`/(app)/diary/${diary.id}`} asChild>
+      <Pressable
+        onPressIn={() => animatePress(true)}
+        onPressOut={() => animatePress(false)}
       >
-        <CardHeader diary={diary} />
-        <SnippetBox diary={diary} />
-        <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
-      </Animated.View>
-    </Pressable>
+        <Animated.View
+          style={[
+            style.cardContainer,
+            {
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+              backgroundColor: animatedColor,
+            },
+          ]}
+        >
+          <CardHeader diary={diary} />
+          <SnippetBox diary={diary} />
+          <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
+        </Animated.View>
+      </Pressable>
+    </Link>
   );
 }
 

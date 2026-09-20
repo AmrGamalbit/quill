@@ -93,6 +93,19 @@ export const saveEntry = (
   }
 };
 
+export function getEntryById(entryId: number): JournalEntry | null {
+  const statement = db.prepareSync(`
+    SELECT * FROM entries WHERE id = ?
+    `);
+  try {
+    const result = statement
+      .executeSync([entryId])
+      .getAllSync() as JournalEntry[];
+    return result.length > 0 ? result[0] : null;
+  } finally {
+    statement.finalizeSync();
+  }
+}
 /*export function saveEntry(title: string, content: string) {
   const statement = db.prepareSync(
     "INSERT INTO entries (title, content) VALUES ($title, $content);",
