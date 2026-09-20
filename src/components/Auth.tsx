@@ -1,34 +1,50 @@
 import { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, useColorScheme, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from "react-native";
+import { FlatList } from "react-native-reanimated/lib/typescript/Animated";
 import { signIn, signUp, subscribeToAuthState } from "../utils/auth";
-import { ensureDefaultDiary, getEntriesByDiaryId, initDatabase, JournalEntry } from '../utils/db';
+import {
+  Diary as DbDiary,
+  getAllDiaries,
+  getEntriesByDiaryId,
+  initDatabase,
+  JournalEntry
+} from "../utils/db";
+import DiaryCard from "./DiaryCard";
 import Editor from "./Editor";
 import EntriesList from "./EntriesList";
 
 export default function Auth() {
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === "dark";
-    const [entries, setEntries] = useState<JournalEntry[]>([]);
-    const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-    
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
-    const styles = getStyles(isDark);
 
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [session, setSession] = useState<Session | null>(null);
+  const styles = getStyles(isDark);
 
-    const [currentScreen, setCurrentScreen] = useState<'list' | 'editor'>('list');
-    const [selectedDiaryId, setSelectedDiaryId] = useState<number | null>(null);
-    useEffect(() => {
-    initDatabase();
-    const defaultDiaryId = ensureDefaultDiary();
-    setSelectedDiaryId(defaultDiaryId);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+
+  const [currentScreen, setCurrentScreen] = useState<'diaries' | 'entries' | 'editor'>('diaries');
+  const [diaries, setDiaries] = useState<DbDiary[]>([]);
+  const [selectedDiary, setSelectedDiary] = useState<DbDiary | null>(null);
+  const [selectedDiaryId, setSelectedDiaryId] = useState<number | null>(null);
+
+  const loadDiaries = useCallback(() => {
+    const all = getAllDiaries();
+    setDiaries(all);
   }, []);
 
-const loadEntries = useCallback(() => {
+  useEffect(() => {
+    initDatabase();
+    loadDiaries();
+  }, [loadDiaries]);
+
+
+  const loadEntries = useCallback(() => {
     if (selectedDiaryId === null) return;
     const data = getEntriesByDiaryId(selectedDiaryId);
     setEntries(data);
@@ -37,101 +53,160 @@ const loadEntries = useCallback(() => {
     loadEntries();
   }, [loadEntries]);
 
-useEffect(() => {
-    initDatabase();
+  useEffect(() => {
     const unsubscribe = subscribeToAuthState((newSession) => {
-        setSession(newSession);
+      setSession(newSession);
     });
-    return() => {
-        unsubscribe();
+    return () => {
+      unsubscribe();
     }
-}, []);
-    async function signInWithEmail() {
-setLoading(true);
-  try {
-    await signIn(email, password);
-  } catch (err: any) {
-    Alert.alert('Login error', err.message || 'Something went wrong');
-  } finally {
-    setLoading(false);
+  }, []);
+  async function signInWithEmail() {
+    setLoading(true);
+    try {
+      await signIn(email, password);
+    } catch (err: any) {
+      Alert.alert('Login error', err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   }
+  async function signUpWithEmail() {
+    setLoading(true);
+    try {
+      const { session } = await signUp(email, password);
+      if (!session) {
+        Alert.alert('Check your inbox', 'Click the link we sent to finish signing up.');
+      }
+    } catch (err: any) {
+      Alert.alert('Sign up error', err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
-    async function signUpWithEmail() {
-setLoading(true);
-  try {
-    const { session } = await signUp(email, password);
-    if (!session) {
-      Alert.alert('Check your inbox', 'Click the link we sent to finish signing up.');
-    }
-  } catch (err: any) {
-    Alert.alert('Sign up error', err.message || 'Something went wrong');
-  } finally {
-    setLoading(false);
   }
-    }
-    if (session && session.user) {
-  if (currentScreen === 'editor' && selectedDiaryId !== null) {
+if (session && session.user) {
+  // Screen 3: Writing or Editing an Entry
+  if (currentScreen === "editor" && selectedDiary) {
     return (
       <Editor
-        key={selectedEntry ? `entry-${selectedEntry.id}` : 'new-entry'}
-        diaryId={selectedEntry ? selectedEntry.diary_id : selectedDiaryId}
+        key={selectedEntry ? `entry-${selectedEntry.id}` : "new-entry"}
+        diaryId={selectedDiary.id}
         entryToEdit={selectedEntry}
         initialReadOnly={!!selectedEntry}
         onBack={() => {
           setSelectedEntry(null);
-          setCurrentScreen('list');
+          setCurrentScreen("entries");
         }}
         onSaved={() => {
           setSelectedEntry(null);
-          loadEntries();
-          setCurrentScreen('list');
+          if (selectedDiary) {
+            setEntries(getEntriesByDiaryId(selectedDiary.id));
+          }
+          setCurrentScreen("entries");
         }}
       />
     );
   }
 
-        return (
-            <EntriesList
-            entries={entries}
-                onNewEntry={() => {
-                    setSelectedEntry(null);
-                    setCurrentScreen('editor');
-                }}
-                onSelectEntry={(entry) => {
-                    setSelectedEntry(entry);
-                    setCurrentScreen('editor');
-                }}
-            />
-        );
-    }
+  // Screen 2: Looking at all entries inside the clicked diary
+  if (currentScreen === "entries" && selectedDiary) {
     return (
-        <View style={styles.container}>
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={styles.backToDiariesBtn}
+          onPress={() => {
+            setSelectedDiary(null);
+            loadDiaries();
+            setCurrentScreen("diaries");
+          }}
+        >
+          <Text style={styles.backToDiariesText}>← All Diaries</Text>
+        </TouchableOpacity>
 
-            <Text style={styles.header}> Get Started</Text>
+        <EntriesList
+          entries={entries}
+          onNewEntry={() => {
+            setSelectedEntry(null);
+            setCurrentScreen("editor");
+          }}
+          onSelectEntry={(entry) => {
+            setSelectedEntry(entry);
+            setCurrentScreen("editor");
+          }}
+        />
+      </View>
+    );
+  }
 
-            <TextInput
-                style={styles.input}
-                placeholder="johndoe@example.com"
-                value={email}
-                autoCapitalize="none"
-                onChangeText={(text) => setEmail(text)}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                autoCapitalize="none"
-                secureTextEntry
-                onChangeText={(text) => setPassword(text)}
-            />
-            <Button title="Sign In" disabled={loading} onPress={signInWithEmail} />
-            <View style={{ height: 10 }} />
-            <Button title="Sign Up" disabled={loading} onPress={signUpWithEmail} />
-        </View>
-    )
+  // Screen 1: Top-level Diaries List
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>My Diaries</Text>
+      <FlatList
+        data={diaries}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <DiaryCard
+            diary={{
+              id: item.id.toString(),
+              name: item.name,
+              createdAt: item.created_at,
+              entries: getEntriesByDiaryId(item.id).map((e) => ({
+                id: e.id.toString(),
+                title: e.title,
+                author: "You",
+                body: e.body,
+                createdAt: e.created_at,
+              })),
+              members: ["You"],
+              lastOpenedAt: new Date().toISOString(),
+            }}
+            onPress={() => {
+              setSelectedDiary(item);
+              setEntries(getEntriesByDiaryId(item.id));
+              setCurrentScreen("entries");
+            }}
+            onDelete={(id) => {
+              loadDiaries();
+            }}
+          />
+        )}
+      />
+    </View>
+  );
 }
-const getStyles = (isDark: boolean) => StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', padding: 20 },
-    header: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: isDark ? '#fff' : '#000' },
-    input: { borderWidth: 1, borderColor: '#ccc', padding: 20, borderRadius: 8, marginBottom: 20, color: isDark ? '#fff' : '#000' }
-});
+}
+const getStyles = (isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingTop: 50,
+      paddingHorizontal: 20,
+      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+    },
+    header: {
+      fontSize: 26,
+      fontWeight: "bold",
+      marginBottom: 16,
+      color: isDark ? "#ECF2EF" : "#18201E",
+    },
+    backToDiariesBtn: {
+      paddingTop: 50,
+      paddingHorizontal: 16,
+      paddingBottom: 10,
+      backgroundColor: isDark ? "#121212" : "#fafaf9",
+    },
+    backToDiariesText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: "#1B4938",
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: "#ccc",
+      padding: 16,
+      borderRadius: 8,
+      marginBottom: 16,
+      color: isDark ? "#fff" : "#000",
+    },
+  });

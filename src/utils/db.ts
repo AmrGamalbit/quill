@@ -45,7 +45,6 @@ export function initDatabase() {
         FOREIGN KEY (diary_id) REFERENCES diaries (id) ON DELETE CASCADE
         );
         `);
-  ensureDefaultDiary();
 }
 
 export function getAllDiaries(): Diary[] {
@@ -100,3 +99,11 @@ export function getAllEntries(): JournalEntry[] {
     "SELECT * FROM entries ORDER BY created_at DESC;",
   );
 }
+export const deleteDiary = (id: number): void => {
+  const statement = db.prepareSync(`DELETE FROM diaries WHERE id = ?`);
+  try {
+    statement.executeSync([id]);
+  } finally {
+    statement.finalizeSync();
+  }
+};
