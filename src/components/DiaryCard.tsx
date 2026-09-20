@@ -66,11 +66,11 @@ function CardHeaderInfo({ diary }: { diary: Diary }) {
       </Text>
       <View style={style.headerMeta}>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {diary.members.length} members
+          {diary.members?.length || 1} members
         </Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>•</Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {diary.entries.length} entries
+          {diary.entries?.length || 0} entries
         </Text>
       </View>
     </View>
@@ -92,7 +92,7 @@ function SnippetBox({ diary }: { diary: Diary }) {
         },
       ]}
     >
-      <Text>{diary.entries[0]?.body}</Text>
+      <Text>{diary.entries?.[0]?.body || diary.description}</Text>
     </View>
   );
 }
@@ -104,10 +104,10 @@ function CardFooter({
   diary: Diary;
   onDelete: () => void;
 }) {
-  const newEntries = diary.entries.filter(
+  const newEntries = diary.entries?.filter(
     (e) => diary.lastOpenedAt > e.createdAt,
   );
-  const latestEntry = getLatestEntry(diary.entries);
+  const latestEntry = diary.entries ? getLatestEntry(diary.entries) : {};
   return (
     <View
       style={{
@@ -128,7 +128,7 @@ function CardFooter({
           gap: spacing.sm,
         }}
       >
-        <Pill text={`${newEntries.length} new entries`} />
+        <Pill text={`${newEntries?.length || 0} new entries`} />
         <Button label="Delete" onPress={onDelete} />
       </View>
     </View>

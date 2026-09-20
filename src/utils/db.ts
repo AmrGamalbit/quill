@@ -23,7 +23,7 @@ export const ensureDefaultDiary = (): number => {
     return existingDiaries[0].id;
   }
 
-  return saveDiary("My Diary");
+  return saveDiary("My Diary", "This is my first diary");
 };
 
 export function initDatabase() {
@@ -32,6 +32,7 @@ export function initDatabase() {
         CREATE TABLE IF NOT EXISTS diaries( 
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        description Text,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -53,15 +54,19 @@ export function getAllDiaries(): Diary[] {
     `SELECT * FROM  diaries ORDER BY created_at DESC;`,
   );
 }
-export const saveDiary = (name: string): number => {
+export const saveDiary = (name: string, description: string): number => {
   const statement = db.prepareSync(`
-    INSERT INTO diaries (name) VALUES (?)`);
+    INSERT INTO diaries (name, description) VALUES (?, ?)`);
+  let newId: number;
   try {
-    const result = statement.executeSync([name]);
-    return result.lastInsertRowId;
+    const result = statement.executeSync([name, description]);
+    newId = result.lastInsertRowId;
   } finally {
     statement.finalizeSync();
   }
+  return db.getFirstSync<Diary>(`SELECT * FROM diaries WHERE id = ?;`, [
+    newId,
+  ])!;
 };
 export const getEntriesByDiaryId = (diaryId: number): JournalEntry[] => {
   const statement = db.prepareSync(`
