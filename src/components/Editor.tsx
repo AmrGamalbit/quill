@@ -21,14 +21,6 @@ export default function Editor({
   initialReadOnly = false,
 }: EditorProps) {
   const { colors } = useTheme();
-  const displayDate = new Date(
-    entryToEdit ? entryToEdit.created_at : Date.now(),
-  ).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
   const [title, setTitle] = useState(entryToEdit ? entryToEdit.title : "");
   const editor = useEditorBridge({
