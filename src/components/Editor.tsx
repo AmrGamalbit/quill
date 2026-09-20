@@ -1,12 +1,23 @@
-import { RichText, Toolbar, useEditorBridge } from "@10play/tentap-editor";
+import {
+  CoreBridge,
+  darkEditorCss,
+  darkEditorTheme,
+  RichText,
+  TenTapStartKit,
+  Toolbar,
+  useEditorBridge,
+} from "@10play/tentap-editor";
+import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,24 +31,32 @@ interface EditorProps {
   initialReadOnly?: boolean;
 }
 
-export default async function Editor({
+export default function Editor({
   diaryId,
   onSaved,
   onBack,
   entryToEdit,
   initialReadOnly = false,
 }: EditorProps) {
-  const { colors } = useTheme();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const styles = getStyles(isDark);
+  const router = useRouter();
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
   const [title, setTitle] = useState(entryToEdit ? entryToEdit.title : "");
+
   const editor = useEditorBridge({
     autofocus: !initialReadOnly,
     avoidIosKeyboard: true,
     initialContent: entryToEdit ? entryToEdit.body : "<p></p>",
     editable: !isReadOnly,
+    bridgeExtensions: isDark
+      ? [...TenTapStartKit, CoreBridge.configureCSS(darkEditorCss)]
+      : TenTapStartKit,
+    theme: isDark ? darkEditorTheme : undefined,
   });
-  const router = useRouter();
+
   const displayDate = new Date(
     entryToEdit ? entryToEdit.created_at : Date.now(),
   ).toLocaleDateString("en-US", {
@@ -47,14 +66,15 @@ export default async function Editor({
     year: "numeric",
   });
 
-  const contentHtml = await editor.getHTML();
-  saveEntry(diaryId, title, contentHtml);
-  router.back();
-  if (onSaved) onSaved();
+  const handleSave = async () => {
+    const contentHtml = await editor.getHTML();
+    saveEntry(diaryId, title, contentHtml);
+    if (onSaved) onSaved();
+    router.back();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 1. Top Navigation Bar: Back on the left, Save on the right */}
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -69,9 +89,7 @@ export default async function Editor({
         </TouchableOpacity>
       </View>
 
-      {/* 2. Main Content Area */}
       <View style={styles.bodyContainer}>
-        {/* Title Input */}
         <TextInput
           style={styles.titleInput}
           placeholder="Entry Title..."
@@ -81,14 +99,9 @@ export default async function Editor({
           editable={!isReadOnly}
         />
 
-        {/* Date Displayed Directly Under the Title */}
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
 
-        {/* Rich Text Editor */}
-        <RichText
-          editor={editor}
-          style={[styles.editor, { backgroundColor: colors.background }]}
-        />
+        <RichText editor={editor} style={styles.editor} />
       </View>
 
       <KeyboardAvoidingView
@@ -103,3 +116,80 @@ export default async function Editor({
     </SafeAreaView>
   );
 }
+
+const getStyles = (isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+    },
+    topBar: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? "#283934" : "#E5EBE8",
+      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+    },
+    backBtn: {
+      paddingVertical: 4,
+      paddingHorizontal: 6,
+    },
+    newJournalText: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: isDark ? "#ECF2EF" : "#18201E",
+    },
+    saveBtn: {
+      backgroundColor: isDark ? "#4E9E80" : "#1B4938",
+      paddingVertical: 8,
+      paddingHorizontal: 18,
+      borderRadius: 20,
+    },
+    saveBtnText: {
+      color: "#ffffff",
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    bodyContainer: {
+      flex: 1,
+      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+    },
+    titleInput: {
+      fontSize: 26,
+      fontWeight: "700",
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 4,
+      color: isDark ? "#ECF2EF" : "#18201E",
+    },
+    dateSubtitle: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: isDark ? "#8EA39C" : "#62726E",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    editor: {
+      flex: 1,
+      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+      marginHorizontal: 20,
+    },
+    footer: {
+      borderTopWidth: 1,
+      borderTopColor: isDark ? "#283934" : "#E5EBE8",
+      backgroundColor: isDark ? "#18221F" : "#ffffff",
+    },
+    toolbarContainer: {
+      height: 50,
+      minHeight: 48,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? "#283934" : "#E5EBE8",
+      backgroundColor: isDark ? "#18221F" : "#ffffff",
+      justifyContent: "center",
+    },
+  });
