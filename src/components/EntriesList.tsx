@@ -1,3 +1,5 @@
+import { useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import {
   FlatList,
   StyleSheet,
@@ -9,7 +11,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
 import { JournalEntry } from "../utils/db";
 import FloatingActionButton from "./FloatingActionButton";
-
 interface EntriesListProps {
   entries: JournalEntry[];
   onNewEntry: () => void;
@@ -24,6 +25,10 @@ export default function EntriesList({
   onOpenSettings,
 }: EntriesListProps) {
   const { colors } = useTheme();
+  const router = useRouter();
+  const naviagteToHome = () => {
+    router.navigate("/(app)");
+  };
   const renderItem = ({ item }: { item: JournalEntry }) => (
     <TouchableOpacity
       style={styles.card}
@@ -52,6 +57,13 @@ export default function EntriesList({
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View style={[styles.topBar, { backgroundColor: colors.background }]}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={naviagteToHome}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <SymbolView name="chevron.backward" size={20} />
+        </TouchableOpacity>
         <Text style={[styles.heading, { color: colors.text }]}>My Entries</Text>
       </View>
 
@@ -114,6 +126,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 6,
+  },
+  backBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   cardTitle: {
     fontSize: 17,
