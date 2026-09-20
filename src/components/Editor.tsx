@@ -57,9 +57,10 @@ export default function Editor({
 
     const contentHtml = await editor.getHTML();
     saveEntry(diaryId, title, contentHtml);
-    router.navigate(`/(app)/diary/${diaryId}`);
+    router.back();
     if (onSaved) onSaved();
   };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* 1. Top Navigation Bar: Back on the left, Save on the right */}
