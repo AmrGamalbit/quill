@@ -4,12 +4,12 @@ import {
   PlusJakartaSans_500Medium,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
-
-import { useColorScheme } from "@/src/components/useColorScheme";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import useTheme from "../hooks/useTheme";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -50,14 +50,18 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+    <SafeAreaProvider>
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: colors.background },
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="(app)" />
       </Stack>
-    </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

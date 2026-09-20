@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View } from '../components/Themed';
+import { View } from 'react-native';
 import { JournalEntry } from '../utils/db';
 
 interface EntriesListProps {
