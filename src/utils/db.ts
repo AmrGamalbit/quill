@@ -16,7 +16,7 @@ export interface JournalEntry {
   created_at: string;
   updated_at: string;
 }
-export const ensureDefaultDiary = (): number => {
+/*export const ensureDefaultDiary = (): number => {
   const existingDiaries = getAllDiaries();
 
   if (existingDiaries.length > 0) {
@@ -24,7 +24,7 @@ export const ensureDefaultDiary = (): number => {
   }
 
   return saveDiary("My Diary");
-};
+}; */
 
 export function initDatabase() {
   db.execSync(`
@@ -101,6 +101,14 @@ export function getAllEntries(): JournalEntry[] {
 }
 export const deleteDiary = (id: number): void => {
   const statement = db.prepareSync(`DELETE FROM diaries WHERE id = ?`);
+  try {
+    statement.executeSync([id]);
+  } finally {
+    statement.finalizeSync();
+  }
+};
+export const deleteEntry = (id: number): void => {
+  const statement = db.prepareSync(`DELETE FROM entries WHERE id = ?`);
   try {
     statement.executeSync([id]);
   } finally {

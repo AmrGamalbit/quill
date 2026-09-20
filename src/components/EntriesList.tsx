@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme } from 'react-native';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View } from 'react-native';
 import { JournalEntry } from '../utils/db';
 
 interface EntriesListProps {
@@ -9,19 +8,38 @@ interface EntriesListProps {
     onNewEntry: () => void;
     onSelectEntry?: (entry: JournalEntry) => void;
     onOpenSettings?: () => void;
+    onDeleteEntry?: (id: number) => void;
 }
 
-export default function EntriesList({entries, onNewEntry, onSelectEntry, onOpenSettings}: EntriesListProps) {
+export default function EntriesList({entries, onNewEntry, onSelectEntry, onOpenSettings, onDeleteEntry}: EntriesListProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const styles = getStyles(isDark);
 
+    const handleLongPress = (entry: JournalEntry) => {
+    if (!onDeleteEntry) return;
+
+    Alert.alert(
+      "Delete Entry",
+      `Are you sure you want to delete "${entry.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onDeleteEntry(entry.id),
+        },
+      ]
+    );
+  };
 
     const renderItem = ({item} : {item : JournalEntry}) => (
         <TouchableOpacity 
         style={styles.card}
         onPress={() => onSelectEntry && onSelectEntry(item)}
         activeOpacity={0.7}
+        delayLongPress={500}
+        onLongPress={() => handleLongPress(item)}
         >
             <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>

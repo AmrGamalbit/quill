@@ -5,14 +5,18 @@ import { FlatList } from "react-native-reanimated/lib/typescript/Animated";
 import { signIn, signUp, subscribeToAuthState } from "../utils/auth";
 import {
   Diary as DbDiary,
+  deleteDiary,
   getAllDiaries,
   getEntriesByDiaryId,
   initDatabase,
-  JournalEntry
+  JournalEntry,
+  saveDiary,
 } from "../utils/db";
 import DiaryCard from "./DiaryCard";
+import DiaryForm from "./DiaryForm";
 import Editor from "./Editor";
 import EntriesList from "./EntriesList";
+import FloatingActionButton from "./FloatingActionButton";
 
 export default function Auth() {
   const colorScheme = useColorScheme();
@@ -32,12 +36,20 @@ export default function Auth() {
   const [diaries, setDiaries] = useState<DbDiary[]>([]);
   const [selectedDiary, setSelectedDiary] = useState<DbDiary | null>(null);
   const [selectedDiaryId, setSelectedDiaryId] = useState<number | null>(null);
+  const [isDiaryFormOpen, setIsDiaryFormOpen] = useState(false);
 
   const loadDiaries = useCallback(() => {
     const all = getAllDiaries();
     setDiaries(all);
   }, []);
-
+const handleCreateDiary = (data: {name: string}) => {
+  saveDiary(data.name);
+  loadDiaries();
+}
+const handleDeleteDiary = (id: string) => {
+  deleteDiary(Number(id));
+  loadDiaries();
+}
   useEffect(() => {
     initDatabase();
     loadDiaries();
@@ -85,12 +97,19 @@ export default function Auth() {
     }
   }
 if (session && session.user) {
-  // Screen 3: Writing or Editing an Entry
-  if (currentScreen === "editor" && selectedDiary) {
+if (currentScreen === "editor") {
+    const activeDiaryId = selectedDiary ? selectedDiary.id : selectedDiaryId;
+
+    if (!activeDiaryId) {
+      // Safety guard: if no diary was selected, go back to diaries
+      setCurrentScreen("diaries");
+      return null;
+    }
+
     return (
       <Editor
         key={selectedEntry ? `entry-${selectedEntry.id}` : "new-entry"}
-        diaryId={selectedDiary.id}
+        diaryId={activeDiaryId}
         entryToEdit={selectedEntry}
         initialReadOnly={!!selectedEntry}
         onBack={() => {
@@ -99,9 +118,8 @@ if (session && session.user) {
         }}
         onSaved={() => {
           setSelectedEntry(null);
-          if (selectedDiary) {
-            setEntries(getEntriesByDiaryId(selectedDiary.id));
-          }
+          setEntries(getEntriesByDiaryId(activeDiaryId));
+          loadDiaries();
           setCurrentScreen("entries");
         }}
       />
@@ -145,6 +163,11 @@ if (session && session.user) {
       <FlatList
         data={diaries}
         keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No diaries yet! Tap + to create one :)</Text>
+            </View>
+        }
         renderItem={({ item }) => (
           <DiaryCard
             diary={{
@@ -172,6 +195,13 @@ if (session && session.user) {
           />
         )}
       />
+      <FloatingActionButton onPress={() => setIsDiaryFormOpen(true)} />
+
+        <DiaryForm
+        isOpen={isDiaryFormOpen}
+        onClose={() => setIsDiaryFormOpen(false)}
+        onSubmit={handleCreateDiary}
+        />
     </View>
   );
 }
@@ -208,5 +238,13 @@ const getStyles = (isDark: boolean) =>
       borderRadius: 8,
       marginBottom: 16,
       color: isDark ? "#fff" : "#000",
+    },
+    emptyContainer: {
+      paddingTop: 60,
+      alignItems: "center",
+    },
+    emptyText: {
+      fontSize: 15,
+      color: isDark ? "#8EA39C" : "#62726E",
     },
   });

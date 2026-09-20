@@ -1,7 +1,7 @@
-import { RichText, Toolbar, useEditorBridge } from '@10play/tentap-editor';
+import { CoreBridge, darkEditorCss, darkEditorTheme, RichText, TenTapStartKit, Toolbar, useEditorBridge } from '@10play/tentap-editor';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JournalEntry, saveEntry } from '../utils/db';
 
@@ -28,12 +28,18 @@ export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialR
     });
     const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
     const [title, setTitle] = useState(entryToEdit ? entryToEdit.title : '');
-    const editor = useEditorBridge({
+
+      const editor = useEditorBridge({
         autofocus: !initialReadOnly,
         avoidIosKeyboard: true,
         initialContent: entryToEdit ? entryToEdit.body : '<p></p>',
         editable: !isReadOnly,
-    })
+        bridgeExtensions: isDark ? [
+          ...TenTapStartKit,
+          CoreBridge.configureCSS(darkEditorCss),
+        ] : TenTapStartKit,
+        theme: isDark? darkEditorTheme : undefined,
+    });
 
     const handleSave = async () => {
         if (!title.trim()) {
@@ -82,8 +88,11 @@ export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialR
         <RichText editor={editor} style={styles.editor} />
       </View>
 
-        <KeyboardAvoidingView behavior={'padding'}
-        style={styles.footer}>
+        <KeyboardAvoidingView
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+  keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+  style={styles.footer}
+>
             <View style={styles.toolbarContainer}>
             <Toolbar editor={editor} hidden={false}/>
             </View>
@@ -94,6 +103,10 @@ export default function Editor({ diaryId, onSaved, onBack, entryToEdit, initialR
 }
 
 const getStyles = (isDark: boolean) => StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: isDark ? '#111715' : '#F8FAF9',
+    },
     topBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -101,87 +114,66 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: (isDark) ? '#27272a' : '#f0ede6',
+        borderBottomColor: isDark ? '#283934' : '#E5EBE8',
+        backgroundColor: isDark ? '#111715' : '#F8FAF9',
     },
     backBtn: {
-      paddingVertical: 4,
-      paddingHorizontal: 6,
+        paddingVertical: 4,
+        paddingHorizontal: 6,
     },
-    backBtnText: {
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    container: {
-        flex: 1,
-    },
-    titleInput: {
-        fontSize: 26,
-      fontWeight: '700',
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 4,
-      color: isDark ? '#ffffff' : '#1c1917',
-    },
-    editor: {
-        flex: 1,
-        backgroundColor: isDark ? '#121212' : '#ffffff',
-        marginHorizontal: 20,
-    },
-    footer: {
-        borderTopWidth: 1,
-        borderTopColor: '#e0e0e0',
-        backgroundColor: '#f8f8f8',
-    },
-    buttonWrapper: {
-        padding: 10,
-    },
-    dateLabel: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#78716c',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    newJournalText: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: isDark ? '#ECF2EF' : '#18201E',
     },
     saveBtn: {
-        backgroundColor: '#1c1917',
+        backgroundColor: isDark ? '#4E9E80' : '#1B4938',
         paddingVertical: 8,
         paddingHorizontal: 18,
         borderRadius: 20,
     },
     saveBtnText: {
-        color: '#fff',
+        color: '#ffffff',
         fontSize: 14,
-        fontWeight: 700,
+        fontWeight: '700',
     },
-    editorContainer: {
+    bodyContainer: {
         flex: 1,
+        backgroundColor: isDark ? '#111715' : '#F8FAF9',
+    },
+    titleInput: {
+        fontSize: 26,
+        fontWeight: '700',
         paddingHorizontal: 20,
-        backgroundColor: 'transparent',
+        paddingTop: 16,
+        paddingBottom: 4,
+        color: isDark ? '#ECF2EF' : '#18201E',
+    },
+    dateSubtitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: isDark ? '#8EA39C' : '#62726E',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        paddingHorizontal: 20,
+        paddingBottom: 14,
+    },
+    editor: {
+        flex: 1,
+        backgroundColor: isDark ? '#111715' : '#F8FAF9',
+        marginHorizontal: 20,
+    },
+    footer: {
+        borderTopWidth: 1,
+        borderTopColor: isDark ? '#283934' : '#E5EBE8',
+        backgroundColor: isDark ? '#18221F' : '#ffffff',
     },
     toolbarContainer: {
         height: 50,
         minHeight: 48,
         borderTopWidth: 1,
-        borderTopColor: '#e7e5e4',
-        backgroundColor: '#fff',
+        borderTopColor: isDark ? '#283934' : '#E5EBE8',
+        backgroundColor: isDark ? '#18221F' : '#ffffff',
         justifyContent: 'center',
     },
-    dateSubtitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: '#a8a29e',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      paddingHorizontal: 20,
-      paddingBottom: 14,
-    },
-    bodyContainer: {
-      flex: 1,
-      backgroundColor: isDark ? '#121212' : '#ffffff',
-    },
-    newJournalText: {
-        marginLeft: 0,
-        fontSize: 18,
-        fontWeight: 700,
-    }
 });

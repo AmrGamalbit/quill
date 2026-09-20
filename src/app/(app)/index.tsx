@@ -1,90 +1,131 @@
 import DatePill from "@/src/components/DatePill";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
+import Editor from "@/src/components/Editor";
+import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import { spacing } from "@/src/constants/spacings";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
-import { useState } from "react";
 import {
+  deleteDiary,
+  deleteEntry,
+  getAllDiaries,
+  getEntriesByDiaryId,
+  initDatabase,
+  JournalEntry,
+  saveDiary,
+} from "@/src/utils/db";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Dimensions,
   FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function Home() {
-  const [diaries, setDiaries] = useState<Diary[]>([
-    {
-      id: "1",
-      name: "France Holiday",
-      members: ["Sam", "Alex", "Carol", "Jamie"],
-      createdAt: "2026-09-01T08:00:00Z",
-      lastOpenedAt: "2026-09-15T09:00:00Z",
-      entries: [
-        {
-          id: "e1",
-          title: "Paris",
-          body: "We got up before sunrise because Sam insisted the light over the old town would be worth it, and honestly, standing on that hill with the whole coastline turning gold beneath us, I couldn't argue.",
-          author: "Sam",
-          createdAt: "2026-09-16T06:30:00Z",
-        },
-        {
-          id: "e2",
-          title: "Lyon",
-          body: "Quiet day, mostly just walked around and ate too much. Found a small bookshop that Carol refused to leave for an hour.",
-          author: "Carol",
-          createdAt: "2026-09-15T20:00:00Z",
-        },
-        {
-          id: "e3",
-          title: "Nice",
-          body: "The water was colder than expected. Worth it anyway.",
-          author: "Alex",
-          createdAt: "2026-09-14T18:00:00Z",
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Just Me",
-      members: ["Alex"],
-      createdAt: "2026-08-20T08:00:00Z",
-      lastOpenedAt: "2026-09-17T09:00:00Z",
-      entries: [
-        {
-          id: "e4",
-          title: "A quiet Tuesday",
-          body: "Nothing much happened today, but I wanted to write it down anyway. Sometimes the ordinary days are the ones worth remembering most.",
-          author: "Alex",
-          createdAt: "2026-09-17T21:00:00Z",
-        },
-      ],
-    },
-  ]);
-  const [showDiaryForm, setShowDiaryForm] = useState(false);
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+export default function Home() {
+  const [diaries, setDiaries] = useState<Diary[]>([]);
+  const [showDiaryForm, setShowDiaryForm] = useState(false);
+  const [currentView, setCurrentView] = useState<'diaries' | 'entries' | 'editor'>('diaries');
+  const [selectedDiary, setSelectedDiary] = useState<Diary | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+
+  const slideInEntries = () => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const slideOutEntries = (onComplete?: () => void) => {
+    Animated.timing(slideAnim, {
+      toValue: SCREEN_WIDTH,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => {
+      if (onComplete) onComplete();
+    })
+  }
+
+  const loadDiaries = useCallback(() => {
+    const rawDiaries = getAllDiaries();
+    const formattedDiaries: Diary[] = rawDiaries.map((d) => {
+      const dbEntries = getEntriesByDiaryId(d.id);
+      return {
+        id: d.id.toString(),
+        name: d.name,
+        createdAt: d.created_at,
+        lastOpenedAt: d.created_at,
+        members: ["You"],
+        entries: dbEntries.map((e) => ({
+          id: e.id.toString(),
+          title: e.title,
+          body: e.body,
+          author: "You",
+          createdAt: e.created_at,
+        })),
+      };
+    });
+    setDiaries(formattedDiaries);
+  }, []);
+
+  useEffect(() => {
+    initDatabase();
+    loadDiaries();
+  }, [loadDiaries]);
   const handleAddDiary = (data: DiaryFormData) => {
-    const createdAt = new Date().toString();
-    const newDiary = {
-      id: createdAt,
-      name: data.name,
-      members: ["You"],
-      createdAt: createdAt,
-      lastOpenedAt: createdAt,
-      entries: [],
-    };
-    setDiaries((prevDiaries) => [...prevDiaries, newDiary]);
+    if (!data.name.trim()) return;
+    saveDiary(data.name.trim());
+    loadDiaries();
+    setShowDiaryForm(false);
   };
 
   const handleDeleteDiary = (id: string) => {
-    setDiaries((prevDiaries) => [...prevDiaries.filter((d) => d.id != id)]);
+    deleteDiary(Number(id));
+    loadDiaries();
   };
-
+  const loadEntriesForDiary = useCallback((diaryId: string) => {
+    const data = getEntriesByDiaryId(Number(diaryId));
+    setEntries(data);
+  }, []);
+  const handleDeleteEntry = (entryId: number) => {
+    deleteEntry(entryId);
+    if (selectedDiary) {
+      loadEntriesForDiary(selectedDiary.id);
+      loadDiaries();
+    }
+  }
+if (currentView === 'editor' && selectedDiary) {
+  return(
+  <Editor
+  key={selectedEntry ? `entry-${selectedEntry.id}` : `new-entry`}
+  diaryId={Number(selectedDiary.id)}
+  entryToEdit={selectedEntry}
+  initialReadOnly={!!selectedEntry}
+  onBack={() => {
+    setSelectedEntry(null);
+    setCurrentView('entries');
+  }}
+  onSaved={() => {
+    setSelectedEntry(null);
+    loadEntriesForDiary(selectedDiary.id);
+    loadDiaries();
+    setCurrentView('entries');
+  }}
+  />
+  );
+}
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
@@ -95,60 +136,101 @@ export default function Home() {
           </View>
           <FlatList
             data={diaries}
-            renderItem={({ item, index }) => (
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
               <DiaryCard
-                key={index}
                 diary={item}
+                onPress={() => {
+                  setSelectedDiary(item);
+                  loadEntriesForDiary(item.id);
+                  setCurrentView('entries');
+                  slideInEntries();
+                }}
                 onDelete={(id) => handleDeleteDiary(id)}
               />
             )}
           />
         </View>
-        <Modal
-          visible={showDiaryForm}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowDiaryForm(false)}
-        >
-          <Pressable
-            style={styles.overlay}
-            onPress={() => setShowDiaryForm(false)}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS == "ios" ? "padding" : "height"}
-            >
-              <Pressable onPress={(e) => e.stopPropagation()}>
-                <DiaryForm
-                  onClose={() => {
-                    setShowDiaryForm(false);
-                  }}
-                  onSubmit={(data) => handleAddDiary(data)}
-                />
-              </Pressable>
-            </KeyboardAvoidingView>
-          </Pressable>
-        </Modal>
-        <FloatingActionButton
+
+        <DiaryForm
+          isOpen={showDiaryForm}
+          onClose={() => setShowDiaryForm(false)}
+          onSubmit={handleAddDiary}
+        />
+
+<FloatingActionButton
           onPress={() => {
             setShowDiaryForm(true);
           }}
         />
       </View>
+
+      {/* Full-Screen Sliding Entries Layer */}
+      {selectedDiary && (
+        <Animated.View
+          style={[
+            styles.fullScreenSlide,
+            {
+              transform: [{ translateX: slideAnim }],
+            },
+          ]}
+        >
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={styles.navBar}>
+              <TouchableOpacity
+                onPress={() => {
+                  slideOutEntries(() => {
+                    setSelectedDiary(null);
+                    loadDiaries();
+                    setCurrentView('diaries');
+                  });
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.backButtonText}>← {selectedDiary.name}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <EntriesList
+              entries={entries}
+              onNewEntry={() => {
+                setSelectedEntry(null);
+                setCurrentView('editor');
+              }}
+              onSelectEntry={(entry) => {
+                setSelectedEntry(entry);
+                setCurrentView('editor');
+              }}
+              onDeleteEntry={handleDeleteEntry}
+            />
+          </SafeAreaView>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: spacing.lg },
+  content: { padding: spacing.lg, flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
+    marginBottom: spacing.md,
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "flex-end",
+  navBar: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1B4938",
+  },
+  fullScreenSlide: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "#F8FAF9",
+    zIndex: 10,
   },
 });

@@ -9,13 +9,12 @@ export default function GreetingHeader({ name }: { name: string }) {
         style={{
           color: colors.text,
           fontFamily: fonts.heading,
-          fontSize: fontSizes.xxl,
+          fontSize: fontSizes.xl,
         }}
       >
-        Good Morning, {"\n"}
-        {name}
+        Good Morning, {name}.
       </Text>
-      <Text style={{ marginVertical: spacing.sm, color: colors.textMuted }}>
+      <Text style={{ marginVertical: spacing.md, color: colors.textMuted }}>
         What's on your mind today?
       </Text>
     </View>
