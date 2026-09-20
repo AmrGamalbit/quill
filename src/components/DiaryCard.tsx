@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
+import { Link } from "expo-router";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes } from "../constants/typography";
@@ -7,6 +8,7 @@ import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import type { Diary } from "../types/diary";
 import type { Entry } from "../types/entry";
+import { getEntryCount } from "../utils/db";
 import Button from "./Button";
 import Pill from "./Pill";
 
@@ -26,25 +28,27 @@ export default function DiaryCard({
   );
 
   return (
-    <Pressable
-      onPressIn={() => animatePress(true)}
-      onPressOut={() => animatePress(false)}
-    >
-      <Animated.View
-        style={[
-          style.cardContainer,
-          {
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-            backgroundColor: animatedColor,
-          },
-        ]}
+    <Link href={`/(app)/diary/${diary.id}`} asChild>
+      <Pressable
+        onPressIn={() => animatePress(true)}
+        onPressOut={() => animatePress(false)}
       >
-        <CardHeader diary={diary} />
-        <SnippetBox diary={diary} />
-        <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
-      </Animated.View>
-    </Pressable>
+        <Animated.View
+          style={[
+            style.cardContainer,
+            {
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+              backgroundColor: animatedColor,
+            },
+          ]}
+        >
+          <CardHeader diary={diary} />
+          <SnippetBox diary={diary} />
+          <CardFooter diary={diary} onDelete={() => onDelete(diary.id)} />
+        </Animated.View>
+      </Pressable>
+    </Link>
   );
 }
 
@@ -66,11 +70,11 @@ function CardHeaderInfo({ diary }: { diary: Diary }) {
       </Text>
       <View style={style.headerMeta}>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {diary.members.length} members
+          {diary.members?.length || 1} members
         </Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>•</Text>
         <Text style={[style.headerMetaText, { color: colors.text }]}>
-          {diary.entries.length} entries
+          {getEntryCount(diary.id) || 0} entries
         </Text>
       </View>
     </View>
@@ -92,7 +96,7 @@ function SnippetBox({ diary }: { diary: Diary }) {
         },
       ]}
     >
-      <Text>{diary.entries[0]?.body}</Text>
+      <Text>{diary.entries?.[0]?.body || diary.description}</Text>
     </View>
   );
 }
@@ -104,10 +108,10 @@ function CardFooter({
   diary: Diary;
   onDelete: () => void;
 }) {
-  const newEntries = diary.entries.filter(
+  const newEntries = diary.entries?.filter(
     (e) => diary.lastOpenedAt > e.createdAt,
   );
-  const latestEntry = getLatestEntry(diary.entries);
+  const latestEntry = diary.entries ? getLatestEntry(diary.entries) : {};
   return (
     <View
       style={{
@@ -117,7 +121,7 @@ function CardFooter({
       }}
     >
       <Text>
-        Updated by {latestEntry?.author}{" "}
+        Updated by {latestEntry?.author || "You"}{" "}
         {dayjs().to(dayjs(latestEntry?.createdAt))}
       </Text>
       <View
@@ -128,7 +132,7 @@ function CardFooter({
           gap: spacing.sm,
         }}
       >
-        <Pill text={`${newEntries.length} new entries`} />
+        <Pill text={`${newEntries?.length || 0} new entries`} />
         <Button label="Delete" onPress={onDelete} />
       </View>
     </View>
