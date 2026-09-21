@@ -53,20 +53,18 @@ export function getAllDiaries(): Diary[] {
     `SELECT * FROM  diaries ORDER BY created_at DESC;`,
   );
 }
+
 export const saveDiary = (name: string, description: string): number => {
   const statement = db.prepareSync(`
     INSERT INTO diaries (name, description) VALUES (?, ?)`);
-  let newId: number;
   try {
     const result = statement.executeSync([name, description]);
-    newId = result.lastInsertRowId;
+    return result.lastInsertRowId;
   } finally {
     statement.finalizeSync();
   }
-  return db.getFirstSync<Diary>(`SELECT * FROM diaries WHERE id = ?;`, [
-    newId,
-  ])!;
 };
+
 export const getEntriesByDiaryId = (diaryId: number): JournalEntry[] => {
   const statement = db.prepareSync(`
     SELECT * FROM entries WHERE diary_id = ? ORDER BY created_at DESC
@@ -104,12 +102,12 @@ export function getEntryById(entryId: number): JournalEntry | null {
   } finally {
     statement.finalizeSync();
   }
-}  
+}
 
 export function getEntryCount(diaryId: number): number {
   const result = db.getFirstSync<{ count: number }>(
     `SELECT COUNT(*) as count FROM entries WHERE diary_id = ?;`,
-    [diaryId]
+    [diaryId],
   );
   return result?.count ?? 0;
 }

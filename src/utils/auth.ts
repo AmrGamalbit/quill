@@ -66,3 +66,12 @@ export function subscribeToAuthState(
     linkingSub.remove();
   };
 }
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const resetUrl = Linking.createURL("reset-password");
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: resetUrl,
+  });
+
+  if (error) throw error;
+}

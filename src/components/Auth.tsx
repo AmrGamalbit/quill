@@ -1,250 +1,332 @@
-import { Session } from "@supabase/supabase-js";
-import { useCallback, useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from "react-native";
-import { FlatList } from "react-native-reanimated/lib/typescript/Animated";
-import { signIn, signUp, subscribeToAuthState } from "../utils/auth";
-import {
-  Diary as DbDiary,
-  deleteDiary,
-  getAllDiaries,
-  getEntriesByDiaryId,
-  initDatabase,
-  JournalEntry,
-  saveDiary,
-} from "../utils/db";
-import DiaryCard from "./DiaryCard";
-import DiaryForm from "./DiaryForm";
-import Editor from "./Editor";
-import EntriesList from "./EntriesList";
-import FloatingActionButton from "./FloatingActionButton";
+import LoginArt from '@/assets/images/login.svg';
+import { useRef, useState } from "react";
+import { Alert, Animated, KeyboardAvoidingView, LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, UIManager, View } from "react-native";
+import { radius } from "../constants/radius";
+import { spacing } from "../constants/spacings";
+import { fontSizes, fonts } from "../constants/typography";
+import useTheme from "../hooks/useTheme";
+import { sendPasswordResetEmail, signIn, signUp } from "../utils/auth";
+import Button from './Button';
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function Auth() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const { colors } = useTheme();
 
-
-  const styles = getStyles(isDark);
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
+  const [isSignUp, setIsSignUp] = useState(true);
 
-  const [currentScreen, setCurrentScreen] = useState<'diaries' | 'entries' | 'editor'>('diaries');
-  const [diaries, setDiaries] = useState<DbDiary[]>([]);
-  const [selectedDiary, setSelectedDiary] = useState<DbDiary | null>(null);
-  const [selectedDiaryId, setSelectedDiaryId] = useState<number | null>(null);
-  const [isDiaryFormOpen, setIsDiaryFormOpen] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const forgotAnim = useRef(new Animated.Value(isSignUp ? 0 : 1)).current;
 
-  const loadDiaries = useCallback(() => {
-    const all = getAllDiaries();
-    setDiaries(all);
-  }, []);
-const handleCreateDiary = (data: {name: string}) => {
-  saveDiary(data.name);
-  loadDiaries();
-}
-const handleDeleteDiary = (id: string) => {
-  deleteDiary(Number(id));
-  loadDiaries();
-}
-  useEffect(() => {
-    initDatabase();
-    loadDiaries();
-  }, [loadDiaries]);
-
-
-  const loadEntries = useCallback(() => {
-    if (selectedDiaryId === null) return;
-    const data = getEntriesByDiaryId(selectedDiaryId);
-    setEntries(data);
-  }, [selectedDiaryId]);
-  useEffect(() => {
-    loadEntries();
-  }, [loadEntries]);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToAuthState((newSession) => {
-      setSession(newSession);
-    });
-    return () => {
-      unsubscribe();
+  async function handleAuth() {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("MIssing details", "Please fill in both email and password.");
+      return;
     }
-  }, []);
-  async function signInWithEmail() {
+
     setLoading(true);
+
     try {
-      await signIn(email, password);
-    } catch (err: any) {
-      Alert.alert('Login error', err.message || 'Something went wrong');
-    } finally {
-      setLoading(false);
-    }
-  }
-  async function signUpWithEmail() {
-    setLoading(true);
-    try {
-      const { session } = await signUp(email, password);
-      if (!session) {
-        Alert.alert('Check your inbox', 'Click the link we sent to finish signing up.');
+      if (isSignUp) {
+        const { session } = await signUp(email.trim(), password);
+        if (!session) {
+          Alert.alert(
+            "Check your inbox",
+            "We sent a confirmation link to your email."
+          );
+        }
+      } else {
+        await signIn(email.trim(), password);
       }
     } catch (err: any) {
-      Alert.alert('Sign up error', err.message || 'Something went wrong');
+      Alert.alert(
+        isSignUp ? "Sign Up Error" : "Login Error",
+        err.message || "Something went wrong."
+      );
     } finally {
       setLoading(false);
     }
   }
-if (session && session.user) {
-if (currentScreen === "editor") {
-    const activeDiaryId = selectedDiary ? selectedDiary.id : selectedDiaryId;
-
-    if (!activeDiaryId) {
-      // Safety guard: if no diary was selected, go back to diaries
-      setCurrentScreen("diaries");
-      return null;
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      Alert.alert(
+        "Enter your email",
+        "Please enter your email address in the field above first, then tap Forgot Password."
+      );
+      return;
     }
 
-    return (
-      <Editor
-        key={selectedEntry ? `entry-${selectedEntry.id}` : "new-entry"}
-        diaryId={activeDiaryId}
-        entryToEdit={selectedEntry}
-        initialReadOnly={!!selectedEntry}
-        onBack={() => {
-          setSelectedEntry(null);
-          setCurrentScreen("entries");
-        }}
-        onSaved={() => {
-          setSelectedEntry(null);
-          setEntries(getEntriesByDiaryId(activeDiaryId));
-          loadDiaries();
-          setCurrentScreen("entries");
-        }}
-      />
-    );
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(email.trim());
+      Alert.alert(
+        "Check your inbox",
+        "We've sent a password reset link to your email."
+      );
+    } catch (err: any) {
+      Alert.alert("Reset Error", err.message || "Failed to send reset email.");
+    } finally {
+      setLoading(false);
+    }
   }
+  const toggleAuthMode = () => {
+    // Tell React Native to glide other screen elements smoothly
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-  // Screen 2: Looking at all entries inside the clicked diary
-  if (currentScreen === "entries" && selectedDiary) {
-    return (
-      <View style={{ flex: 1 }}>
-        <TouchableOpacity
-          style={styles.backToDiariesBtn}
-          onPress={() => {
-            setSelectedDiary(null);
-            loadDiaries();
-            setCurrentScreen("diaries");
-          }}
-        >
-          <Text style={styles.backToDiariesText}>← All Diaries</Text>
-        </TouchableOpacity>
+    // 1. Fade out the title/subtitle
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      const nextIsSignUp = !isSignUp;
+      setIsSignUp(nextIsSignUp);
 
-        <EntriesList
-          entries={entries}
-          onNewEntry={() => {
-            setSelectedEntry(null);
-            setCurrentScreen("editor");
-          }}
-          onSelectEntry={(entry) => {
-            setSelectedEntry(entry);
-            setCurrentScreen("editor");
-          }}
-        />
-      </View>
-    );
-  }
+      // 2. Animate the Forgot Password button (0 = hide, 1 = show)
+      Animated.timing(forgotAnim, {
+        toValue: nextIsSignUp ? 0 : 1,
+        duration: 200,
+        useNativeDriver: false,
+      }).start();
 
-  // Screen 1: Top-level Diaries List
+      // 3. Fade back in the title/subtitle
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>My Diaries</Text>
-      <FlatList
-        data={diaries}
-        keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No diaries yet! Tap + to create one :)</Text>
-            </View>
-        }
-        renderItem={({ item }) => (
-          <DiaryCard
-            diary={{
-              id: item.id.toString(),
-              name: item.name,
-              createdAt: item.created_at,
-              entries: getEntriesByDiaryId(item.id).map((e) => ({
-                id: e.id.toString(),
-                title: e.title,
-                author: "You",
-                body: e.body,
-                createdAt: e.created_at,
-              })),
-              members: ["You"],
-              lastOpenedAt: new Date().toISOString(),
-            }}
-            onPress={() => {
-              setSelectedDiary(item);
-              setEntries(getEntriesByDiaryId(item.id));
-              setCurrentScreen("entries");
-            }}
-            onDelete={(id) => {
-              loadDiaries();
-            }}
-          />
-        )}
-      />
-      <FloatingActionButton onPress={() => setIsDiaryFormOpen(true)} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[styles.screen, { backgroundColor: colors.background }]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/*SVG Illustration Slot */}
+        <View style={styles.illustrationWrapper}>
+          <LoginArt width={180} height={180} />
+        </View>
 
-        <DiaryForm
-        isOpen={isDiaryFormOpen}
-        onClose={() => setIsDiaryFormOpen(false)}
-        onSubmit={handleCreateDiary}
-        />
-    </View>
-  );
+        <Animated.View
+          style={[
+            styles.headerBlock,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  translateY: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [8, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={[styles.title, { color: colors.text }]}>
+            {isSignUp ? "Create an account" : "Welcome back"}
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            {isSignUp
+              ? "Start recording your thoughts and daily moments."
+              : "We're glad to have you back!"}
+          </Text>
+        </Animated.View>
+
+        <View style={styles.form}>
+          <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+            EMAIL
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            placeholder="you@example.com"
+            placeholderTextColor={colors.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+          />
+
+          <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+            PASSWORD
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            placeholder="******"
+            placeholderTextColor={colors.textMuted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          {!isSignUp && (
+            <Animated.View
+              style={[
+                styles.forgotContainer,
+                {
+                  opacity: forgotAnim,
+                  maxHeight: forgotAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 36],
+                  }),
+                  transform: [
+                    {
+                      translateY: forgotAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-6, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+              pointerEvents={isSignUp ? "none" : "auto"}
+            >
+              <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={handleForgotPassword}
+                disabled={loading}
+              >
+                <Text style={[styles.forgotText, { color: colors.accent }]}>
+                  Forgot password?
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
+          <Button
+            label={isSignUp ? "Sign Up" : "Sign In"}
+            variant='primary'
+            onPress={handleAuth}
+            loading={loading}
+          />
+
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchText, { color: colors.textMuted }]}>
+              {isSignUp
+                ? "Already have an account?"
+                : "Don't have an account yet?"}
+            </Text>
+            <TouchableOpacity onPress={toggleAuthMode}>
+              <Text style={[styles.switchLink, { color: colors.accent }]}>
+                {isSignUp ? " Sign In" : " Sign Up"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  )
 }
-}
-const getStyles = (isDark: boolean) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      paddingTop: 50,
-      paddingHorizontal: 20,
-      backgroundColor: isDark ? "#111715" : "#F8FAF9",
-    },
-    header: {
-      fontSize: 26,
-      fontWeight: "bold",
-      marginBottom: 16,
-      color: isDark ? "#ECF2EF" : "#18201E",
-    },
-    backToDiariesBtn: {
-      paddingTop: 50,
-      paddingHorizontal: 16,
-      paddingBottom: 10,
-      backgroundColor: isDark ? "#121212" : "#fafaf9",
-    },
-    backToDiariesText: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: "#1B4938",
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: "#ccc",
-      padding: 16,
-      borderRadius: 8,
-      marginBottom: 16,
-      color: isDark ? "#fff" : "#000",
-    },
-    emptyContainer: {
-      paddingTop: 60,
-      alignItems: "center",
-    },
-    emptyText: {
-      fontSize: 15,
-      color: isDark ? "#8EA39C" : "#62726E",
-    },
-  });
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
+    justifyContent: "center",
+  },
+  illustrationWrapper: {
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
+  placeholderArt: {
+    width: 140,
+    height: 140,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  placeholderText: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.label,
+  },
+  headerBlock: {
+    marginBottom: spacing.xl,
+  },
+  title: {
+    fontSize: fontSizes.xl,
+    fontFamily: fonts.heading,
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.body,
+    lineHeight: 20,
+  },
+  form: {
+    gap: spacing.sm,
+  },
+  inputLabel: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.label,
+    letterSpacing: 0.5,
+    marginTop: spacing.xs,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: fontSizes.md,
+    fontFamily: fonts.body,
+  },
+  switchRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: spacing.lg,
+  },
+  switchText: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.body,
+  },
+  switchLink: {
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.label,
+    fontWeight: "700",
+  },
+  forgotContainer: {
+    overflow: 'hidden',
+    alignSelf: 'flex-end',
+  },
+  forgotBtn: {
+    paddingVertical: spacing.xs,
+  },
+  forgotText: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.label,
+    fontWeight: "600",
+  }
+});

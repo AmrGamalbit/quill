@@ -1,3 +1,4 @@
+import Auth from "@/src/components/Auth";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
 import Editor from "@/src/components/Editor";
@@ -21,6 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -40,7 +42,8 @@ export default function Home() {
   const isDark = colorScheme === "dark";
 
   const [session, setSession] = useState<Session | null>(null);
-const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
@@ -77,6 +80,7 @@ const [isSettingsOpen, setIsSettingsOpen] = useState(false);
         name: d.name,
         createdAt: d.created_at,
         lastOpenedAt: d.created_at,
+        description: '',
         members: ["You"],
         entries: dbEntries.map((e) => ({
           id: e.id.toString(),
@@ -89,21 +93,22 @@ const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     });
     setDiaries(formattedDiaries);
   }, []);
-useEffect(() => {
-  const unsubscribe = subscribeToAuthState((newSession) => {
-    setSession(newSession);
-  });
-  return () => {
-    unsubscribe();
-  };
-}, []);
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthState((newSession) => {
+      setSession(newSession);
+      setIsAuthLoading(false);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
   useEffect(() => {
     initDatabase();
     loadDiaries();
   }, [loadDiaries]);
   const handleAddDiary = (data: DiaryFormData) => {
     if (!data.name.trim()) return;
-    saveDiary(data.name.trim());
+    saveDiary(data.name.trim(), '');
     loadDiaries();
     setShowDiaryForm(false);
   };
@@ -122,6 +127,16 @@ useEffect(() => {
       loadEntriesForDiary(selectedDiary.id);
       loadDiaries();
     }
+  }
+  if (isAuthLoading) {
+    return (
+      <SafeAreaView style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
+        <ActivityIndicator size="large" color={isDark ? "#4E9E80" : "#1B4938"} />
+      </SafeAreaView>
+    );
+  }
+  if (!session) {
+    return <Auth />;
   }
   if (currentView === 'editor' && selectedDiary) {
     return (
@@ -184,9 +199,9 @@ useEffect(() => {
           onSubmit={handleAddDiary}
         />
         <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        userEmail={session?.user?.email}
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          userEmail={session?.user?.email}
         />
         <FloatingActionButton
           onPress={() => {
