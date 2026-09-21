@@ -22,6 +22,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  size?: "sm" | "md";
 }
 
 type buttonProps = {
@@ -36,7 +37,10 @@ export default function Button({
   disabled = false,
   style,
   textStyle,
+  size = "md",
 }: ButtonProps) {
+
+  const isSmall = size === "sm";
   const { colors } = useTheme();
 
   const isPrimary = variant === "primary";
@@ -78,6 +82,7 @@ export default function Button({
       <Animated.View
         style={[
           styles.buttonContainer,
+          isSmall && styles.buttonContainerSmall,
           {
             backgroundColor: animatedColor,
             borderColor: isOutline ? colors.accent : "transparent",
@@ -88,7 +93,7 @@ export default function Button({
         {loading ? (
           <ActivityIndicator size="small" color={textColor} />
         ) : (
-          <Text style={[styles.buttonLabel, { color: textColor }, textStyle]}>
+          <Text style={[styles.buttonLabel, isSmall && styles.buttonLabelSmall, { color: textColor }, textStyle]}>
             {label}
           </Text>
         )}
@@ -113,6 +118,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.label,
     fontSize: fontSizes.md,
     fontWeight: "600",
+  },
+  buttonContainerSmall: {
+    minHeight: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md ?? 16,
+  },
+  buttonLabelSmall: {
+    fontSize: fontSizes.sm,
   },
   disabledContainer: {
     opacity: 0.5,

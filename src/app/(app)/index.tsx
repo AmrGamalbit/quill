@@ -1,3 +1,4 @@
+import EmptyArt from '@/assets/images/empty.svg';
 import Auth from "@/src/components/Auth";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
@@ -7,6 +8,8 @@ import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
+import { fonts, fontSizes } from '@/src/constants/typography';
+import useTheme from '@/src/hooks/useTheme';
 import type { Diary, DiaryFormData } from "@/src/types/diary";
 import { subscribeToAuthState } from "@/src/utils/auth";
 import {
@@ -40,6 +43,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function Home() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const {colors} = useTheme();
+
+  const styles = getStyles(colors);
 
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -130,7 +136,7 @@ export default function Home() {
   }
   if (isAuthLoading) {
     return (
-      <SafeAreaView style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
+      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color={isDark ? "#4E9E80" : "#1B4938"} />
       </SafeAreaView>
     );
@@ -178,6 +184,14 @@ export default function Home() {
           <FlatList
             data={diaries}
             keyExtractor={(item) => item.id}
+            contentContainerStyle={diaries.length === 0 ? styles.emptyContainer : undefined}
+            ListEmptyComponent={
+              <View style={styles.emptyList}>
+              <EmptyArt width={220} height={220}/>
+              <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
+              <Text style={{color: colors.textMuted }}>Join or create a new one.</Text>
+            </View>
+            }
             renderItem={({ item }) => (
               <DiaryCard
                 diary={item}
@@ -259,7 +273,7 @@ export default function Home() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: spacing.lg, flex: 1 },
   header: {
@@ -293,4 +307,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAF9",
     zIndex: 10,
   },
+  emptyList: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyContainer: {
+    flexGrow: 1, // Crucial: lets the scroll surface expand to fill the full height
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDiaryText: {fontSize: fontSizes.xl, fontWeight: '600', fontFamily: fonts.label, color: colors.text},
 });

@@ -7,21 +7,21 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { JournalEntry, saveEntry } from "../utils/db";
+import Button from "./Button";
 
 interface EditorProps {
   diaryId: number;
@@ -81,12 +81,10 @@ export default function Editor({
           onPress={onBack}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <SymbolView name="chevron.backward" size={20} />
+          <Ionicons name="arrow-back" size={20} />
         </TouchableOpacity>
         <Text style={styles.newJournalText}>Add new Journal</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Save</Text>
-        </TouchableOpacity>
+        <Button label="Save" onPress={handleSave} size="sm" style={{width: 'auto'}} />
       </View>
 
       <View style={styles.bodyContainer}>
@@ -105,8 +103,7 @@ export default function Editor({
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+        behavior={"padding"}
         style={styles.footer}
       >
         <View style={styles.toolbarContainer}>

@@ -20,9 +20,10 @@ export default function FormField({
       <TextInput
         style={[
           styles.input,
-          { backgroundColor: colors.card, borderColor: colors.border },
+          { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
         ]}
         placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChangeText}
       ></TextInput>
@@ -33,7 +34,7 @@ export default function FormField({
 const styles = StyleSheet.create({
   container: { gap: 8 },
   input: {
-    height: 36,
+    height: 'auto',
     borderRadius: 10,
     paddingHorizontal: 10,
     borderWidth: 1,

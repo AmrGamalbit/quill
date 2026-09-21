@@ -9,7 +9,7 @@ export default function GreetingHeader({ name }: { name: string }) {
         style={{
           color: colors.text,
           fontFamily: fonts.heading,
-          fontSize: fontSizes.xl,
+          fontSize: fontSizes.xxl,
         }}
       >
         Good Morning, {name}.

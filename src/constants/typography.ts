@@ -9,8 +9,9 @@ export const fontSizes = {
   sm: 14,
   md: 16,
   lg: 20,
-  xl: 28,
-  xxl: 34,
+  xl: 24,
+  xxl: 28,
+  xxxl: 32,
 };
 
 export const lineHeights = {
