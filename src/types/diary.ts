@@ -6,8 +6,8 @@ export type Diary = {
   description: string;
   entries: Entry[];
   members: string[];
-  createdAt: string;
-  lastOpenedAt: string;
+  createdAt: Date;
+  lastOpenedAt: Date;
 };
 
 export type DiaryFormData = { name: string; description: string };
