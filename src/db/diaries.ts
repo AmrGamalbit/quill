@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from ".";
 import { diariesTable as diaries } from "./schema";
 
-export type Diary = typeof diaries.$inferSelect;
+type Diary = typeof diaries.$inferSelect;
 
 export const getAllDiaries = async (): Promise<Diary[]> => {
   return await db.select().from(diaries);
