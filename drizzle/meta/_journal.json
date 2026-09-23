@@ -15,6 +15,13 @@
       "when": 1790184635502,
       "tag": "0001_noisy_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790186805433,
+      "tag": "0002_milky_manta",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ export const diariesTable = sqliteTable("diaries", {
   id: int().primaryKey({ autoIncrement: true }),
   name: text().notNull(),
   description: text(),
-  createdAt: int({ mode: "timestamp" })
+  createdAt: int("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -15,10 +15,10 @@ export const entriesTable = sqliteTable("entries", {
   diaryId: int().references(() => diariesTable.id, { onDelete: "cascade" }),
   title: text().notNull(),
   body: text(),
-  createdAt: int({ mode: "timestamp" })
+  createdAt: int("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-  updatedAt: int({ mode: "timestamp" })
+  updatedAt: int("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });
