@@ -1,5 +1,4 @@
 import EmptyArt from "@/assets/images/empty.svg";
-import Auth from "@/src/components/Auth";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
@@ -9,43 +8,34 @@ import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
-import { subscribeToAuthState } from "@/src/utils/auth";
 import {
   deleteDiary,
   getAllDiaries,
   getEntriesByDiaryId,
   initDatabase,
-  saveDiary
+  saveDiary,
 } from "@/src/utils/db";
 import { Ionicons } from "@expo/vector-icons";
-import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const { colors } = useTheme();
 
   const styles = getStyles(colors);
 
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
-  const [selectedDiary, setSelectedDiary] = useState<Diary | null>(null);
 
   const router = useRouter();
   const loadDiaries = useCallback(() => {
@@ -70,15 +60,7 @@ export default function Home() {
     });
     setDiaries(formattedDiaries);
   }, []);
-  useEffect(() => {
-    const unsubscribe = subscribeToAuthState((newSession) => {
-      setSession(newSession);
-      setIsAuthLoading(false);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+
   useEffect(() => {
     initDatabase();
     loadDiaries();
@@ -94,22 +76,6 @@ export default function Home() {
     deleteDiary(Number(id));
     loadDiaries();
   };
-
-  if (isAuthLoading) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
-        <ActivityIndicator
-          size="large"
-          color={isDark ? "#4E9E80" : "#1B4938"}
-        />
-      </SafeAreaView>
-    );
-  }
-  if (!session) {
-    return <Auth />;
-  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -152,10 +118,6 @@ export default function Home() {
                 diary={item}
                 onPress={() => {
                   router.push(`/(app)/diary/${item.id}`);
-                  // setSelectedDiary(item);
-                  // loadEntriesForDiary(item.id);
-                  // setCurrentView("entries");
-                  // slideInEntries();
                 }}
                 onDelete={(id) => handleDeleteDiary(id)}
               />
@@ -171,7 +133,6 @@ export default function Home() {
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
-          userEmail={session?.user?.email}
         />
         <FloatingActionButton
           onPress={() => {
@@ -203,20 +164,6 @@ const getStyles = (colors: any) =>
     },
     settingsIconColor: {
       color: "#62726E",
-    },
-    navBar: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
-    },
-    backButtonText: {
-      fontSize: 16,
-      fontWeight: "600",
-    },
-    fullScreenSlide: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: "#F8FAF9",
-      zIndex: 10,
     },
     emptyList: {
       justifyContent: "center",
