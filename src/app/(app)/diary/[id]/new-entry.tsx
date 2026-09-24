@@ -1,7 +1,7 @@
 import Editor from "@/src/components/Editor";
-import { saveEntry } from "@/src/utils/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { saveEntry } from "@/src/db/entries";
 
 export default function NewEntryScreen() {
   const { id } = useLocalSearchParams();

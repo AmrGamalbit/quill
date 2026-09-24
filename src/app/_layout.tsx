@@ -5,14 +5,18 @@ import {
   PlusJakartaSans_500Medium,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import type { Session } from "@supabase/supabase-js";
+import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
+import "react-native-reanimated";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import migrations from "../../drizzle/migrations";
+import { db } from "../db";
 import useTheme from "../hooks/useTheme";
-import { initDatabase } from "../utils/db";
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary
@@ -23,8 +27,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [dbReady, setDbReady] = useState(false);
-  const [loaded, error] = useFonts({
+  const { success: isDbMigrated, error: dbMigrationError } = useMigrations(
+    db,
+    migrations,
+  );
+  const [isFontsLoaded, fontLoadingError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     Merriweather_400Regular,
@@ -42,15 +49,17 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (fontLoadingError) {
+      console.error("Fonts error:", fontLoadingError);
+    }
+  }, [fontLoadingError]);
 
   useEffect(() => {
-    initDatabase();
-    setDbReady(true);
-  }, []);
+    if (dbMigrationError) {
+      console.error("Migration error:", dbMigrationError);
+    }
+  }, [dbMigrationError]);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -62,12 +71,12 @@ export default function RootLayout() {
   }, [session, isAuthLoading]);
 
   useEffect(() => {
-    if (loaded && dbReady) {
+    if (isFontsLoaded && isDbMigrated) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, dbReady]);
+  }, [isFontsLoaded, isDbMigrated]);
 
-  if (!loaded) {
+  if (!isFontsLoaded || !isDbMigrated) {
     return null;
   }
 

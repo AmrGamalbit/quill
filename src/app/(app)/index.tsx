@@ -6,19 +6,13 @@ import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
-import type { Diary, DiaryFormData } from "@/src/types/diary";
-import {
-  deleteDiary,
-  getAllDiaries,
-  getEntriesByDiaryId,
-  initDatabase,
-  saveDiary,
-} from "@/src/utils/db";
+import type { DiaryFormData } from "@/src/types/diary";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -30,53 +24,24 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const { colors } = useTheme();
-
   const styles = getStyles(colors);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
 
   const email = useUserEmail();
+  const { diaries, deleteDiary, addDiary } = useDiaries();
   const router = useRouter();
-  const loadDiaries = useCallback(() => {
-    const rawDiaries = getAllDiaries();
-    const formattedDiaries: Diary[] = rawDiaries.map((d) => {
-      const dbEntries = getEntriesByDiaryId(d.id);
-      return {
-        id: d.id.toString(),
-        name: d.name,
-        createdAt: d.created_at,
-        lastOpenedAt: d.created_at,
-        description: "",
-        members: ["You"],
-        entries: dbEntries.map((e) => ({
-          id: e.id.toString(),
-          title: e.title,
-          body: e.body,
-          author: "You",
-          createdAt: e.created_at,
-        })),
-      };
-    });
-    setDiaries(formattedDiaries);
-  }, []);
 
-  useEffect(() => {
-    initDatabase();
-    loadDiaries();
-  }, [loadDiaries]);
-  const handleAddDiary = (data: DiaryFormData) => {
-    if (!data.name.trim()) return;
-    saveDiary(data.name.trim(), "");
-    loadDiaries();
+  const handleAddDiary = async (data: DiaryFormData) => {
+    const trimmed = data.name.trim();
+    if (!trimmed) return;
+    await addDiary(trimmed, data.description.trim());
     setShowDiaryForm(false);
   };
 
-  const handleDeleteDiary = (id: string) => {
-    deleteDiary(Number(id));
-    loadDiaries();
+  const handleDeleteDiary = async (id: string) => {
+    await deleteDiary(Number(id));
   };
 
   return (

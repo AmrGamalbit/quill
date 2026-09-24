@@ -1,7 +1,6 @@
 import EntriesList from "@/src/components/EntriesList";
 import { spacing } from "@/src/constants/spacings";
-import type { JournalEntry } from "@/src/utils/db";
-import { deleteEntry, getEntriesByDiaryId } from "@/src/utils/db";
+import { deleteEntry, getEntriesByDiaryId } from "@/src/db/entries";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -14,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+type JournalEntry = {};
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function DiaryScreen() {
@@ -50,8 +50,11 @@ export default function DiaryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const result = getEntriesByDiaryId(Number(id));
-      setEntries(result);
+      const loadEntries = async () => {
+        const result = await getEntriesByDiaryId(Number(id));
+        setEntries(result);
+      };
+      loadEntries();
     }, [id]),
   );
 
