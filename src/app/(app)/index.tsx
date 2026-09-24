@@ -2,26 +2,21 @@ import EmptyArt from "@/assets/images/empty.svg";
 import Auth from "@/src/components/Auth";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
-import Editor from "@/src/components/Editor";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
-import { deleteDiary, getAllDiaries, saveDiary } from "@/src/db/diaries";
+import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
 import { subscribeToAuthState } from "@/src/utils/auth";
-import {
-  deleteEntry,
-  getEntriesByDiaryId,
-  initDatabase,
-  JournalEntry,
-} from "@/src/utils/db";
+import { JournalEntry } from "@/src/utils/db";
 import { Ionicons } from "@expo/vector-icons";
 import { Session } from "@supabase/supabase-js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -48,7 +43,6 @@ export default function Home() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
   const [currentView, setCurrentView] = useState<
     "diaries" | "entries" | "editor"
@@ -57,7 +51,8 @@ export default function Home() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
-
+  const { diaries, deleteDiary, addDiary } = useDiaries();
+  const router = useRouter();
   const slideInEntries = () => {
     Animated.timing(slideAnim, {
       toValue: 0,
@@ -76,28 +71,6 @@ export default function Home() {
     });
   };
 
-  const loadDiaries = useCallback(async () => {
-    const rawDiaries = await getAllDiaries();
-    const formattedDiaries: Diary[] = rawDiaries.map((d) => {
-      const dbEntries = getEntriesByDiaryId(d.id);
-      return {
-        id: d.id.toString(),
-        name: d.name,
-        createdAt: d.createdAt,
-        lastOpenedAt: d.createdAt,
-        description: "",
-        members: ["You"],
-        entries: dbEntries.map((e) => ({
-          id: e.id.toString(),
-          title: e.title,
-          body: e.body,
-          author: "You",
-          createdAt: e.created_at,
-        })),
-      };
-    });
-    setDiaries(formattedDiaries);
-  }, []);
   useEffect(() => {
     const unsubscribe = subscribeToAuthState((newSession) => {
       setSession(newSession);
@@ -107,32 +80,18 @@ export default function Home() {
       unsubscribe();
     };
   }, []);
-  useEffect(() => {
-    initDatabase();
-    loadDiaries();
-  }, [loadDiaries]);
-  const handleAddDiary = (data: DiaryFormData) => {
-    if (!data.name.trim()) return;
-    saveDiary(data.name.trim(), "");
-    loadDiaries();
+
+  const handleAddDiary = async (data: DiaryFormData) => {
+    const trimmed = data.name.trim();
+    if (!trimmed) return;
+    await addDiary(trimmed, data.description.trim());
     setShowDiaryForm(false);
   };
 
-  const handleDeleteDiary = (id: string) => {
-    deleteDiary(Number(id));
-    loadDiaries();
+  const handleDeleteDiary = async (id: string) => {
+    await deleteDiary(Number(id));
   };
-  const loadEntriesForDiary = useCallback((diaryId: string) => {
-    const data = getEntriesByDiaryId(Number(diaryId));
-    setEntries(data);
-  }, []);
-  const handleDeleteEntry = (entryId: number) => {
-    deleteEntry(entryId);
-    if (selectedDiary) {
-      loadEntriesForDiary(selectedDiary.id);
-      loadDiaries();
-    }
-  };
+
   if (isAuthLoading) {
     return (
       <SafeAreaView
@@ -148,26 +107,7 @@ export default function Home() {
   if (!session) {
     return <Auth />;
   }
-  if (currentView === "editor" && selectedDiary) {
-    return (
-      <Editor
-        key={selectedEntry ? `entry-${selectedEntry.id}` : `new-entry`}
-        diaryId={Number(selectedDiary.id)}
-        entryToEdit={selectedEntry}
-        initialReadOnly={!!selectedEntry}
-        onBack={() => {
-          setSelectedEntry(null);
-          setCurrentView("entries");
-        }}
-        onSaved={() => {
-          setSelectedEntry(null);
-          loadEntriesForDiary(selectedDiary.id);
-          loadDiaries();
-          setCurrentView("entries");
-        }}
-      />
-    );
-  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
@@ -208,10 +148,11 @@ export default function Home() {
               <DiaryCard
                 diary={item}
                 onPress={() => {
-                  setSelectedDiary(item);
-                  loadEntriesForDiary(item.id);
-                  setCurrentView("entries");
-                  slideInEntries();
+                  router.push(`/(app)/diary/${item.id}`);
+                  // setSelectedDiary(item);
+                  // loadEntriesForDiary(item.id);
+                  // setCurrentView("entries");
+                  // slideInEntries();
                 }}
                 onDelete={(id) => handleDeleteDiary(id)}
               />
