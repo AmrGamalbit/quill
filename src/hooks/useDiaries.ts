@@ -24,12 +24,12 @@ export default function useDiaries() {
   );
 
   const addDiary = async (name: string, description: string): Promise<void> => {
-    addDiaryToDb(name, description);
+    await addDiaryToDb(name, description);
     await refresh();
   };
 
   const deleteDiary = async (diaryId: number) => {
-    deleteDiaryFromDb(diaryId);
+    await deleteDiaryFromDb(diaryId);
     await refresh();
   };
 

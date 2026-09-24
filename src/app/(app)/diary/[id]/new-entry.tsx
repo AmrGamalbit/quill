@@ -15,12 +15,6 @@ export default function NewEntryScreen() {
           router.back();
         }}
         onSaved={() => router.back()}
-        // onSaved={() => {
-        //   setSelectedEntry(null);
-        //   loadEntriesForDiary(selectedDiary.id);
-        //   loadDiaries();
-        //   setCurrentView("entries");
-        // }}
       />
     </SafeAreaView>
   );

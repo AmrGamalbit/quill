@@ -8,7 +8,6 @@ import {
   useEditorBridge,
 } from "@10play/tentap-editor";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -17,17 +16,19 @@ import {
   TextInput,
   TouchableOpacity,
   useColorScheme,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { JournalEntry, saveEntry } from "../utils/db";
+import { saveEntry } from "../db/entries";
 import Button from "./Button";
+
+type Entry = { title: string; description: string; createdAt: string };
 
 interface EditorProps {
   diaryId: number;
   onSaved?: () => void;
   onBack?: () => void;
-  entryToEdit?: JournalEntry | null;
+  entryToEdit?: Entry | null;
   initialReadOnly?: boolean;
 }
 
@@ -41,7 +42,6 @@ export default function Editor({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const styles = getStyles(isDark);
-  const router = useRouter();
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
   const [title, setTitle] = useState(entryToEdit ? entryToEdit.title : "");
@@ -58,7 +58,7 @@ export default function Editor({
   });
 
   const displayDate = new Date(
-    entryToEdit ? entryToEdit.created_at : Date.now(),
+    entryToEdit ? entryToEdit.createdAt : new Date(),
   ).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
@@ -68,9 +68,8 @@ export default function Editor({
 
   const handleSave = async () => {
     const contentHtml = await editor.getHTML();
-    saveEntry(diaryId, title, contentHtml);
+    await saveEntry(diaryId, title, contentHtml);
     if (onSaved) onSaved();
-    router.back();
   };
 
   return (
@@ -84,7 +83,12 @@ export default function Editor({
           <Ionicons name="arrow-back" size={20} />
         </TouchableOpacity>
         <Text style={styles.newJournalText}>Add new Journal</Text>
-        <Button label="Save" onPress={handleSave} size="sm" style={{width: 'auto'}} />
+        <Button
+          label="Save"
+          onPress={handleSave}
+          size="sm"
+          style={{ width: "auto" }}
+        />
       </View>
 
       <View style={styles.bodyContainer}>
@@ -102,10 +106,7 @@ export default function Editor({
         <RichText editor={editor} style={styles.editor} />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={"padding"}
-        style={styles.footer}
-      >
+      <KeyboardAvoidingView behavior={"padding"} style={styles.footer}>
         <View style={styles.toolbarContainer}>
           <Toolbar editor={editor} hidden={false} />
         </View>
