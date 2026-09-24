@@ -2,8 +2,6 @@ import EmptyArt from "@/assets/images/empty.svg";
 import Auth from "@/src/components/Auth";
 import DiaryCard from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
-import Editor from "@/src/components/Editor";
-import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
@@ -14,21 +12,17 @@ import type { Diary, DiaryFormData } from "@/src/types/diary";
 import { subscribeToAuthState } from "@/src/utils/auth";
 import {
   deleteDiary,
-  deleteEntry,
   getAllDiaries,
   getEntriesByDiaryId,
   initDatabase,
-  JournalEntry,
-  saveDiary,
+  saveDiary
 } from "@/src/utils/db";
 import { Ionicons } from "@expo/vector-icons";
 import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
-  Dimensions,
   FlatList,
   StyleSheet,
   Text,
@@ -37,8 +31,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function Home() {
   const colorScheme = useColorScheme();
@@ -53,31 +45,8 @@ export default function Home() {
 
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
-  const [currentView, setCurrentView] = useState<
-    "diaries" | "entries" | "editor"
-  >("diaries");
   const [selectedDiary, setSelectedDiary] = useState<Diary | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
 
-  const slideInEntries = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 260,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const slideOutEntries = (onComplete?: () => void) => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_WIDTH,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(() => {
-      if (onComplete) onComplete();
-    });
-  };
   const router = useRouter();
   const loadDiaries = useCallback(() => {
     const rawDiaries = getAllDiaries();
@@ -125,17 +94,7 @@ export default function Home() {
     deleteDiary(Number(id));
     loadDiaries();
   };
-  const loadEntriesForDiary = useCallback((diaryId: string) => {
-    const data = getEntriesByDiaryId(Number(diaryId));
-    setEntries(data);
-  }, []);
-  const handleDeleteEntry = (entryId: number) => {
-    deleteEntry(entryId);
-    if (selectedDiary) {
-      loadEntriesForDiary(selectedDiary.id);
-      loadDiaries();
-    }
-  };
+
   if (isAuthLoading) {
     return (
       <SafeAreaView
@@ -151,26 +110,7 @@ export default function Home() {
   if (!session) {
     return <Auth />;
   }
-  if (currentView === "editor" && selectedDiary) {
-    return (
-      <Editor
-        key={selectedEntry ? `entry-${selectedEntry.id}` : `new-entry`}
-        diaryId={Number(selectedDiary.id)}
-        entryToEdit={selectedEntry}
-        initialReadOnly={!!selectedEntry}
-        onBack={() => {
-          setSelectedEntry(null);
-          setCurrentView("entries");
-        }}
-        onSaved={() => {
-          setSelectedEntry(null);
-          loadEntriesForDiary(selectedDiary.id);
-          loadDiaries();
-          setCurrentView("entries");
-        }}
-      />
-    );
-  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
@@ -211,10 +151,11 @@ export default function Home() {
               <DiaryCard
                 diary={item}
                 onPress={() => {
-                  setSelectedDiary(item);
-                  loadEntriesForDiary(item.id);
-                  setCurrentView("entries");
-                  slideInEntries();
+                  router.push(`/(app)/diary/${item.id}`);
+                  // setSelectedDiary(item);
+                  // loadEntriesForDiary(item.id);
+                  // setCurrentView("entries");
+                  // slideInEntries();
                 }}
                 onDelete={(id) => handleDeleteDiary(id)}
               />
@@ -238,63 +179,6 @@ export default function Home() {
           }}
         />
       </View>
-
-      {/* Full-Screen Sliding Entries Layer */}
-      {selectedDiary && (
-        <Animated.View
-          style={[
-            styles.fullScreenSlide,
-            {
-              backgroundColor: isDark ? "#111715" : "#F8FAF9",
-              transform: [{ translateX: slideAnim }],
-            },
-          ]}
-        >
-          <SafeAreaView style={{ flex: 1 }}>
-            <View
-              style={[
-                styles.navBar,
-                { borderBottomColor: isDark ? "#283934" : "#E5EBE8" },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  slideOutEntries(() => {
-                    setSelectedDiary(null);
-                    loadDiaries();
-                    setCurrentView("diaries");
-                  });
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text
-                  style={[
-                    styles.backButtonText,
-                    { color: isDark ? "#4E9E80" : "#1B4938" },
-                  ]}
-                >
-                  ← {selectedDiary.name}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <EntriesList
-              entries={entries}
-              onNewEntry={() =>
-                router.push(`/(app)/diary/${selectedDiary.id}/new-entry`)
-              }
-              onSelectEntry={(entry) => {
-                router.push(
-                  `/(app)/diary/${selectedDiary.id}/entries/${entry.id}`,
-                );
-                // setSelectedEntry(entry);
-                // setCurrentView("editor");
-              }}
-              onDeleteEntry={handleDeleteEntry}
-            />
-          </SafeAreaView>
-        </Animated.View>
-      )}
     </SafeAreaView>
   );
 }
