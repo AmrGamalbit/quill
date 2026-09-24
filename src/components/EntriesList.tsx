@@ -59,7 +59,7 @@ export default function EntriesList({
           {item.title}
         </Text>
         <Text style={styles.cardDate}>
-          {new Date(item.created_at).toLocaleDateString("en-US", {
+          {new Date(item.createdAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
           })}
