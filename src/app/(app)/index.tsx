@@ -284,8 +284,11 @@ export default function Home() {
                 router.push(`/(app)/diary/${selectedDiary.id}/new-entry`)
               }
               onSelectEntry={(entry) => {
-                setSelectedEntry(entry);
-                setCurrentView("editor");
+                router.push(
+                  `/(app)/diary/${selectedDiary.id}/entries/${entry.id}`,
+                );
+                // setSelectedEntry(entry);
+                // setCurrentView("editor");
               }}
               onDeleteEntry={handleDeleteEntry}
             />

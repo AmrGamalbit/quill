@@ -24,7 +24,7 @@ import Button from "./Button";
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;
-  initialDate?: Date;
+  initialDate?: string;
   initialReadOnly?: boolean;
   onSave: (title: string, body: string) => void;
   onBack?: () => void;
