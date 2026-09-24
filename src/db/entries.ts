@@ -7,7 +7,7 @@ type Entry = typeof entries.$inferInsert;
 export const getEntriesByDiaryId = async (
   diaryId: number,
 ): Promise<Entry[]> => {
-  return await db.select().from(entries).where(eq(entries.id, diaryId));
+  return await db.select().from(entries).where(eq(entries.diaryId, diaryId));
 };
 
 export const saveEntry = async (
