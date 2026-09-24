@@ -7,6 +7,7 @@ import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
+import useUserEmail from "@/src/hooks/useUserEmail";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
 import {
   deleteDiary,
@@ -37,6 +38,7 @@ export default function Home() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
 
+  const email = useUserEmail();
   const router = useRouter();
   const loadDiaries = useCallback(() => {
     const rawDiaries = getAllDiaries();
@@ -133,6 +135,7 @@ export default function Home() {
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
+          userEmail={email}
         />
         <FloatingActionButton
           onPress={() => {

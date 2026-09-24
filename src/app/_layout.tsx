@@ -57,7 +57,7 @@ export default function RootLayout() {
     if (session) {
       router.replace("/(app)");
     } else {
-      router.replace("/(auth)");
+      router.replace("/(auth)/login");
     }
   }, [session, isAuthLoading]);
 
