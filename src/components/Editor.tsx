@@ -8,7 +8,6 @@ import {
   useEditorBridge,
 } from "@10play/tentap-editor";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -17,39 +16,39 @@ import {
   TextInput,
   TouchableOpacity,
   useColorScheme,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { JournalEntry, saveEntry } from "../utils/db";
 import Button from "./Button";
 
 interface EditorProps {
-  diaryId: number;
-  onSaved?: () => void;
-  onBack?: () => void;
-  entryToEdit?: JournalEntry | null;
+  initialTitle?: string;
+  initialBody?: string;
+  initialDate?: Date;
   initialReadOnly?: boolean;
+  onSave: (title: string, body: string) => void;
+  onBack?: () => void;
 }
 
 export default function Editor({
-  diaryId,
-  onSaved,
+  initialTitle,
+  initialBody,
+  initialDate,
+  initialReadOnly,
+  onSave,
   onBack,
-  entryToEdit,
-  initialReadOnly = false,
 }: EditorProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const styles = getStyles(isDark);
-  const router = useRouter();
 
-  const [isReadOnly, setIsReadOnly] = useState(initialReadOnly);
-  const [title, setTitle] = useState(entryToEdit ? entryToEdit.title : "");
+  const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
+  const [title, setTitle] = useState(initialTitle ?? "");
 
   const editor = useEditorBridge({
     autofocus: !initialReadOnly,
     avoidIosKeyboard: true,
-    initialContent: entryToEdit ? entryToEdit.body : "<p></p>",
+    initialContent: initialBody ?? "<p></p>",
     editable: !isReadOnly,
     bridgeExtensions: isDark
       ? [...TenTapStartKit, CoreBridge.configureCSS(darkEditorCss)]
@@ -57,20 +56,19 @@ export default function Editor({
     theme: isDark ? darkEditorTheme : undefined,
   });
 
-  const displayDate = new Date(
-    entryToEdit ? entryToEdit.created_at : Date.now(),
-  ).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const displayDate = new Date(initialDate ?? Date.now()).toLocaleDateString(
+    "en-US",
+    {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    },
+  );
 
   const handleSave = async () => {
     const contentHtml = await editor.getHTML();
-    saveEntry(diaryId, title, contentHtml);
-    if (onSaved) onSaved();
-    router.back();
+    onSave(title, contentHtml);
   };
 
   return (
@@ -84,7 +82,12 @@ export default function Editor({
           <Ionicons name="arrow-back" size={20} />
         </TouchableOpacity>
         <Text style={styles.newJournalText}>Add new Journal</Text>
-        <Button label="Save" onPress={handleSave} size="sm" style={{width: 'auto'}} />
+        <Button
+          label="Save"
+          onPress={handleSave}
+          size="sm"
+          style={{ width: "auto" }}
+        />
       </View>
 
       <View style={styles.bodyContainer}>
@@ -102,10 +105,7 @@ export default function Editor({
         <RichText editor={editor} style={styles.editor} />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={"padding"}
-        style={styles.footer}
-      >
+      <KeyboardAvoidingView behavior={"padding"} style={styles.footer}>
         <View style={styles.toolbarContainer}>
           <Toolbar editor={editor} hidden={false} />
         </View>
