@@ -1,8 +1,8 @@
 import EntriesList from "@/src/components/EntriesList";
 import { spacing } from "@/src/constants/spacings";
-import { deleteEntry, getEntriesByDiaryId } from "@/src/db/entries";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import useEntries from "@/src/hooks/useEntries";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
@@ -19,7 +19,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams();
   const diaryId = Number(id);
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const { entries, deleteEntry } = useEntries(diaryId);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const styles = getStyles();
@@ -47,16 +47,6 @@ export default function DiaryScreen() {
   const handleDeleteEntry = (entryId: number) => {
     deleteEntry(entryId);
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      const loadEntries = async () => {
-        const result = await getEntriesByDiaryId(Number(id));
-        setEntries(result);
-      };
-      loadEntries();
-    }, [id]),
-  );
 
   useEffect(() => {
     slideInEntries();
