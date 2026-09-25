@@ -83,6 +83,8 @@ export default function Home() {
             renderItem={({ item }) => (
               <DiaryCard
                 diary={item}
+                entryCount={item.entryCount}
+                latestEntryBody={item.latestEntryBody}
                 onPress={() => {
                   router.push(`/(app)/diary/${item.id}`);
                 }}

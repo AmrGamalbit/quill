@@ -4,13 +4,25 @@ import {
   saveDiary as addDiaryToDb,
   deleteDiary as deleteDiaryFromDb,
   getAllDiaries,
+  getDiarySummary,
 } from "../db/diaries";
 
 export default function useDiaries() {
   const [diaries, setDiaries] = useState([]);
 
   const refresh = useCallback(async () => {
-    getAllDiaries().then(setDiaries);
+    const rawDiaries = await getAllDiaries();
+    const diariesWithSummary = await Promise.all(
+      rawDiaries.map(async (diary) => {
+        const summary = await getDiarySummary(diary.id);
+        return {
+          ...diary,
+          entryCount: summary.entryCount,
+          latestEntryBody: summary.latestEntryBody,
+        };
+      }),
+    );
+    setDiaries(diariesWithSummary);
   }, []);
 
   useFocusEffect(
