@@ -1,9 +1,9 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from ".";
+import type { DiaryRow, DiaryStats } from "../types/diary";
 import { diariesTable as diaries, entriesTable as entries } from "./schema";
-type Diary = typeof diaries.$inferSelect;
 
-export const getAllDiaries = async (): Promise<Diary[]> => {
+export const getAllDiaries = async (): Promise<DiaryRow[]> => {
   return await db.select().from(diaries);
 };
 
@@ -19,7 +19,7 @@ export const deleteDiary = async (id: number): Promise<void> => {
   await db.delete(diaries).where(eq(diaries.id, id));
 };
 
-export const getDiarySummary = async (diaryId: Number) => {
+export const getDiarySummary = async (diaryId: number): Promise<DiaryStats> => {
   const entryCount = await db.$count(entries, eq(entries.diaryId, diaryId));
   const latestEntryBody = await db
     .select({ body: entries.body })

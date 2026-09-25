@@ -6,9 +6,10 @@ import {
   getAllDiaries,
   getDiarySummary,
 } from "../db/diaries";
+import type { Diary } from "../types/diary";
 
 export default function useDiaries() {
-  const [diaries, setDiaries] = useState([]);
+  const [diaries, setDiaries] = useState<Diary[]>([]);
 
   const refresh = useCallback(async () => {
     const rawDiaries = await getAllDiaries();

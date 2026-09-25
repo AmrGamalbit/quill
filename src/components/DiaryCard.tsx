@@ -18,7 +18,7 @@ type DiaryCardProps = {
   entryCount: number;
   latestEntryBody?: string;
   onPress: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 };
 
 export default function DiaryCard({

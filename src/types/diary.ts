@@ -1,13 +1,9 @@
-import type { Entry } from "./entry";
+import { diariesTable as diaries } from "../db/schema";
 
-export type Diary = {
-  id: string;
-  name: string;
-  description: string;
-  entries: Entry[];
-  members: string[];
-  createdAt: Date;
-  lastOpenedAt: Date;
+export type DiaryRow = typeof diaries.$inferSelect;
+export type DiaryStats = {
+  entryCount: number;
+  latestEntryBody: string | null;
 };
-
+export type Diary = DiaryRow & DiaryStats;
 export type DiaryFormData = { name: string; description: string };
