@@ -8,12 +8,14 @@ export default function EntryEditScreen() {
   const [entry, setEntry] = useState();
   const diaryId = Number(id);
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const loadEntry = async () => {
+      setLoading(true);
       const result = await getEntryById(Number(entryId));
-      console.log(result);
       setEntry(result);
+      setLoading(false);
     };
     loadEntry();
   }, [entryId]);
@@ -22,6 +24,10 @@ export default function EntryEditScreen() {
     saveEntry(diaryId, title, body);
     router.back();
   };
+
+  if (loading) {
+    return <SafeAreaView style={{ flex: 1 }} />; // or a spinner
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
