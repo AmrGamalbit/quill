@@ -8,12 +8,12 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { JournalEntry } from "../utils/db";
+import type { Entry } from "../types/entry";
 
 interface EntriesListProps {
-  entries: JournalEntry[];
+  entries: Entry[];
   onNewEntry: () => void;
-  onSelectEntry?: (entry: JournalEntry) => void;
+  onSelectEntry?: (entry: Entry) => void;
   onOpenSettings?: () => void;
   onDeleteEntry?: (id: number) => void;
 }
@@ -29,7 +29,7 @@ export default function EntriesList({
   const isDark = colorScheme === "dark";
   const styles = getStyles(isDark);
 
-  const handleLongPress = (entry: JournalEntry) => {
+  const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
 
     Alert.alert(
@@ -46,7 +46,7 @@ export default function EntriesList({
     );
   };
 
-  const renderItem = ({ item }: { item: JournalEntry }) => (
+  const renderItem = ({ item }: { item: Entry }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => onSelectEntry && onSelectEntry(item)}

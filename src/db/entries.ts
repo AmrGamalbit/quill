@@ -1,8 +1,7 @@
 import { count, eq } from "drizzle-orm";
 import { db } from ".";
 import { entriesTable as entries } from "./schema";
-
-type Entry = typeof entries.$inferInsert;
+import type { Entry } from "../types/entry";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,

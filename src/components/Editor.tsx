@@ -21,8 +21,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from "./Button";
 
-type Entry = { title: string; description: string; createdAt: string };
-
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;

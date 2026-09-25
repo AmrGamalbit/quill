@@ -5,9 +5,10 @@ import {
   getEntriesByDiaryId,
   saveEntry as saveEntryToDb,
 } from "../db/entries";
+import type { Entry } from "../types/entry";
 
-export default function useEntries(diaryId: Number) {
-  const [entries, setEntries] = useState([]);
+export default function useEntries(diaryId: number) {
+  const [entries, setEntries] = useState<Entry[]>([]);
 
   const refresh = useCallback(async () => {
     setEntries(await getEntriesByDiaryId(diaryId));

@@ -1,7 +1,4 @@
-export type Entry = {
-  id: string;
-  title: string;
-  body: string;
-  author: string;
-  createdAt: string;
-};
+import { entriesTable as entries } from "../db/schema";
+
+export type Entry = typeof entries.$inferSelect;
+export type NewEntry = typeof entries.$inferInsert;
