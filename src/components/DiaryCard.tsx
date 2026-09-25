@@ -33,6 +33,8 @@ export default function DiaryCard({
     colors.card,
     colors.cardPressed,
   );
+  console.log("this is entryCount" + entryCount);
+  console.log(latestEntryBody);
 
   const handleLongPress = () => {
     Alert.alert(

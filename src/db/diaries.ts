@@ -20,8 +20,8 @@ export const deleteDiary = async (id: number): Promise<void> => {
 };
 
 export const getDiarySummary = async (diaryId: Number) => {
-  const entryCount = db.$count(entries, eq(entries.diaryId, diaryId));
-  const latestEntryBody = db
+  const entryCount = await db.$count(entries, eq(entries.diaryId, diaryId));
+  const latestEntryBody = await db
     .select({ body: entries.body })
     .from(entries)
     .where(eq(entries.diaryId, diaryId))
@@ -29,6 +29,6 @@ export const getDiarySummary = async (diaryId: Number) => {
     .limit(1);
   return {
     entryCount,
-    latestEntryBody: latestEntryBody ?? null,
+    latestEntryBody: latestEntryBody[0].body ?? null,
   };
 };
