@@ -16,14 +16,27 @@ export async function signIn(
   return data.session;
 }
 
+export interface SignUpMetadata {
+  publicKey: string;
+  encryptedPrivateKey: string;
+  privateKeyNonce: string;
+  passwordSalt: string;
+  encryptedProfile: string;
+  profileNonce: string;
+}
+
 export async function signUp(
   email: string,
   password: string,
+  metadata?: SignUpMetadata,
 ): Promise<{ session: Session | null }> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: redirectAuthUrl },
+    options: {
+      data: metadata,
+      emailRedirectTo: redirectAuthUrl,
+    },
   });
   if (error) throw error;
   return { session: data.session };

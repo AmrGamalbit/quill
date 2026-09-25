@@ -1,14 +1,25 @@
-import LoginArt from "@/assets/images/login.svg";
 import Button from "@/src/components/Button";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fontSizes, fonts } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
+import { SupabaseStorageAdapter } from '@/src/services/storage/SupabaseStorageAdapter';
 import { sendPasswordResetEmail, signIn, signUp } from "@/src/utils/auth";
+import {
+  bytesToHex,
+  deriveKeyFromPassword,
+  encryptData,
+  encryptUserProfile,
+  generateUserKeyPair
+} from '@/src/utils/crypto';
+import { encryptAndUploadPhoto } from '@/src/utils/photoCrypto';
+import * as Crypto from 'expo-crypto';
+import * as ImagePicker from 'expo-image-picker';
 import { useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  Image,
   KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
@@ -18,7 +29,7 @@ import {
   TextInput,
   TouchableOpacity,
   UIManager,
-  View,
+  View
 } from "react-native";
 
 if (
@@ -35,9 +46,23 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
+  const [name, setName] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const forgotAnim = useRef(new Animated.Value(isSignUp ? 0 : 1)).current;
+
+  async function handlePickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
 
   async function handleAuth() {
     if (!email.trim() || !password.trim()) {
@@ -45,24 +70,65 @@ export default function Auth() {
       return;
     }
 
+    if (isSignUp && !name.trim()) {
+      Alert.alert("Missing details", "Please enter your name.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { session } = await signUp(email.trim(), password);
+        const keyPair = generateUserKeyPair();
+
+        const passwordSalt = Crypto.getRandomValues(new Uint8Array(16));
+
+        const derivedKey = await deriveKeyFromPassword(password, passwordSalt);
+
+        const encPrivateKey = encryptData(keyPair.rawPrivateKey, derivedKey);
+
+        let uploadedPhotoPath: string | null = null;
+        if (photoUri) {
+          const tempFolderId = Crypto.randomUUID();
+          const storage = new SupabaseStorageAdapter('avatars');
+
+          const { storagePath } = await encryptAndUploadPhoto(
+            photoUri,
+            tempFolderId,
+            derivedKey,
+            storage
+          );
+          uploadedPhotoPath = storagePath;
+        }
+        const encProfile = encryptUserProfile(
+          {name: name.trim(), photoPath: uploadedPhotoPath},
+          derivedKey
+        );
+
+        const { session } = await signUp(email.trim(), password, {
+          publicKey: keyPair.publicKeyHex,
+          encryptedPrivateKey: encPrivateKey.cipherHex,
+          privateKeyNonce: encPrivateKey.nonceHex,
+          passwordSalt: bytesToHex(passwordSalt),
+          encryptedProfile: encProfile.encryptedProfileHex,
+          profileNonce: encProfile.profileNonceHex,
+        });
+        
         if (!session) {
           Alert.alert(
             "Check your inbox",
-            "We sent a confirmation link to your email.",
+            "We sent a confirmation link to your email."
           );
         }
       } else {
         await signIn(email.trim(), password);
       }
     } catch (err: any) {
+      console.error("Full Signup Error Object:", JSON.stringify(err, null, 2));
+      console.error("Error Message", err.message);
       Alert.alert(
         isSignUp ? "Sign Up Error" : "Login Error",
-        err.message || "Something went wrong.",
+        err.message || "Something went wrong."
       );
     } finally {
       setLoading(false);
@@ -72,7 +138,7 @@ export default function Auth() {
     if (!email.trim()) {
       Alert.alert(
         "Enter your email",
-        "Please enter your email address in the field above first, then tap Forgot Password.",
+        "Please enter your email address in the field above first, then tap Forgot Password."
       );
       return;
     }
@@ -82,7 +148,7 @@ export default function Auth() {
       await sendPasswordResetEmail(email.trim());
       Alert.alert(
         "Check your inbox",
-        "We've sent a password reset link to your email.",
+        "We've sent a password reset link to your email."
       );
     } catch (err: any) {
       Alert.alert("Reset Error", err.message || "Failed to send reset email.");
@@ -90,7 +156,7 @@ export default function Auth() {
       setLoading(false);
     }
   }
-  const toggleAuthMode = () => {
+     const toggleAuthMode = () => {
     // Tell React Native to glide other screen elements smoothly
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
@@ -128,11 +194,11 @@ export default function Auth() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/*SVG Illustration Slot */}
+        {/*SVG Illustration Slot
         <View style={styles.illustrationWrapper}>
           <LoginArt width={180} height={180} />
         </View>
-
+*/}
         <Animated.View
           style={[
             styles.headerBlock,
@@ -160,6 +226,44 @@ export default function Auth() {
         </Animated.View>
 
         <View style={styles.form}>
+          {isSignUp && (
+            <>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+                PROFILE PHOTO
+              </Text>
+              <TouchableOpacity 
+                onPress={handlePickImage} 
+                style={[
+                  styles.photoButton, 
+                  { borderColor: colors.accent, backgroundColor: colors.surface }
+                ]}
+              >
+                {photoUri ? (
+                  <Image source={{ uri: photoUri }} style={styles.previewImage} />
+                ) : (
+                  <Text style={{ color: colors.accent, textAlign: "center", fontSize: 12 }}>Tap to select</Text>
+                )}
+              </TouchableOpacity>
+
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+                NAME
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                placeholder="Your display name"
+                placeholderTextColor={colors.textMuted}
+                value={name}
+                onChangeText={setName}
+              />
+            </>
+          )}
           <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
             EMAIL
           </Text>
@@ -235,7 +339,7 @@ export default function Auth() {
 
           <Button
             label={isSignUp ? "Sign Up" : "Sign In"}
-            variant="primary"
+            variant='primary'
             onPress={handleAuth}
             loading={loading}
           />
@@ -255,7 +359,7 @@ export default function Auth() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  );
+  )
 }
 const styles = StyleSheet.create({
   screen: {
@@ -331,8 +435,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   forgotContainer: {
-    overflow: "hidden",
-    alignSelf: "flex-end",
+    overflow: 'hidden',
+    alignSelf: 'flex-end',
   },
   forgotBtn: {
     paddingVertical: spacing.xs,
@@ -341,5 +445,22 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     fontFamily: fonts.label,
     fontWeight: "600",
+  },
+  photoButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: spacing.md,
+    overflow: "hidden", 
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
 });
