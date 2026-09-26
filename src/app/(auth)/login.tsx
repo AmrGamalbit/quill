@@ -2,17 +2,21 @@ import Button from "@/src/components/Button";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fontSizes, fonts } from "@/src/constants/typography";
+import { useUserSession } from '@/src/context/UserSessionContext';
 import useTheme from "@/src/hooks/useTheme";
 import { SupabaseStorageAdapter } from '@/src/services/storage/SupabaseStorageAdapter';
-import { sendPasswordResetEmail, signIn, signUp } from "@/src/utils/auth";
+import { getUserProfileRecord, sendPasswordResetEmail, signIn, signUp } from "@/src/utils/auth";
 import {
   bytesToHex,
+  decryptData,
+  decryptUserProfile,
   deriveKeyFromPassword,
   encryptData,
   encryptUserProfile,
-  generateUserKeyPair
+  generateUserKeyPair,
+  hexToBytes
 } from '@/src/utils/crypto';
-import { encryptAndUploadPhoto } from '@/src/utils/photoCrypto';
+import { downloadAndDecryptPhoto, encryptAndUploadPhoto } from '@/src/utils/photoCrypto';
 import * as Crypto from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 import { useRef, useState } from "react";
@@ -32,6 +36,7 @@ import {
   View
 } from "react-native";
 
+
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -48,6 +53,7 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(true);
   const [name, setName] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const {setSession} = useUserSession();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const forgotAnim = useRef(new Animated.Value(isSignUp ? 0 : 1)).current;
@@ -88,20 +94,22 @@ export default function Auth() {
         const encPrivateKey = encryptData(keyPair.rawPrivateKey, derivedKey);
 
         let uploadedPhotoPath: string | null = null;
+        let uploadedPhotoNonce: string | null = null;
         if (photoUri) {
           const tempFolderId = Crypto.randomUUID();
           const storage = new SupabaseStorageAdapter('avatars');
 
-          const { storagePath } = await encryptAndUploadPhoto(
+          const uploadResult = await encryptAndUploadPhoto(
             photoUri,
             tempFolderId,
             derivedKey,
             storage
           );
-          uploadedPhotoPath = storagePath;
+          uploadedPhotoPath = uploadResult.storagePath;
+          uploadedPhotoNonce = uploadResult.photoNonceHex;
         }
         const encProfile = encryptUserProfile(
-          {name: name.trim(), photoPath: uploadedPhotoPath},
+          {name: name.trim(), photoPath: uploadedPhotoPath, photoNonce: uploadedPhotoNonce,},
           derivedKey
         );
 
@@ -121,7 +129,46 @@ export default function Auth() {
           );
         }
       } else {
-        await signIn(email.trim(), password);
+       const authData = await signIn(email.trim(), password);
+       const user = authData?.user;
+       if (!user) throw new Error("Could not retrieve user session.");
+
+       const profileRecord = await getUserProfileRecord(user.id);
+       const saltBytes = hexToBytes(profileRecord.password_salt);
+       const derivedKey = await deriveKeyFromPassword(password, saltBytes);
+
+       const rawPrivateKey = decryptData(
+        profileRecord.encrypted_private_key,
+        profileRecord.private_key_nonce,
+        derivedKey
+       );
+
+       const decryptedProfile = decryptUserProfile(
+        profileRecord.encrypted_profile,
+        profileRecord.profile_nonce,
+        derivedKey
+       );
+
+       let decryptedPhotoUri: string | null = null;
+
+       if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
+        const storage = new SupabaseStorageAdapter('avatars');
+        decryptedPhotoUri = await downloadAndDecryptPhoto(
+          decryptedProfile.photoPath,
+          decryptedProfile.photoNonce,
+          derivedKey,
+          storage
+        );
+       }
+
+       setSession({
+        userId: user.id,
+        email: user.email ?? email.trim(),
+        name: decryptUserProfile.name,
+        photoUri: decryptedPhotoUri,
+        rawPrivateKey,
+        publicKeyHex: profileRecord.public_key,
+       })
       }
     } catch (err: any) {
       console.error("Full Signup Error Object:", JSON.stringify(err, null, 2));

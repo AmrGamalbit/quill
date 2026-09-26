@@ -88,3 +88,29 @@ export async function sendPasswordResetEmail(email: string): Promise<void> {
 
   if (error) throw error;
 }
+export interface UserProfileRecord {
+  id: string;
+  public_key: string;
+  encrypted_private_key: string;
+  private_key_nonce: string;
+  password_salt: string;
+  encrypted_profile: string;
+  profile_nonce: string;
+}
+export async function getUserProfileRecord(
+  userId: string,
+): Promise<UserProfileRecord> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "id, public_key, encrypted_private_key, private_key_nonce, password_salt, encrypted_profile, profile_nonce",
+    )
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) {
+    throw error || new Error("Profile record not found in database.");
+  }
+
+  return data as UserProfileRecord;
+}

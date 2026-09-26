@@ -11,6 +11,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { UserSessionProvider } from "../context/UserSessionContext";
 import useTheme from "../hooks/useTheme";
 import { initDatabase } from "../utils/db";
 export {
@@ -73,18 +74,24 @@ export default function RootLayout() {
 
   if (isAuthLoading) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
-        <ActivityIndicator
-          size="large"
-          color={isDark ? "#4E9E80" : "#1B4938"}
-        />
-      </SafeAreaView>
+      <UserSessionProvider>
+        <SafeAreaView
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator
+            size="large"
+            color={isDark ? "#4E9E80" : "#1B4938"}
+          />
+        </SafeAreaView>
+      </UserSessionProvider>
     );
   }
 
-  return <RootLayoutNav />;
+  return (
+    <UserSessionProvider>
+      <RootLayoutNav />
+    </UserSessionProvider>
+  );
 }
 
 function RootLayoutNav() {

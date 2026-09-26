@@ -1,5 +1,5 @@
 import { StorageAdapter } from "@/src/services/storage/StorageAdapter";
-import { encryptData } from "@/src/utils/crypto";
+import { decryptData, encryptData } from "@/src/utils/crypto";
 import * as FileSystem from "expo-file-system/legacy";
 
 // Helper: converts a Base64 text string into raw machine bytes (Uint8Array)
@@ -44,4 +44,35 @@ export async function encryptAndUploadPhoto(
     storagePath: remotePath,
     photoNonceHex: encrypted.nonceHex,
   };
+}
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[1]);
+  }
+  return btoa(binary);
+}
+
+export async function downloadAndDecryptPhoto(
+  storagePath: string,
+  photoNonceHex: string,
+  encryptionKey: Uint8Array,
+  storage: StorageAdapter,
+): Promise<string> {
+  const encryptedFileBytes = await storage.downloadFile(storagePath);
+  const cipherHex = new TextDecoder().decode(encryptedFileBytes);
+  const decryptedImageBytes = decryptData(
+    cipherHex,
+    photoNonceHex,
+    encryptionKey,
+  );
+  const decryptedBase64 = uint8ArrayToBase64(decryptedImageBytes);
+
+  const localCachePath = `${FileSystem.cacheDirectory}avatar_${Date.now()}.jpg`;
+  await FileSystem.writeAsStringAsync(localCachePath, decryptedBase64, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  return localCachePath;
 }

@@ -62,7 +62,11 @@ export function decryptData(
 }
 
 export function encryptUserProfile(
-  profileData: { name: string; photoPath: string | null },
+  profileData: {
+    name: string;
+    photoPath: string | null;
+    photoNonce?: string | null;
+  },
   derivedKey: Uint8Array,
 ): { encryptedProfileHex: string; profileNonceHex: string } {
   const jsonString = JSON.stringify(profileData);
@@ -75,4 +79,23 @@ export function encryptUserProfile(
     encryptedProfileHex: encrypted.cipherHex,
     profileNonceHex: encrypted.nonceHex,
   };
+}
+export interface DecryptedProfile {
+  name: string;
+  photoPath: string | null;
+  photoNonce?: string | null;
+}
+
+export function decryptUserProfile(
+  encryptedProfileHex: string,
+  profileNonceHex: string,
+  derivedKey: Uint8Array,
+): DecryptedProfile {
+  const decryptedBytes = decryptData(
+    encryptedProfileHex,
+    profileNonceHex,
+    derivedKey,
+  );
+  const jsonString = new TextDecoder().decode(decryptedBytes);
+  return JSON.parse(jsonString);
 }
