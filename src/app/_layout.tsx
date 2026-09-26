@@ -4,6 +4,7 @@ import {
   PlusJakartaSans_500Medium,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import type { Session } from "@supabase/supabase-js";
+import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -61,6 +62,8 @@ function AppNavigator() {
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
       setSupabaseSession(newSession);
+
+      setIsAuthLoading(false);
 
       if (newSession && !userSession) {
         // Fast restore using the SecureStore key

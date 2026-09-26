@@ -20,6 +20,7 @@ import { clearDerivedKey, getStoredDerivedKey } from "../services/storage/secure
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { signOut, updateUserEncryptedProfile } from "../utils/auth";
 import { encryptUserProfile } from "../utils/crypto";
+import { resetLocalDatabase } from "../utils/db";
 import { encryptAndUploadPhoto } from "../utils/photoCrypto";
 import Button from "./Button";
 
@@ -127,6 +128,7 @@ export default function SettingsModal({
                         await clearDerivedKey(); // Wipe OS hardware key
                         await signOut(); // Clear Supabase auth session
                         clearSession(); // Wipe in-memory private key & profile
+                        resetLocalDatabase();
                         onClose();
                         if (onLogoutSuccess) onLogoutSuccess();
                     } catch (err: any) {

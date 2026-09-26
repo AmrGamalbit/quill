@@ -1,16 +1,16 @@
 import {
   CoreBridge,
-  darkEditorCss,
   darkEditorTheme,
   RichText,
   TenTapStartKit,
   Toolbar,
-  useEditorBridge,
+  useEditorBridge
 } from "@10play/tentap-editor";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import useTheme from "../hooks/useTheme";
 import Button from "./Button";
 
 interface EditorProps {
@@ -39,20 +40,30 @@ export default function Editor({
   onBack,
 }: EditorProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { colors, isDark } = useTheme();
   const styles = getStyles(isDark);
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
 
+  const dynamicEditorCss = `
+    body {
+      background-color: ${colors.background};
+      color: ${colors.text};
+      padding: 0px;
+      margin: 0px;
+    }
+  `;
+
   const editor = useEditorBridge({
     autofocus: !initialReadOnly,
-    avoidIosKeyboard: true,
+    avoidIosKeyboard: false, // Let our native KeyboardAvoidingView handle placement
     initialContent: initialBody ?? "<p></p>",
     editable: !isReadOnly,
-    bridgeExtensions: isDark
-      ? [...TenTapStartKit, CoreBridge.configureCSS(darkEditorCss)]
-      : TenTapStartKit,
+    bridgeExtensions: [
+      ...TenTapStartKit,
+      CoreBridge.configureCSS(dynamicEditorCss),
+    ],
     theme: isDark ? darkEditorTheme : undefined,
   });
 
@@ -74,21 +85,26 @@ export default function Editor({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={onBack}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Ionicons name="arrow-back" size={20} />
-        </TouchableOpacity>
-        <Text style={styles.newJournalText}>Add new Journal</Text>
-        <Button
-          label="Save"
-          onPress={handleSave}
-          size="sm"
-          style={{ width: "auto" }}
-        />
-      </View>
+  <View style={styles.leftHeaderGroup}>
+    <TouchableOpacity
+      style={styles.backBtn}
+      onPress={onBack}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <Ionicons name="arrow-back" size={22} color={colors.text} />
+    </TouchableOpacity>
+    <Text style={styles.newJournalText} numberOfLines={1}>
+      {initialTitle ? (isReadOnly ? "Journal Entry" : "Edit Journal") : "New Journal"}
+    </Text>
+  </View>
+
+  <Button
+    label="Save"
+    onPress={handleSave}
+    size="sm"
+    style={{ width: 72 }}
+  />
+</View>
 
       <View style={styles.bodyContainer}>
         <TextInput
@@ -105,7 +121,7 @@ export default function Editor({
         <RichText editor={editor} style={styles.editor} />
       </View>
 
-      <KeyboardAvoidingView behavior={"padding"} style={styles.footer}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? "padding" : undefined} style={styles.footer}>
         <View style={styles.toolbarContainer}>
           <Toolbar editor={editor} hidden={false} />
         </View>
@@ -188,5 +204,12 @@ const getStyles = (isDark: boolean) =>
       borderTopColor: isDark ? "#283934" : "#E5EBE8",
       backgroundColor: isDark ? "#18221F" : "#ffffff",
       justifyContent: "center",
+    },
+    leftHeaderGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flex: 1,
+      marginRight: 12,
     },
   });

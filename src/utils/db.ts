@@ -29,23 +29,24 @@ export interface JournalEntry {
 export function initDatabase() {
   db.execSync(`
     PRAGMA foreign_keys = ON;
-        CREATE TABLE IF NOT EXISTS diaries( 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description Text,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
 
-        CREATE TABLE IF NOT EXISTS entries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        diary_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        body TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-        FOREIGN KEY (diary_id) REFERENCES diaries (id) ON DELETE CASCADE
-        );
-        `);
+    CREATE TABLE IF NOT EXISTS diaries ( 
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      diary_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (diary_id) REFERENCES diaries (id) ON DELETE CASCADE
+    );
+  `);
 }
 
 export function getAllDiaries(): Diary[] {
@@ -139,3 +140,13 @@ export const deleteEntry = (id: number): void => {
     statement.finalizeSync();
   }
 };
+export function resetLocalDatabase(): void {
+  db.execSync(`
+    PRAGMA foreign_keys = OFF;
+    DROP TABLE IF EXISTS entries;
+    DROP TABLE IF EXISTS diaries;
+    PRAGMA foreign_keys = ON;
+  `);
+
+  initDatabase();
+}
