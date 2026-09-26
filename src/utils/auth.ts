@@ -114,3 +114,20 @@ export async function getUserProfileRecord(
 
   return data as UserProfileRecord;
 }
+export async function updateUserEncryptedProfile(
+  userId: string,
+  encryptedProfile: string,
+  profileNonce: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      encrypted_profile: encryptedProfile,
+      profile_nonce: profileNonce,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    throw error;
+  }
+}

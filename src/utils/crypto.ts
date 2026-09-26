@@ -41,8 +41,8 @@ export function encryptData(
   key32Bytes: Uint8Array,
 ): { cipherHex: string; nonceHex: string } {
   const nonce = Crypto.getRandomValues(new Uint8Array(24));
-  const cipher = xchacha20poly1305(key32Bytes, nonce);
-  const encryptedBytes = cipher.encrypt(plainBytes);
+  const chacha = xchacha20poly1305(key32Bytes, nonce);
+  const encryptedBytes = chacha.encrypt(plainBytes);
 
   return {
     cipherHex: bytesToHex(encryptedBytes),
@@ -57,8 +57,8 @@ export function decryptData(
 ): Uint8Array {
   const nonce = hexToBytes(nonceHex);
   const encryptedBytes = hexToBytes(cipherHex);
-  const cipher = xchacha20poly1305(key32Bytes, nonce);
-  return cipher.decrypt(encryptedBytes);
+  const chacha = xchacha20poly1305(key32Bytes, nonce);
+  return chacha.decrypt(encryptedBytes);
 }
 
 export function encryptUserProfile(

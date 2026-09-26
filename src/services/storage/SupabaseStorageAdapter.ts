@@ -1,6 +1,26 @@
 import { supabase } from "@/src/utils/supabase";
 import { StorageAdapter } from "./StorageAdapter";
 
+function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+      } else {
+        reject(new Error("FileReader did not return an ArrayBuffer."));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(reader.error ?? new Error("Failed to read Blob as ArrayBuffer."));
+    };
+
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 export class SupabaseStorageAdapter implements StorageAdapter {
   private bucket: string;
 
@@ -43,7 +63,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     }
 
     // Convert the downloaded web Blob into raw binary bytes
-    const arrayBuffer = await data.arrayBuffer();
+    const arrayBuffer = await blobToArrayBuffer(data);
     return new Uint8Array(arrayBuffer);
   }
 }

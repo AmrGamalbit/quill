@@ -4,6 +4,7 @@ import { spacing } from "@/src/constants/spacings";
 import { fontSizes, fonts } from "@/src/constants/typography";
 import { useUserSession } from '@/src/context/UserSessionContext';
 import useTheme from "@/src/hooks/useTheme";
+import { saveDerivedKey } from "@/src/services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from '@/src/services/storage/SupabaseStorageAdapter';
 import { getUserProfileRecord, sendPasswordResetEmail, signIn, signUp } from "@/src/utils/auth";
 import {
@@ -90,6 +91,7 @@ export default function Auth() {
         const passwordSalt = Crypto.getRandomValues(new Uint8Array(16));
 
         const derivedKey = await deriveKeyFromPassword(password, passwordSalt);
+        await saveDerivedKey(derivedKey);
 
         const encPrivateKey = encryptData(keyPair.rawPrivateKey, derivedKey);
 
@@ -136,6 +138,7 @@ export default function Auth() {
        const profileRecord = await getUserProfileRecord(user.id);
        const saltBytes = hexToBytes(profileRecord.password_salt);
        const derivedKey = await deriveKeyFromPassword(password, saltBytes);
+       await saveDerivedKey(derivedKey);
 
        const rawPrivateKey = decryptData(
         profileRecord.encrypted_private_key,
@@ -164,18 +167,20 @@ export default function Auth() {
        setSession({
         userId: user.id,
         email: user.email ?? email.trim(),
-        name: decryptUserProfile.name,
+        name: decryptedProfile.name,
         photoUri: decryptedPhotoUri,
         rawPrivateKey,
         publicKeyHex: profileRecord.public_key,
        })
       }
     } catch (err: any) {
-      console.error("Full Signup Error Object:", JSON.stringify(err, null, 2));
-      console.error("Error Message", err.message);
+      console.error("Full Signup Error:", err);
+      console.error("Stack Trace:", err?.stack);
+      console.error("Error Name:", err?.name);
+      console.error("Error Message", err?.message);
       Alert.alert(
         isSignUp ? "Sign Up Error" : "Login Error",
-        err.message || "Something went wrong."
+        err?.message || "Something went wrong."
       );
     } finally {
       setLoading(false);
