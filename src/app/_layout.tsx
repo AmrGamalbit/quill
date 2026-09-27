@@ -18,8 +18,9 @@ import { getStoredDerivedKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptData, decryptUserProfile } from "../utils/crypto";
-import { initDatabase } from "../utils/db";
+import { getCachedProfile, initDatabase, saveCachedProfile } from "../utils/db";
 import { downloadAndDecryptPhoto } from "../utils/photoCrypto";
+
 
 export { ErrorBoundary } from "expo-router";
 
@@ -63,51 +64,78 @@ function AppNavigator() {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
       setSupabaseSession(newSession);
 
-      setIsAuthLoading(false);
-
-      if (newSession && !userSession) {
-        // Fast restore using the SecureStore key
-        try {
-          const derivedKey = await getStoredDerivedKey();
-          if (derivedKey) {
-            const profileRecord = await getUserProfileRecord(newSession.user.id);
-            const rawPrivateKey = decryptData(
-              profileRecord.encrypted_private_key,
-              profileRecord.private_key_nonce,
-              derivedKey
-            );
-            const decryptedProfile = decryptUserProfile(
-              profileRecord.encrypted_profile,
-              profileRecord.profile_nonce,
-              derivedKey
-            );
-
-            let decryptedPhotoUri: string | null = null;
-            if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
-              const storage = new SupabaseStorageAdapter("avatars");
-              decryptedPhotoUri = await downloadAndDecryptPhoto(
-                decryptedProfile.photoPath,
-                decryptedProfile.photoNonce,
-                derivedKey,
-                storage
-              );
-            }
-
-            setSession({
-              userId: newSession.user.id,
-              email: newSession.user.email ?? "",
-              name: decryptedProfile.name,
-              photoUri: decryptedPhotoUri,
-              rawPrivateKey,
-              publicKeyHex: profileRecord.public_key,
-            });
-          }
-        } catch (e) {
-          console.error("Fast restore failed:", e);
-        }
+      if (!newSession) {
+        setIsAuthLoading(false);
+        return;
       }
 
-      setIsAuthLoading(false);
+      try {
+        const cached = getCachedProfile(newSession.user.id);
+        if (cached?.name) {
+          setSession({
+            userId: newSession.user.id,
+            email: newSession.user.email ?? "",
+            name: cached.name,
+            photoUri: cached.photo_uri ?? null,
+            rawPrivateKey: userSession?.rawPrivateKey ?? new Uint8Array(32),
+            publicKeyHex: cached.public_key ?? userSession?.publicKeyHex ?? "",
+          });
+          // Unblock rendering immediately so the UI doesn't freeze on "Friend"
+          setIsAuthLoading(false);
+        }
+      } catch (err) {
+        console.warn("Failed reading cached local profile:", err);
+      }
+
+      // Background sync: Fetch cryptographic keys and latest cloud profile
+      try {
+        const derivedKey = await getStoredDerivedKey();
+        if (derivedKey) {
+          const profileRecord = await getUserProfileRecord(newSession.user.id);
+          const rawPrivateKey = decryptData(
+            profileRecord.encrypted_private_key,
+            profileRecord.private_key_nonce,
+            derivedKey
+          );
+          const decryptedProfile = decryptUserProfile(
+            profileRecord.encrypted_profile,
+            profileRecord.profile_nonce,
+            derivedKey
+          );
+
+          let decryptedPhotoUri: string | null = null;
+          if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
+            const storage = new SupabaseStorageAdapter("avatars");
+            decryptedPhotoUri = await downloadAndDecryptPhoto(
+              decryptedProfile.photoPath,
+              decryptedProfile.photoNonce,
+              derivedKey,
+              storage
+            );
+          }
+
+          // Persist the freshly decrypted metadata to local SQLite cache
+          saveCachedProfile(
+            newSession.user.id,
+            decryptedProfile.name,
+            decryptedPhotoUri,
+            profileRecord.public_key
+          );
+
+          setSession({
+            userId: newSession.user.id,
+            email: newSession.user.email ?? "",
+            name: decryptedProfile.name,
+            photoUri: decryptedPhotoUri,
+            rawPrivateKey,
+            publicKeyHex: profileRecord.public_key,
+          });
+        }
+      } catch (e) {
+        console.error("Fast restore failed:", e);
+      } finally {
+        setIsAuthLoading(false);
+      }
     });
 
     return () => unsubscribe();
