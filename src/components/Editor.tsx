@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -125,7 +124,7 @@ export default function Editor({
         <KeyboardAvoidingView
     behavior={'padding'}
     style={styles.keyboardToolbarContainer}
-    keyboardVerticalOffset={Platform.OS === 'ios' ? keyboardVerticalOffset : undefined}
+    keyboardVerticalOffset={keyboardVerticalOffset}
   >
     <Toolbar editor={editor} />
   </KeyboardAvoidingView>
