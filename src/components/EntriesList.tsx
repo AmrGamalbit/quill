@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface EntriesListProps {
   entries: JournalEntry[];
@@ -31,6 +31,7 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
 
   const handleLongPress = (entry: JournalEntry) => {
     if (!onDeleteEntry) return;
@@ -80,7 +81,8 @@ export default function EntriesList({
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+   <SafeAreaView style={styles.container} edges={["top", "bottom", "left", "right"]}>
+    <View style={styles.container}>
       <View style={styles.topBar}>
         {onBack && (
           <TouchableOpacity
@@ -120,6 +122,7 @@ export default function EntriesList({
       />
 
       <FloatingActionButton onPress={onNewEntry} />
+      </View>
     </SafeAreaView>
   );
 }
