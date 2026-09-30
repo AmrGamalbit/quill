@@ -6,6 +6,7 @@ import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
@@ -17,8 +18,8 @@ import {
   saveDiary,
 } from "@/src/utils/db";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -30,8 +31,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const { colors } = useTheme();
+  const { session } = useUserSession();
 
   const styles = getStyles(colors);
+
+  const firstName = session?.name ? session.name.trim().split(" ")[0] : "Friend";
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -63,10 +67,13 @@ export default function Home() {
     setDiaries(formattedDiaries);
   }, []);
 
-  useEffect(() => {
-    initDatabase();
-    loadDiaries();
-  }, [loadDiaries]);
+  useFocusEffect(
+    useCallback(() => {
+      initDatabase();
+      loadDiaries();
+    }, [loadDiaries])
+  );
+  
   const handleAddDiary = (data: DiaryFormData) => {
     if (!data.name.trim()) return;
     saveDiary(data.name.trim(), "");
@@ -85,7 +92,7 @@ export default function Home() {
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.headerTextGroup}>
-              <GreetingHeader name="Alex" />
+              <GreetingHeader name={firstName} />
               {/*   <DatePill /> */}
             </View>
             <TouchableOpacity

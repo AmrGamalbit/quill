@@ -5,10 +5,13 @@ import { spacing } from "../constants/spacings";
 import { fonts, fontSizes, lineHeights } from "../constants/typography";
 
 export default function useTheme() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const scheme = useColorScheme() == "dark" ? "dark" : "light";
 
   return {
     colors: colors[scheme],
+    isDark,
     fonts,
     fontSizes,
     lineHeights,

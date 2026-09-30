@@ -16,14 +16,27 @@ export async function signIn(
   return data.session;
 }
 
+export interface SignUpMetadata {
+  publicKey: string;
+  encryptedPrivateKey: string;
+  privateKeyNonce: string;
+  passwordSalt: string;
+  encryptedProfile: string;
+  profileNonce: string;
+}
+
 export async function signUp(
   email: string,
   password: string,
+  metadata?: SignUpMetadata,
 ): Promise<{ session: Session | null }> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: redirectAuthUrl },
+    options: {
+      data: metadata,
+      emailRedirectTo: redirectAuthUrl,
+    },
   });
   if (error) throw error;
   return { session: data.session };
@@ -74,4 +87,47 @@ export async function sendPasswordResetEmail(email: string): Promise<void> {
   });
 
   if (error) throw error;
+}
+export interface UserProfileRecord {
+  id: string;
+  public_key: string;
+  encrypted_private_key: string;
+  private_key_nonce: string;
+  password_salt: string;
+  encrypted_profile: string;
+  profile_nonce: string;
+}
+export async function getUserProfileRecord(
+  userId: string,
+): Promise<UserProfileRecord> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "id, public_key, encrypted_private_key, private_key_nonce, password_salt, encrypted_profile, profile_nonce",
+    )
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) {
+    throw error || new Error("Profile record not found in database.");
+  }
+
+  return data as UserProfileRecord;
+}
+export async function updateUserEncryptedProfile(
+  userId: string,
+  encryptedProfile: string,
+  profileNonce: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      encrypted_profile: encryptedProfile,
+      profile_nonce: profileNonce,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    throw error;
+  }
 }

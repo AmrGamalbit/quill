@@ -1,23 +1,19 @@
 import EntriesList from "@/src/components/EntriesList";
 import { spacing } from "@/src/constants/spacings";
 import type { JournalEntry } from "@/src/utils/db";
-import { deleteEntry, getEntriesByDiaryId } from "@/src/utils/db";
+import { deleteEntry, getAllDiaries, getEntriesByDiaryId } from "@/src/utils/db";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   StyleSheet,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
+  useColorScheme
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function DiaryScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const colorScheme = useColorScheme();
@@ -25,6 +21,10 @@ export default function DiaryScreen() {
   const styles = getStyles();
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const router = useRouter();
+
+  const diaryName = getAllDiaries().find((d) => d.id === diaryId)?.name || "Diary";
+ // const targetDiary = diaries.find((d) => d.id === diaryId);
+ // const diaryName = targetDiary ? targetDiary.name : "Diary";
 
   const slideInEntries = () => {
     Animated.timing(slideAnim, {
@@ -69,41 +69,18 @@ export default function DiaryScreen() {
         },
       ]}
     >
-      <SafeAreaView style={{ flex: 1 }}>
-        <View
-          style={[
-            styles.navBar,
-            { borderBottomColor: isDark ? "#283934" : "#E5EBE8" },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              slideOutEntries(() => {
-                router.push("/(app)");
-              });
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text
-              style={[
-                styles.backButtonText,
-                { color: isDark ? "#4E9E80" : "#1B4938" },
-              ]}
-            >
-              {/* ← {selectedDiary.name} */ "diary"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+
 
         <EntriesList
           entries={entries}
+          onBack={() => router.back()}
+          diaryName={diaryName}
           onNewEntry={() => router.push(`/(app)/diary/${diaryId}/new-entry`)}
           onSelectEntry={(entry) => {
             router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
           }}
           onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
         />
-      </SafeAreaView>
     </Animated.View>
   );
 }
