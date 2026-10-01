@@ -13,5 +13,6 @@ config.resolver = {
   assetExts: resolver.assetExts.filter((ext) => ext !== "svg"),
   sourceExts: [...resolver.sourceExts, "svg"],
 };
+resolver.sourceExts.push("sql");
 
 module.exports = config;

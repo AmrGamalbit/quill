@@ -1,6 +1,5 @@
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
-import { JournalEntry } from "@/src/utils/db";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Alert,
@@ -10,13 +9,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
+import type { Entry } from "../types/entry";
 
 interface EntriesListProps {
-  entries: JournalEntry[];
+  entries: Entry[];
   diaryName?: string;
   onNewEntry: () => void;
-  onSelectEntry?: (entry: JournalEntry) => void;
+  onSelectEntry?: (entry: Entry) => void;
   onBack?: () => void;
   onDeleteEntry?: (id: number) => void;
 }
@@ -31,9 +31,8 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const insets = useSafeAreaInsets();
 
-  const handleLongPress = (entry: JournalEntry) => {
+  const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
 
     Alert.alert(
@@ -46,13 +45,14 @@ export default function EntriesList({
           style: "destructive",
           onPress: () => onDeleteEntry(entry.id),
         },
-      ]
+      ],
     );
   };
 
-  const renderItem = ({ item }: { item: JournalEntry }) => {
-    const cleanPreview = item.body.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
-    const formattedDate = new Date(item.created_at).toLocaleDateString("en-US", {
+  const renderItem = ({ item }: { item: Entry }) => {
+    const cleanPreview =
+      item.body?.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
+    const formattedDate = new Date(item.createdAt).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -81,47 +81,54 @@ export default function EntriesList({
   };
 
   return (
-   <SafeAreaView style={styles.container} edges={["top", "bottom", "left", "right"]}>
-    <View style={styles.container}>
-      <View style={styles.topBar}>
-        {onBack && (
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={onBack}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
-          </TouchableOpacity>
-        )}
-        <View style={styles.titleContainer}>
-          <Text style={styles.diaryHeading} numberOfLines={1}>
-            {diaryName}
-          </Text>
-          <Text style={styles.entryCountSubtitle}>
-            {entries.length} {entries.length === 1 ? "entry" : "entries"}
-          </Text>
-        </View>
-      </View>
-
-      <FlatList
-        data={entries}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={
-          entries.length === 0 ? styles.emptyContainer : styles.listContent
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Ionicons name="book-outline" size={44} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No Entries Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Tap the pencil below to write your first entry.
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <View style={styles.container}>
+        <View style={styles.topBar}>
+          {onBack && (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={onBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="arrow-back" size={22} color={colors.text} />
+            </TouchableOpacity>
+          )}
+          <View style={styles.titleContainer}>
+            <Text style={styles.diaryHeading} numberOfLines={1}>
+              {diaryName}
+            </Text>
+            <Text style={styles.entryCountSubtitle}>
+              {entries.length} {entries.length === 1 ? "entry" : "entries"}
             </Text>
           </View>
-        }
-      />
+        </View>
 
-      <FloatingActionButton onPress={onNewEntry} />
+        <FlatList
+          data={entries}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={
+            entries.length === 0 ? styles.emptyContainer : styles.listContent
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons
+                name="book-outline"
+                size={44}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyTitle}>No Entries Yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Tap the pencil below to write your first entry.
+              </Text>
+            </View>
+          }
+        />
+
+        <FloatingActionButton onPress={onNewEntry} />
       </View>
     </SafeAreaView>
   );

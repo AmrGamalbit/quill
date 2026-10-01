@@ -4,25 +4,35 @@ import {
   PlusJakartaSans_500Medium,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import type { Session } from "@supabase/supabase-js";
+import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
+import "react-native-reanimated";
+import migrations from "../../drizzle/migrations";
+import { db, sqlite } from "../db";
+
+export {
+  // Catch any errors thrown by the Layout component.
+  ErrorBoundary
+} from "expo-router";
+// Prevent the splash screen from auto-hiding before asset loading is complete.
 import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { UserSessionProvider, useUserSession } from "../context/UserSessionContext";
+import {
+  UserSessionProvider,
+  useUserSession,
+} from "../context/UserSessionContext";
+import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
 import { getStoredDerivedKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptData, decryptUserProfile } from "../utils/crypto";
-import { getCachedProfile, initDatabase, saveCachedProfile } from "../utils/db";
 import { downloadAndDecryptPhoto } from "../utils/photoCrypto";
-
-
-export { ErrorBoundary } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,30 +45,41 @@ export default function RootLayout() {
 }
 
 function AppNavigator() {
+  const { colors } = useTheme();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { colors } = useTheme();
-  const { session: userSession, setSession } = useUserSession();
-  const router = useRouter();
-
-  const [dbReady, setDbReady] = useState(false);
-  const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-
-  const [loaded, error] = useFonts({
+  const { success: isDbMigrated, error: dbMigrationError } = useMigrations(
+    db,
+    migrations,
+  );
+  const [isFontsLoaded, fontLoadingError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     Merriweather_400Regular,
   });
+  const { session: userSession, setSession } = useUserSession();
+  const router = useRouter();
+
+  const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (fontLoadingError) {
+      console.error("Fonts error:", fontLoadingError);
+    }
+  }, [fontLoadingError]);
 
   useEffect(() => {
-    initDatabase();
-    setDbReady(true);
-  }, []);
+    if (isDbMigrated) {
+      sqlite.execSync("PRAGMA foreign_keys = ON;");
+    }
+  }, [isDbMigrated]);
+
+  useEffect(() => {
+    if (dbMigrationError) {
+      console.error("Migration error:", dbMigrationError);
+    }
+  }, [dbMigrationError]);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
@@ -70,15 +91,15 @@ function AppNavigator() {
       }
 
       try {
-        const cached = getCachedProfile(newSession.user.id);
+        const cached = await getLocalProfile(newSession.user.id);
         if (cached?.name) {
           setSession({
             userId: newSession.user.id,
             email: newSession.user.email ?? "",
             name: cached.name,
-            photoUri: cached.photo_uri ?? null,
+            photoUri: cached.photoUri ?? null,
             rawPrivateKey: userSession?.rawPrivateKey ?? new Uint8Array(32),
-            publicKeyHex: cached.public_key ?? userSession?.publicKeyHex ?? "",
+            publicKeyHex: cached.publicKey ?? userSession?.publicKeyHex ?? "",
           });
           // Unblock rendering immediately so the UI doesn't freeze on "Friend"
           setIsAuthLoading(false);
@@ -95,12 +116,12 @@ function AppNavigator() {
           const rawPrivateKey = decryptData(
             profileRecord.encrypted_private_key,
             profileRecord.private_key_nonce,
-            derivedKey
+            derivedKey,
           );
           const decryptedProfile = decryptUserProfile(
             profileRecord.encrypted_profile,
             profileRecord.profile_nonce,
-            derivedKey
+            derivedKey,
           );
 
           let decryptedPhotoUri: string | null = null;
@@ -110,16 +131,16 @@ function AppNavigator() {
               decryptedProfile.photoPath,
               decryptedProfile.photoNonce,
               derivedKey,
-              storage
+              storage,
             );
           }
 
           // Persist the freshly decrypted metadata to local SQLite cache
-          saveCachedProfile(
+          await saveLocalProfile(
             newSession.user.id,
             decryptedProfile.name,
             decryptedPhotoUri,
-            profileRecord.public_key
+            profileRecord.public_key,
           );
 
           setSession({
@@ -151,15 +172,24 @@ function AppNavigator() {
   }, [supabaseSession, isAuthLoading]);
 
   useEffect(() => {
-    if (loaded && dbReady) {
+    if (isFontsLoaded && isDbMigrated) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, dbReady]);
+  }, [isFontsLoaded, isDbMigrated]);
 
-  if (!loaded || isAuthLoading) {
+  if (!isFontsLoaded || !isDbMigrated) {
+    return null;
+  }
+
+  if (isAuthLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={isDark ? "#4E9E80" : "#1B4938"} />
+      <SafeAreaView
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#4E9E80" : "#1B4938"}
+        />
       </SafeAreaView>
     );
   }

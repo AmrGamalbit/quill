@@ -7,19 +7,13 @@ import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
+import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
-import type { Diary, DiaryFormData } from "@/src/types/diary";
-import {
-  deleteDiary,
-  getAllDiaries,
-  getEntriesByDiaryId,
-  initDatabase,
-  saveDiary,
-} from "@/src/utils/db";
+import type { DiaryFormData } from "@/src/types/diary";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -35,55 +29,25 @@ export default function Home() {
 
   const styles = getStyles(colors);
 
-  const firstName = session?.name ? session.name.trim().split(" ")[0] : "Friend";
+  const firstName = session?.name
+    ? session.name.trim().split(" ")[0]
+    : "Friend";
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const [diaries, setDiaries] = useState<Diary[]>([]);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
 
   const email = useUserEmail();
+  const { diaries, deleteDiary, addDiary } = useDiaries();
   const router = useRouter();
-  const loadDiaries = useCallback(() => {
-    const rawDiaries = getAllDiaries();
-    const formattedDiaries: Diary[] = rawDiaries.map((d) => {
-      const dbEntries = getEntriesByDiaryId(d.id);
-      return {
-        id: d.id.toString(),
-        name: d.name,
-        createdAt: d.created_at,
-        lastOpenedAt: d.created_at,
-        description: "",
-        members: ["You"],
-        entries: dbEntries.map((e) => ({
-          id: e.id.toString(),
-          title: e.title,
-          body: e.body,
-          author: "You",
-          createdAt: e.created_at,
-        })),
-      };
-    });
-    setDiaries(formattedDiaries);
-  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      initDatabase();
-      loadDiaries();
-    }, [loadDiaries])
-  );
-  
   const handleAddDiary = (data: DiaryFormData) => {
     if (!data.name.trim()) return;
-    saveDiary(data.name.trim(), "");
-    loadDiaries();
+    addDiary(data.name.trim(), "");
     setShowDiaryForm(false);
   };
 
-  const handleDeleteDiary = (id: string) => {
-    deleteDiary(Number(id));
-    loadDiaries();
+  const handleDeleteDiary = async (id: number) => {
+    await deleteDiary(id);
   };
 
   return (
@@ -109,7 +73,7 @@ export default function Home() {
           </View>
           <FlatList
             data={diaries}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={
               diaries.length === 0 ? styles.emptyContainer : undefined
             }
@@ -125,6 +89,8 @@ export default function Home() {
             renderItem={({ item }) => (
               <DiaryCard
                 diary={item}
+                entryCount={item.entryCount}
+                latestEntryBody={item.latestEntryBody}
                 onPress={() => {
                   router.push(`/(app)/diary/${item.id}`);
                 }}

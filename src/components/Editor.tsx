@@ -16,7 +16,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
 import Button from "./Button";
 
@@ -84,27 +87,31 @@ export default function Editor({
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <View style={styles.topBar}>
-  <View style={styles.leftHeaderGroup}>
-    <TouchableOpacity
-      style={styles.backBtn}
-      onPress={onBack}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-    >
-      <Ionicons name="arrow-back" size={22} color={colors.text} />
-    </TouchableOpacity>
-    <Text style={styles.newJournalText} numberOfLines={1}>
-      {initialTitle ? (isReadOnly ? "Journal Entry" : "Edit Journal") : "New Journal"}
-    </Text>
-  </View>
-{!isReadOnly && (
-  <Button
-    label="Save"
-    onPress={handleSave}
-    size="sm"
-    style={{ width: 72 }}
-  />
-  )}
-</View>
+        <View style={styles.leftHeaderGroup}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={onBack}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.newJournalText} numberOfLines={1}>
+            {initialTitle
+              ? isReadOnly
+                ? "Journal Entry"
+                : "Edit Journal"
+              : "New Journal"}
+          </Text>
+        </View>
+        {!isReadOnly && (
+          <Button
+            label="Save"
+            onPress={handleSave}
+            size="sm"
+            style={{ width: 72 }}
+          />
+        )}
+      </View>
 
       <View style={styles.bodyContainer}>
         <TextInput
@@ -117,18 +124,17 @@ export default function Editor({
         />
 
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
-
         <RichText editor={editor} style={styles.editor} />
       </View>
       {!isReadOnly && (
         <KeyboardAvoidingView
-    behavior={'padding'}
-    style={styles.keyboardToolbarContainer}
-    keyboardVerticalOffset={keyboardVerticalOffset}
-  >
-    <Toolbar editor={editor} />
-  </KeyboardAvoidingView>
-        )}
+          behavior={"padding"}
+          style={styles.keyboardToolbarContainer}
+          keyboardVerticalOffset={keyboardVerticalOffset}
+        >
+          <Toolbar editor={editor} />
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
@@ -184,8 +190,8 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       marginHorizontal: 20,
     },
     keyboardToolbarContainer: {
-      position: 'absolute',
-      width: '100%',
+      position: "absolute",
+      width: "100%",
       bottom: 0,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
