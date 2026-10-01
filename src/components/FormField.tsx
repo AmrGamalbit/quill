@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import useTheme from "../hooks/useTheme";
 
 type FormFieldProps = {
@@ -14,6 +14,8 @@ export default function FormField({
   onChangeText,
 }: FormFieldProps) {
   const { colors } = useTheme();
+  const styles = getStyles(Platform.OS === "ios");
+
   return (
     <View style={styles.container}>
       <Text style={{ color: colors.textMuted }}>{label}</Text>
@@ -31,10 +33,10 @@ export default function FormField({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (isIos: boolean) => StyleSheet.create({
   container: { gap: 8 },
   input: {
-    height: 'auto',
+    height: isIos ? 32 : 'auto',
     borderRadius: 10,
     paddingHorizontal: 10,
     borderWidth: 1,

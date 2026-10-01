@@ -1,11 +1,13 @@
 import Editor from "@/src/components/Editor";
 import { getEntryById, saveEntry } from "@/src/db/entries";
+import { Entry } from "@/src/types/entry";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 export default function EntryEditScreen() {
   const { id, entryId } = useLocalSearchParams();
-  const [entry, setEntry] = useState();
+  const [entry, setEntry] = useState<Entry>();
   const diaryId = Number(id);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function EntryEditScreen() {
       <Editor
         initialTitle={entry?.title}
         initialBody={entry?.body}
-        initialDate={entry?.created_at}
+        initialDate={entry?.createdAt}
         initialReadOnly={true}
         onSave={(title, body) => handleSave(title, body)}
         onBack={() => {

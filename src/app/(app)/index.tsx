@@ -6,6 +6,7 @@ import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
@@ -24,7 +25,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const { colors } = useTheme();
+  const { session } = useUserSession();
+
   const styles = getStyles(colors);
+
+  const firstName = session?.name
+    ? session.name.trim().split(" ")[0]
+    : "Friend";
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showDiaryForm, setShowDiaryForm] = useState(false);
@@ -33,15 +40,14 @@ export default function Home() {
   const { diaries, deleteDiary, addDiary } = useDiaries();
   const router = useRouter();
 
-  const handleAddDiary = async (data: DiaryFormData) => {
-    const trimmed = data.name.trim();
-    if (!trimmed) return;
-    await addDiary(trimmed, data.description.trim());
+  const handleAddDiary = (data: DiaryFormData) => {
+    if (!data.name.trim()) return;
+    addDiary(data.name.trim(), "");
     setShowDiaryForm(false);
   };
 
-  const handleDeleteDiary = async (id: string) => {
-    await deleteDiary(Number(id));
+  const handleDeleteDiary = async (id: number) => {
+    await deleteDiary(id);
   };
 
   return (
@@ -50,7 +56,7 @@ export default function Home() {
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.headerTextGroup}>
-              <GreetingHeader name="Alex" />
+              <GreetingHeader name={firstName} />
               {/*   <DatePill /> */}
             </View>
             <TouchableOpacity
@@ -67,7 +73,7 @@ export default function Home() {
           </View>
           <FlatList
             data={diaries}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={
               diaries.length === 0 ? styles.emptyContainer : undefined
             }

@@ -1,6 +1,5 @@
 import {
   CoreBridge,
-  darkEditorCss,
   darkEditorTheme,
   RichText,
   TenTapStartKit,
@@ -15,10 +14,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
-  View,
+  View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import useTheme from "../hooks/useTheme";
 import Button from "./Button";
 
 interface EditorProps {
@@ -38,21 +40,32 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const styles = getStyles(isDark);
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors);
+  const { top } = useSafeAreaInsets();
+  const keyboardVerticalOffset = top;
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
 
+  const dynamicEditorCss = `
+    body {
+      background-color: ${colors.background};
+      color: ${colors.text};
+      padding: 0px;
+      margin: 0px;
+    }
+  `;
+
   const editor = useEditorBridge({
     autofocus: !initialReadOnly,
-    avoidIosKeyboard: true,
+    avoidIosKeyboard: false,
     initialContent: initialBody ?? "<p></p>",
     editable: !isReadOnly,
-    bridgeExtensions: isDark
-      ? [...TenTapStartKit, CoreBridge.configureCSS(darkEditorCss)]
-      : TenTapStartKit,
+    bridgeExtensions: [
+      ...TenTapStartKit,
+      CoreBridge.configureCSS(dynamicEditorCss),
+    ],
     theme: isDark ? darkEditorTheme : undefined,
   });
 
@@ -72,63 +85,74 @@ export default function Editor({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={onBack}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Ionicons name="arrow-back" size={20} />
-        </TouchableOpacity>
-        <Text style={styles.newJournalText}>Add new Journal</Text>
-        <Button
-          label="Save"
-          onPress={handleSave}
-          size="sm"
-          style={{ width: "auto" }}
-        />
+        <View style={styles.leftHeaderGroup}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={onBack}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.newJournalText} numberOfLines={1}>
+            {initialTitle
+              ? isReadOnly
+                ? "Journal Entry"
+                : "Edit Journal"
+              : "New Journal"}
+          </Text>
+        </View>
+        {!isReadOnly && (
+          <Button
+            label="Save"
+            onPress={handleSave}
+            size="sm"
+            style={{ width: 72 }}
+          />
+        )}
       </View>
 
       <View style={styles.bodyContainer}>
         <TextInput
           style={styles.titleInput}
           placeholder="Entry Title..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.textMuted}
           value={title}
           onChangeText={setTitle}
           editable={!isReadOnly}
         />
 
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
-
         <RichText editor={editor} style={styles.editor} />
       </View>
-
-      <KeyboardAvoidingView behavior={"padding"} style={styles.footer}>
-        <View style={styles.toolbarContainer}>
-          <Toolbar editor={editor} hidden={false} />
-        </View>
-      </KeyboardAvoidingView>
+      {!isReadOnly && (
+        <KeyboardAvoidingView
+          behavior={"padding"}
+          style={styles.keyboardToolbarContainer}
+          keyboardVerticalOffset={keyboardVerticalOffset}
+        >
+          <Toolbar editor={editor} />
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
 
-const getStyles = (isDark: boolean) =>
+const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+      backgroundColor: colors.background,
     },
     topBar: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingHorizontal: 20,
       paddingVertical: 12,
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? "#283934" : "#E5EBE8",
-      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
     },
     backBtn: {
       paddingVertical: 4,
@@ -137,22 +161,11 @@ const getStyles = (isDark: boolean) =>
     newJournalText: {
       fontSize: 18,
       fontWeight: "700",
-      color: isDark ? "#ECF2EF" : "#18201E",
-    },
-    saveBtn: {
-      backgroundColor: isDark ? "#4E9E80" : "#1B4938",
-      paddingVertical: 8,
-      paddingHorizontal: 18,
-      borderRadius: 20,
-    },
-    saveBtnText: {
-      color: "#ffffff",
-      fontSize: 14,
-      fontWeight: "700",
+      color: colors.text,
     },
     bodyContainer: {
       flex: 1,
-      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+      backgroundColor: colors.background,
     },
     titleInput: {
       fontSize: 26,
@@ -160,12 +173,12 @@ const getStyles = (isDark: boolean) =>
       paddingHorizontal: 20,
       paddingTop: 16,
       paddingBottom: 4,
-      color: isDark ? "#ECF2EF" : "#18201E",
+      color: colors.text,
     },
     dateSubtitle: {
       fontSize: 13,
       fontWeight: "600",
-      color: isDark ? "#8EA39C" : "#62726E",
+      color: colors.textMuted,
       textTransform: "uppercase",
       letterSpacing: 0.5,
       paddingHorizontal: 20,
@@ -173,20 +186,21 @@ const getStyles = (isDark: boolean) =>
     },
     editor: {
       flex: 1,
-      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+      backgroundColor: colors.background,
       marginHorizontal: 20,
     },
-    footer: {
-      borderTopWidth: 1,
-      borderTopColor: isDark ? "#283934" : "#E5EBE8",
-      backgroundColor: isDark ? "#18221F" : "#ffffff",
+    keyboardToolbarContainer: {
+      position: "absolute",
+      width: "100%",
+      bottom: 0,
+      borderTopColor: colors.border,
+      backgroundColor: colors.surface,
     },
-    toolbarContainer: {
-      height: 50,
-      minHeight: 48,
-      borderTopWidth: 1,
-      borderTopColor: isDark ? "#283934" : "#E5EBE8",
-      backgroundColor: isDark ? "#18221F" : "#ffffff",
-      justifyContent: "center",
+    leftHeaderGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flex: 1,
+      marginRight: 12,
     },
   });

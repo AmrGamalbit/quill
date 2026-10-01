@@ -1,3 +1,5 @@
+import FloatingActionButton from "@/src/components/FloatingActionButton";
+import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Alert,
@@ -5,29 +7,30 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import type { Entry } from "../types/entry";
 
 interface EntriesListProps {
   entries: Entry[];
+  diaryName?: string;
   onNewEntry: () => void;
   onSelectEntry?: (entry: Entry) => void;
-  onOpenSettings?: () => void;
+  onBack?: () => void;
   onDeleteEntry?: (id: number) => void;
 }
 
 export default function EntriesList({
   entries,
+  diaryName = "Diary",
   onNewEntry,
   onSelectEntry,
-  onOpenSettings,
+  onBack,
   onDeleteEntry,
 }: EntriesListProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const styles = getStyles(isDark);
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
@@ -46,126 +49,186 @@ export default function EntriesList({
     );
   };
 
-  const renderItem = ({ item }: { item: Entry }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => onSelectEntry && onSelectEntry(item)}
-      activeOpacity={0.7}
-      delayLongPress={500}
-      onLongPress={() => handleLongPress(item)}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.cardDate}>
-          {new Date(item.createdAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
-        </Text>
-      </View>
+  const renderItem = ({ item }: { item: Entry }) => {
+    const cleanPreview =
+      item.body?.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
+    const formattedDate = new Date(item.createdAt).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
-      <Text style={styles.cardPreview} numberOfLines={2}>
-        {item.body.replace(/<[^>]+>/g, "").trim() || "Empty entry."}
-      </Text>
-    </TouchableOpacity>
-  );
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => onSelectEntry && onSelectEntry(item)}
+        activeOpacity={0.7}
+        delayLongPress={400}
+        onLongPress={() => handleLongPress(item)}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {item.title || "Untitled Entry"}
+          </Text>
+          <Text style={styles.cardDate}>{formattedDate}</Text>
+        </View>
+
+        <Text style={styles.cardPreview} numberOfLines={2}>
+          {cleanPreview}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={entries}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No entries yet. Tap the pencil to start writing.
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <View style={styles.container}>
+        <View style={styles.topBar}>
+          {onBack && (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={onBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="arrow-back" size={22} color={colors.text} />
+            </TouchableOpacity>
+          )}
+          <View style={styles.titleContainer}>
+            <Text style={styles.diaryHeading} numberOfLines={1}>
+              {diaryName}
+            </Text>
+            <Text style={styles.entryCountSubtitle}>
+              {entries.length} {entries.length === 1 ? "entry" : "entries"}
             </Text>
           </View>
-        }
-      />
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={onNewEntry}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="pencil" size={24} color="#ffffff" />
-      </TouchableOpacity>
-    </View>
+        </View>
+
+        <FlatList
+          data={entries}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={
+            entries.length === 0 ? styles.emptyContainer : styles.listContent
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons
+                name="book-outline"
+                size={44}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyTitle}>No Entries Yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Tap the pencil below to write your first entry.
+              </Text>
+            </View>
+          }
+        />
+
+        <FloatingActionButton onPress={onNewEntry} />
+      </View>
+    </SafeAreaView>
   );
 }
-const getStyles = (isDark: boolean) =>
+
+const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? "#111715" : "#F8FAF9",
+      backgroundColor: colors.background,
+    },
+    topBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: 12,
+    },
+    backBtn: {
+      paddingVertical: 4,
+      paddingRight: 6,
+    },
+    titleContainer: {
+      flex: 1,
+    },
+    diaryHeading: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.text,
+      letterSpacing: -0.3,
+    },
+    entryCountSubtitle: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: "500",
+      marginTop: 1,
     },
     listContent: {
       paddingHorizontal: 16,
-      paddingTop: 8,
-      paddingBottom: 100,
+      paddingTop: 14,
+      paddingBottom: 110,
     },
     card: {
-      backgroundColor: isDark ? "#1E2A27" : "#FFFFFF",
-      borderRadius: 12,
+      backgroundColor: colors.card,
+      borderRadius: 14,
       padding: 16,
-      marginBottom: 10,
+      marginBottom: 12,
       borderWidth: 1,
-      borderColor: isDark ? "#283934" : "#E5EBE8",
-      shadowColor: isDark ? "#000000" : "#18201E",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: isDark ? 0.2 : 0.04,
-      shadowRadius: 3,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
       elevation: 2,
     },
     cardHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: 6,
+      marginBottom: 8,
     },
     cardTitle: {
       fontSize: 16,
       fontWeight: "600",
-      color: isDark ? "#ECF2EF" : "#18201E",
+      color: colors.text,
       flex: 1,
       marginRight: 12,
     },
     cardDate: {
       fontSize: 12,
       fontWeight: "500",
-      color: isDark ? "#8EA39C" : "#62726E",
+      color: colors.textMuted,
     },
     cardPreview: {
       fontSize: 14,
       lineHeight: 20,
-      color: isDark ? "#8EA39C" : "#62726E",
+      color: colors.textMuted,
     },
     emptyContainer: {
-      paddingTop: 60,
-      alignItems: "center",
-    },
-    emptyText: {
-      fontSize: 14,
-      fontStyle: "italic",
-      color: isDark ? "#8EA39C" : "#62726E",
-    },
-    fab: {
-      position: "absolute",
-      right: 20,
-      bottom: 24,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: isDark ? "#4E9E80" : "#1B4938",
-      alignItems: "center",
+      flexGrow: 1,
       justifyContent: "center",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+      alignItems: "center",
+      paddingHorizontal: 32,
+    },
+    emptyWrap: {
+      alignItems: "center",
+      gap: 8,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.text,
+      marginTop: 8,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+      lineHeight: 20,
     },
   });

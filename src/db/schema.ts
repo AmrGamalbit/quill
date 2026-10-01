@@ -24,3 +24,13 @@ export const entriesTable = sqliteTable("entries", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const localProfileTable = sqliteTable("local_profile", {
+  userId: text().primaryKey().notNull(),
+  name: text().notNull(),
+  photoUri: text("photo_uri"),
+  publicKey: text("public_key"),
+  updatedAt: int("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

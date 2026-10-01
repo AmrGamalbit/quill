@@ -7,6 +7,11 @@ export const getAllDiaries = async (): Promise<DiaryRow[]> => {
   return await db.select().from(diaries);
 };
 
+export const getDiaryById = async (id: number): Promise<DiaryRow> => {
+  const [diary] = await db.select().from(diaries).where(eq(diaries.id, id));
+  return diary;
+};
+
 export const saveDiary = async (
   name: string,
   description: string,
@@ -29,6 +34,6 @@ export const getDiarySummary = async (diaryId: number): Promise<DiaryStats> => {
     .limit(1);
   return {
     entryCount,
-    latestEntryBody: latestEntryBody[0].body ?? null,
+    latestEntryBody: latestEntryBody[0]?.body ?? undefined,
   };
 };

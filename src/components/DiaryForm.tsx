@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
@@ -32,7 +32,7 @@ export default function DiaryForm({ isOpen, onClose, onSubmit }: DiaryFormProps)
     onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={"padding"}
       style={styles.keyboardContainer}
       >
     <View style={styles.overlay}>

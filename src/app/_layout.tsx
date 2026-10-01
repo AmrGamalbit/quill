@@ -1,4 +1,3 @@
-import { subscribeToAuthState } from "@/src/utils/auth";
 import { Merriweather_400Regular } from "@expo-google-fonts/merriweather";
 import {
   PlusJakartaSans_400Regular,
@@ -6,25 +5,47 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import type { Session } from "@supabase/supabase-js";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import "react-native-reanimated";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import migrations from "../../drizzle/migrations";
-import { db } from "../db";
-import useTheme from "../hooks/useTheme";
+import { db, sqlite } from "../db";
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary
 } from "expo-router";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
+import "react-native-get-random-values";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import {
+  UserSessionProvider,
+  useUserSession,
+} from "../context/UserSessionContext";
+import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
+import useTheme from "../hooks/useTheme";
+import { getStoredDerivedKey } from "../services/storage/secureKeyStore";
+import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
+import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
+import { decryptData, decryptUserProfile } from "../utils/crypto";
+import { downloadAndDecryptPhoto } from "../utils/photoCrypto";
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  return (
+    <UserSessionProvider>
+      <AppNavigator />
+    </UserSessionProvider>
+  );
+}
+
+function AppNavigator() {
+  const { colors } = useTheme();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { success: isDbMigrated, error: dbMigrationError } = useMigrations(
@@ -36,18 +57,11 @@ export default function RootLayout() {
     PlusJakartaSans_500Medium,
     Merriweather_400Regular,
   });
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { session: userSession, setSession } = useUserSession();
   const router = useRouter();
-  useEffect(() => {
-    const unsubscribe = subscribeToAuthState((newSession) => {
-      setSession(newSession);
-      setIsAuthLoading(false);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+
+  const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
     if (fontLoadingError) {
@@ -56,19 +70,106 @@ export default function RootLayout() {
   }, [fontLoadingError]);
 
   useEffect(() => {
+    if (isDbMigrated) {
+      sqlite.execSync("PRAGMA foreign_keys = ON;");
+    }
+  }, [isDbMigrated]);
+
+  useEffect(() => {
     if (dbMigrationError) {
       console.error("Migration error:", dbMigrationError);
     }
   }, [dbMigrationError]);
 
   useEffect(() => {
+    const unsubscribe = subscribeToAuthState(async (newSession) => {
+      setSupabaseSession(newSession);
+
+      if (!newSession) {
+        setIsAuthLoading(false);
+        return;
+      }
+
+      try {
+        const cached = await getLocalProfile(newSession.user.id);
+        if (cached?.name) {
+          setSession({
+            userId: newSession.user.id,
+            email: newSession.user.email ?? "",
+            name: cached.name,
+            photoUri: cached.photoUri ?? null,
+            rawPrivateKey: userSession?.rawPrivateKey ?? new Uint8Array(32),
+            publicKeyHex: cached.publicKey ?? userSession?.publicKeyHex ?? "",
+          });
+          // Unblock rendering immediately so the UI doesn't freeze on "Friend"
+          setIsAuthLoading(false);
+        }
+      } catch (err) {
+        console.warn("Failed reading cached local profile:", err);
+      }
+
+      // Background sync: Fetch cryptographic keys and latest cloud profile
+      try {
+        const derivedKey = await getStoredDerivedKey();
+        if (derivedKey) {
+          const profileRecord = await getUserProfileRecord(newSession.user.id);
+          const rawPrivateKey = decryptData(
+            profileRecord.encrypted_private_key,
+            profileRecord.private_key_nonce,
+            derivedKey,
+          );
+          const decryptedProfile = decryptUserProfile(
+            profileRecord.encrypted_profile,
+            profileRecord.profile_nonce,
+            derivedKey,
+          );
+
+          let decryptedPhotoUri: string | null = null;
+          if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
+            const storage = new SupabaseStorageAdapter("avatars");
+            decryptedPhotoUri = await downloadAndDecryptPhoto(
+              decryptedProfile.photoPath,
+              decryptedProfile.photoNonce,
+              derivedKey,
+              storage,
+            );
+          }
+
+          // Persist the freshly decrypted metadata to local SQLite cache
+          await saveLocalProfile(
+            newSession.user.id,
+            decryptedProfile.name,
+            decryptedPhotoUri,
+            profileRecord.public_key,
+          );
+
+          setSession({
+            userId: newSession.user.id,
+            email: newSession.user.email ?? "",
+            name: decryptedProfile.name,
+            photoUri: decryptedPhotoUri,
+            rawPrivateKey,
+            publicKeyHex: profileRecord.public_key,
+          });
+        }
+      } catch (e) {
+        console.error("Fast restore failed:", e);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     if (isAuthLoading) return;
-    if (session) {
+    if (supabaseSession) {
       router.replace("/(app)");
     } else {
       router.replace("/(auth)/login");
     }
-  }, [session, isAuthLoading]);
+  }, [supabaseSession, isAuthLoading]);
 
   useEffect(() => {
     if (isFontsLoaded && isDbMigrated) {
@@ -92,12 +193,6 @@ export default function RootLayout() {
       </SafeAreaView>
     );
   }
-
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const { colors } = useTheme();
 
   return (
     <SafeAreaProvider>

@@ -22,6 +22,13 @@
       "when": 1790186805433,
       "tag": "0002_milky_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790862208131,
+      "tag": "0003_glossy_skrulls",
+      "breakpoints": true
     }
   ]
 }

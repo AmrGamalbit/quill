@@ -3,6 +3,11 @@ import useTheme from "../hooks/useTheme";
 
 export default function GreetingHeader({ name }: { name: string }) {
   const { colors, fonts, fontSizes, spacing } = useTheme();
+
+  const hour = new Date().getHours();
+  const salutation =
+    hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
+
   return (
     <View>
       <Text
@@ -12,7 +17,7 @@ export default function GreetingHeader({ name }: { name: string }) {
           fontSize: fontSizes.xxl,
         }}
       >
-        Good Morning, {name}.
+        {salutation}, {name}.
       </Text>
       <Text style={{ marginVertical: spacing.md, color: colors.textMuted }}>
         What's on your mind today?
