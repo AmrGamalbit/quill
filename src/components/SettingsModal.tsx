@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as Crypto from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
@@ -18,7 +17,7 @@ import { useUserSession } from "../context/UserSessionContext";
 import useTheme from "../hooks/useTheme";
 import { clearDerivedKey, getStoredDerivedKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
-import { signOut, updateUserEncryptedProfile } from "../utils/auth";
+import { deleteAccount, signOut, updateUserEncryptedProfile } from "../utils/auth";
 import { encryptUserProfile } from "../utils/crypto";
 import { resetLocalDatabase } from "../utils/db";
 import { encryptAndUploadPhoto } from "../utils/photoCrypto";
@@ -40,6 +39,7 @@ export default function SettingsModal({
     const { colors } = useTheme();
     const { session, setSession, clearSession } = useUserSession();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const [isPhotoExpanded, setIsPhotoExpanded] = useState(false);
     const [isPickingOrUploading, setIsPickingOrUploading] = useState(false);
 
@@ -47,6 +47,40 @@ export default function SettingsModal({
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setIsPhotoExpanded((prev) => !prev);
     }
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            "Delete Account",
+            "This action is permanent. All data stored or associated with your account will be permanently deleted.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete Account",
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsDeletingAccount(true);
+                        try {
+                            await deleteAccount();
+
+                            await clearDerivedKey();
+                            clearSession();
+
+                            resetLocalDatabase();
+
+                            await signOut().catch(() => {});
+
+                            onClose();
+                            if (onLogoutSuccess) onLogoutSuccess();
+                        } catch (err: any) {
+                            Alert.alert("Deletion Failed", err.message || "Could not delete account. Please try again.");
+                        } finally {
+                            setIsDeletingAccount(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const handleChangePhoto = async () => {
         if (!session) return;
@@ -73,7 +107,7 @@ export default function SettingsModal({
             }
 
             const storage = new SupabaseStorageAdapter("avatars");
-            const photoFolderId = Crypto.randomUUID();
+            const photoFolderId = session.userId;
             const uploadResult = await encryptAndUploadPhoto(
                 newLocalUri,
                 photoFolderId,
@@ -238,7 +272,7 @@ export default function SettingsModal({
                     <TouchableOpacity
                         style={[styles.logoutButton, { backgroundColor: colors.danger }]}
                         onPress={handleLogout}
-                        disabled={isLoggingOut}
+                        disabled={isLoggingOut || isDeletingAccount}
                         activeOpacity={0.8}
                     >
                         {isLoggingOut ? (
@@ -247,6 +281,23 @@ export default function SettingsModal({
                             <>
                                 <Ionicons name="log-out-outline" size={20} color={colors.textOnAccent} />
                                 <Text style={[styles.logoutText, { color: colors.textOnAccent }]}>Sign Out</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Delete Account Button */}
+                    <TouchableOpacity
+                    style={[styles.deleteButton, { borderColor: colors.danger }]}
+                    onPress={handleDeleteAccount}
+                    disabled={isLoggingOut || isDeletingAccount}
+                    activeOpacity={0.7}
+                    >
+                        {isDeletingAccount ? (
+                            <ActivityIndicator size="small" color={colors.danger} />
+                        ) : (
+                            <>
+                            <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                            <Text style={[styles.deleteText, {color: colors.danger}]}>Delete Account</Text>
                             </>
                         )}
                     </TouchableOpacity>
@@ -398,5 +449,20 @@ const styles = StyleSheet.create({
     marginTop: 14,
     width: 160, // Gives our custom Button a neat, centered pill width
     alignSelf: "center",
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 14,
+    borderRadius: 12,
+    height: 48,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  deleteText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

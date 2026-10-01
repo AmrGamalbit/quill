@@ -14,7 +14,7 @@ import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { UserSessionProvider, useUserSession } from "../context/UserSessionContext";
 import useTheme from "../hooks/useTheme";
-import { getStoredDerivedKey } from "../services/storage/secureKeyStore";
+import { clearDerivedKey, getStoredDerivedKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptData, decryptUserProfile } from "../utils/crypto";
@@ -85,6 +85,7 @@ function AppNavigator() {
         }
       } catch (err) {
         console.warn("Failed reading cached local profile:", err);
+        await clearDerivedKey();
       }
 
       // Background sync: Fetch cryptographic keys and latest cloud profile
