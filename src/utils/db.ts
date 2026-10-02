@@ -2,6 +2,18 @@ import * as SQLite from "expo-sqlite";
 
 export const db = SQLite.openDatabaseSync("diary.db");
 
+export interface Attachment {
+  id: number;
+  entry_id: number;
+  kind: "image" | "video";
+  rel_path: string;
+  mime_type: string;
+  width: number | null;
+  height: number | null;
+  duration_ms: number | null;
+  size_bytes: number | null;
+}
+
 export interface Diary {
   id: number;
   name: string;
@@ -54,6 +66,20 @@ export function initDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (diary_id) REFERENCES diaries (id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id INTEGER NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('image', 'video')),
+    rel_path TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    duration_ms INTEGER,
+    size_bytes INTEGER
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (entry_id) REFERENCES entries (id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_attachments_entry ON attachments (entry_id);
   `);
 }
 export interface CachedProfile {
@@ -124,6 +150,13 @@ export const saveEntry = (
   }
 };
 
+export function updateEntry(id: number, title: string, body: string): void {
+  db.runSync(
+    `UPDATE entries SET title = ?, body = ?, updated_at = datetime('now') WHERE id = ?`,
+    [title, body, id],
+  );
+}
+
 export function getEntryById(entryId: number): JournalEntry | null {
   const statement = db.prepareSync(`
     SELECT * FROM entries WHERE id = ?
@@ -176,6 +209,7 @@ export const deleteEntry = (id: number): void => {
 export function resetLocalDatabase(): void {
   db.execSync(`
     PRAGMA foreign_keys = OFF;
+    DROP TABLE IF EXISTS attachments;
     DROP TABLE IF EXISTS entries;
     DROP TABLE IF EXISTS diaries;
     DROP TABLE IF EXISTS local_profile;
@@ -183,4 +217,31 @@ export function resetLocalDatabase(): void {
   `);
 
   initDatabase();
+}
+export function insertAttachment(a: Omit<Attachment, "id">): number {
+  const r = db.runSync(
+    `INSERT INTO attachments (entry_id, kind, rel_path, mime_type, width, height, duration_ms, size_bytes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      a.entry_id,
+      a.kind,
+      a.rel_path,
+      a.mime_type,
+      a.width,
+      a.duration_ms === undefined ? null : a.height,
+      a.duration_ms,
+      a.size_bytes,
+    ],
+  );
+  return r.lastInsertRowId;
+}
+export function getAttachmentsByEntryId(entryId: number): Attachment[] {
+  return db.getAllSync<Attachment>(
+    `SELECT * FROM attachments WHERE entry_id = ? ORDER BY id`,
+    [entryId],
+  );
+}
+
+export function deleteAttachmentRow(id: number): void {
+  db.runSync(`DELETE FROM attachments WHERE id = ?`, [id]);
 }

@@ -9,9 +9,9 @@ import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
+import { deleteDiaryWithMedia } from "@/src/services/attachments";
 import type { Diary, DiaryFormData } from "@/src/types/diary";
 import {
-  deleteDiary,
   getAllDiaries,
   getEntriesByDiaryId,
   initDatabase,
@@ -81,8 +81,8 @@ export default function Home() {
     setShowDiaryForm(false);
   };
 
-  const handleDeleteDiary = (id: string) => {
-    deleteDiary(Number(id));
+  const handleDeleteDiary = async (id: string) => {
+    await deleteDiaryWithMedia(Number(id));
     loadDiaries();
   };
 
@@ -173,7 +173,7 @@ const getStyles = (colors: any) =>
       marginTop: 4,
     },
     settingsIconColor: {
-      color: "#62726E",
+      color: "colors.textMutes",
     },
     emptyList: {
       justifyContent: "center",

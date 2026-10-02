@@ -1,3 +1,4 @@
+import { Attachment } from "@/src/utils/db";
 import {
   CoreBridge,
   darkEditorTheme,
@@ -9,7 +10,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,14 +21,21 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
+import { PendingAttachment, pickMedia, resolveAttachmentUri } from "../services/attachments";
 import Button from "./Button";
+import MediaViewer, { ViewerItem } from "./MediaViewer";
 
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;
   initialDate?: string;
   initialReadOnly?: boolean;
-  onSave: (title: string, body: string) => void;
+  initialAttachments?: Attachment[];
+  onSave: (
+    title: string,
+    body: string,
+    media: {added: PendingAttachment[]; removedIds: number[]},
+  ) => void;
   onBack?: () => void;
 }
 
@@ -34,6 +44,7 @@ export default function Editor({
   initialBody,
   initialDate,
   initialReadOnly,
+  initialAttachments,
   onSave,
   onBack,
 }: EditorProps) {
@@ -44,6 +55,29 @@ export default function Editor({
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
+  const [viewing, setViewing] = useState<ViewerItem | null>(null);
+  const [existing, setExisting] = useState<Attachment[]>(initialAttachments ?? []);
+  const [added, setAdded] = useState<PendingAttachment[]>([]);
+  const [removedIds, setRemovedIds] = useState<number[]>([]);
+
+  const handleAddMedia = async () => {
+    const picked = await pickMedia();
+    if (picked.length) setAdded((prev) => [...prev, ...picked]);
+  };
+
+  const thumbs = [
+    ...existing.map((a) => ({
+      key: `e${a.id}`, uri: resolveAttachmentUri(a.rel_path), kind: a.kind,
+      remove: () => {
+        setExisting((p) => p.filter((x) => x.id !== a.id));
+        setRemovedIds((p) => [...p, a.id]);
+      },
+    })),
+    ...added.map((a, i) => ({
+      key: `n${i}`, uri: a.uri, kind: a.kind,
+      remove: () => setAdded((p) => p.filter((_, j) => j !== i)),
+    })),
+  ];
 
   const dynamicEditorCss = `
     body {
@@ -78,12 +112,21 @@ export default function Editor({
 
   const handleSave = async () => {
     const contentHtml = await editor.getHTML();
-    onSave(title, contentHtml);
+    onSave(title, contentHtml, {added, removedIds});
   };
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <View style={styles.topBar}>
+        {!isReadOnly && (
+          <TouchableOpacity
+      style={{marginLeft: "auto", paddingHorizontal: 10}}
+      onPress={handleAddMedia}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <Ionicons name="attach" size={24} color={colors.text} />
+    </TouchableOpacity>
+        )}
   <View style={styles.leftHeaderGroup}>
     <TouchableOpacity
       style={styles.backBtn}
@@ -117,7 +160,36 @@ export default function Editor({
         />
 
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
-
+        {thumbs.length > 0 && (
+          <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.mediaStrip}
+          contentContainerStyle={styles.mediaStripContent}
+          >
+            {thumbs.map((t) => (
+              <View key={t.key} style={styles.thumb}>
+                <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setViewing({uri: t.uri, kind: t.kind})}
+                >
+                {t.kind === "image" ? (
+                 <Image source={{uri: t.uri}} style={styles.thumbImg} /> 
+                ):(
+                  <View style={[styles.thumbImg, styles.videoPlaceholder]}>
+                    <Ionicons name="play-circle" size={32} color={colors.textMuted} />
+                    </View>
+                )}
+                </TouchableOpacity>
+                {!isReadOnly && (
+                  <TouchableOpacity style={styles.thumbRemove} onPress={t.remove}>
+                    <Ionicons name="close" size={14} color={colors.text}/>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        )}
         <RichText editor={editor} style={styles.editor} />
       </View>
       {!isReadOnly && (
@@ -129,6 +201,7 @@ export default function Editor({
     <Toolbar editor={editor} />
   </KeyboardAvoidingView>
         )}
+        <MediaViewer item={viewing} onClose={() => setViewing(null)} />
     </SafeAreaView>
   );
 }
@@ -197,4 +270,34 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       flex: 1,
       marginRight: 12,
     },
+    mediaStrip: {
+      flexGrow: 0,
+      marginBottom: 12,
+    },
+    mediaStripContent: {
+      paddingHorizontal: 20,
+      gap: 10
+    },
+    thumb: {
+      width: 84,
+      height: 84
+    },
+    thumbImg: {
+      width: 84,
+      height: 84,
+      borderRadius: 10
+    },
+    videoPlaceholder: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    thumbRemove: {
+      position: "absolute", top: 4, right: 4,
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: colors.surface,
+      alignItems: "center", justifyContent: "center",
+    }
   });

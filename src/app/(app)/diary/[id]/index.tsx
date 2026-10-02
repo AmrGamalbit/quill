@@ -1,7 +1,8 @@
 import EntriesList from "@/src/components/EntriesList";
 import { spacing } from "@/src/constants/spacings";
+import { deleteEntryWithMedia } from "@/src/services/attachments";
 import type { JournalEntry } from "@/src/utils/db";
-import { deleteEntry, getAllDiaries, getEntriesByDiaryId } from "@/src/utils/db";
+import { getAllDiaries, getEntriesByDiaryId } from "@/src/utils/db";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -44,9 +45,10 @@ export default function DiaryScreen() {
     });
   };
 
-  const handleDeleteEntry = (entryId: number) => {
-    deleteEntry(entryId);
-  };
+  const handleDeleteEntry = async (entryId: number) => {
+    await deleteEntryWithMedia(entryId);
+    setEntries(getEntriesByDiaryId(diaryId));
+  }
 
   useFocusEffect(
     useCallback(() => {
