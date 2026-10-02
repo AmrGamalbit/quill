@@ -20,9 +20,8 @@ import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapt
 import { deleteAccount, signOut, updateUserEncryptedProfile } from "../utils/auth";
 import { encryptUserProfile } from "../utils/crypto";
 import { resetLocalDatabase } from "../utils/db";
-import { encryptAndUploadPhoto } from "../utils/photoCrypto";
+import { clearLocalAvatarCache, encryptAndUploadPhoto } from "../utils/photoCrypto";
 import Button from "./Button";
-
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -66,6 +65,7 @@ export default function SettingsModal({
                             clearSession();
 
                             resetLocalDatabase();
+                            await clearLocalAvatarCache().catch(() => {});
 
                             await signOut().catch(() => {});
 
@@ -163,6 +163,7 @@ export default function SettingsModal({
                         await signOut(); // Clear Supabase auth session
                         clearSession(); // Wipe in-memory private key & profile
                         resetLocalDatabase();
+                        await clearLocalAvatarCache().catch(() => {});
                         onClose();
                         if (onLogoutSuccess) onLogoutSuccess();
                     } catch (err: any) {

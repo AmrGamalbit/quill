@@ -132,6 +132,11 @@ export async function updateUserEncryptedProfile(
   }
 }
 export async function deleteAccount(): Promise<void> {
-  const { error } = await supabase.rpc("delete_user_account");
-  if (error) throw error;
+  const { error } = await supabase.functions.invoke("delete-account", {
+    method: "POST",
+  });
+  if (error) {
+    const body = await (error as any).context?.json?.().catch(() => null);
+    throw new Error(body ? JSON.stringify(body) : error.message);
+  }
 }

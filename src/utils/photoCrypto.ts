@@ -18,22 +18,14 @@ export async function encryptAndUploadPhoto(
   encryptionKey: Uint8Array,
   storage: StorageAdapter,
 ): Promise<{ storagePath: string; photoNonceHex: string }> {
-  // 1. Read the physical photo file from device storage as Base64 text
   const base64Data = await FileSystem.readAsStringAsync(localUri, {
     encoding: FileSystem.EncodingType.Base64,
   });
-
-  // 2. Convert Base64 text into raw binary bytes
   const rawImageBytes = base64ToUint8Array(base64Data);
-
-  // 3. Encrypt the raw image bytes using XChaCha20-Poly1305
   const encrypted = encryptData(rawImageBytes, encryptionKey);
-
-  // 4. Convert the scrambled hex text into bytes so storage can save it as a binary file
   const encryptedFileBytes = new TextEncoder().encode(encrypted.cipherHex);
-
-  // 5. Upload via whichever storage adapter was passed in
   const remotePath = `${folderId}/avatar.enc`;
+
   await storage.uploadFile(
     remotePath,
     encryptedFileBytes,
@@ -73,6 +65,28 @@ export async function downloadAndDecryptPhoto(
   await FileSystem.writeAsStringAsync(localCachePath, decryptedBase64, {
     encoding: FileSystem.EncodingType.Base64,
   });
+  await FileSystem.writeAsStringAsync(localCachePath, decryptedBase64, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
 
+  await clearLocalAvatarCache(localCachePath).catch(() => {});
   return localCachePath;
+}
+
+export async function clearLocalAvatarCache(keepPath?: string): Promise<void> {
+  const dir = FileSystem.cacheDirectory;
+  if (!dir) return;
+
+  const names = await FileSystem.readDirectoryAsync(dir);
+  await Promise.all(
+    names
+      .filter((n) => n.startsWith("avatar_"))
+      .map((n) => `${dir}${n}`)
+      .filter((path) => path !== keepPath)
+      .map((path) => FileSystem.deleteAsync(path, { idempotent: true })),
+  );
+
+  if (!keepPath) {
+    await FileSystem.deleteAsync(`${dir}ImagePicker`, { idempotent: true });
+  }
 }

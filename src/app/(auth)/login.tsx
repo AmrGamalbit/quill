@@ -10,8 +10,7 @@ import {
   getUserProfileRecord,
   sendPasswordResetEmail,
   signIn,
-  signUp,
-  updateUserEncryptedProfile,
+  signUp
 } from "@/src/utils/auth";
 import {
   bytesToHex,
@@ -24,16 +23,13 @@ import {
   hexToBytes,
 } from "@/src/utils/crypto";
 import {
-  downloadAndDecryptPhoto,
-  encryptAndUploadPhoto,
+  downloadAndDecryptPhoto
 } from "@/src/utils/photoCrypto";
 import * as Crypto from "expo-crypto";
-import * as ImagePicker from "expo-image-picker";
 import { useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Image,
   KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
@@ -43,7 +39,7 @@ import {
   TextInput,
   TouchableOpacity,
   UIManager,
-  View,
+  View
 } from "react-native";
 
 if (
@@ -61,23 +57,10 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
   const [name, setName] = useState("");
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const { setSession } = useUserSession();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const forgotAnim = useRef(new Animated.Value(isSignUp ? 0 : 1)).current;
-
-  async function handlePickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  }
 
   async function handleAuth() {
     if (!email.trim() || !password.trim()) {
@@ -154,46 +137,16 @@ export default function Auth() {
         let decryptedPhotoUri: string | null = null;
         const storage = new SupabaseStorageAdapter("avatars");
 
-        // Case A: Existing cloud avatar -> download and decrypt
         if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
           try {
             decryptedPhotoUri = await downloadAndDecryptPhoto(
               decryptedProfile.photoPath,
               decryptedProfile.photoNonce,
               derivedKey,
-              storage
+              new SupabaseStorageAdapter("avatars")
             );
           } catch (downloadErr) {
             console.warn("Avatar download/decryption failed on login:", downloadErr);
-          }
-        }
-        // Case B: User picked a photo during initial registration -> upload & update profile now that user has an authenticated session
-        else if (!decryptedProfile.photoPath && photoUri) {
-          try {
-            const uploadResult = await encryptAndUploadPhoto(
-              photoUri,
-              user.id,
-              derivedKey,
-              storage
-            );
-
-            const updatedProfile = encryptUserProfile(
-              {
-                name: decryptedProfile.name,
-                photoPath: uploadResult.storagePath,
-                photoNonce: uploadResult.photoNonceHex,
-              },
-              derivedKey
-            );
-
-            await updateUserEncryptedProfile(
-              user.id,
-              updatedProfile.encryptedProfileHex,
-              updatedProfile.profileNonceHex
-            );
-            decryptedPhotoUri = photoUri;
-          } catch (uploadErr) {
-            console.warn("Avatar sync failed on login:", uploadErr);
           }
         }
 
@@ -303,25 +256,6 @@ export default function Auth() {
         <View style={styles.form}>
           {isSignUp && (
             <>
-              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-                PROFILE PHOTO
-              </Text>
-              <TouchableOpacity
-                onPress={handlePickImage}
-                style={[
-                  styles.photoButton,
-                  { borderColor: colors.accent, backgroundColor: colors.surface },
-                ]}
-              >
-                {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={styles.previewImage} />
-                ) : (
-                  <Text style={{ color: colors.accent, textAlign: "center", fontSize: 12 }}>
-                    Tap to select
-                  </Text>
-                )}
-              </TouchableOpacity>
-
               <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
                 NAME
               </Text>
@@ -509,22 +443,5 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     fontFamily: fonts.label,
     fontWeight: "600",
-  },
-  photoButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginBottom: spacing.md,
-    overflow: "hidden",
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
   },
 });
