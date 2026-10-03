@@ -173,7 +173,7 @@ const getStyles = (colors: any) =>
       marginTop: 4,
     },
     settingsIconColor: {
-      color: "colors.textMutes",
+      color: colors.textMuted,
     },
     emptyList: {
       justifyContent: "center",
