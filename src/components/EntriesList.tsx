@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Entry } from "../types/entry";
+import DiaryWeekCalendar from "./DiaryWeekCalendar";
 
 interface EntriesListProps {
   entries: Entry[];
@@ -31,7 +32,6 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
 
@@ -105,7 +105,6 @@ export default function EntriesList({
             </Text>
           </View>
         </View>
-
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id.toString()}
@@ -113,6 +112,7 @@ export default function EntriesList({
           contentContainerStyle={
             entries.length === 0 ? styles.emptyContainer : styles.listContent
           }
+          ListHeaderComponent={<DiaryWeekCalendar />}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons
@@ -127,9 +127,8 @@ export default function EntriesList({
             </View>
           }
         />
-
-        <FloatingActionButton onPress={onNewEntry} />
       </View>
+      <FloatingActionButton onPress={onNewEntry} />
     </SafeAreaView>
   );
 }
