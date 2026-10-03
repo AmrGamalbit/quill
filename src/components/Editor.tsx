@@ -21,9 +21,11 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
-import { PendingAttachment, pickMedia, resolveAttachmentUri } from "../services/attachments";
+import { PendingAttachment, pickAudio, pickMedia, resolveAttachmentUri } from "../services/attachments";
+import AudioRow from "./AudioRow";
 import Button from "./Button";
 import MediaViewer, { ViewerItem } from "./MediaViewer";
+import VideoThumb from "./VideoThumb";
 
 interface EditorProps {
   initialTitle?: string;
@@ -60,6 +62,12 @@ export default function Editor({
   const [added, setAdded] = useState<PendingAttachment[]>([]);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
 
+
+  const handleAddAudio = async () => {
+    const picked = await pickAudio();
+    if (picked.length) setAdded((prev) => [...prev, ...picked]);
+  };
+
   const handleAddMedia = async () => {
     const picked = await pickMedia();
     if (picked.length) setAdded((prev) => [...prev, ...picked]);
@@ -67,17 +75,20 @@ export default function Editor({
 
   const thumbs = [
     ...existing.map((a) => ({
-      key: `e${a.id}`, uri: resolveAttachmentUri(a.rel_path), kind: a.kind,
+      key: `e${a.id}`, uri: resolveAttachmentUri(a.rel_path), kind: a.kind, name: a.name ?? "Audio",
       remove: () => {
         setExisting((p) => p.filter((x) => x.id !== a.id));
         setRemovedIds((p) => [...p, a.id]);
       },
     })),
     ...added.map((a, i) => ({
-      key: `n${i}`, uri: a.uri, kind: a.kind,
+      key: `n${i}`, uri: a.uri, kind: a.kind, name: a.name ?? "Audio",
       remove: () => setAdded((p) => p.filter((_, j) => j !== i)),
     })),
   ];
+
+  const visual = thumbs.filter((t) => t.kind !== "audio");
+  const audio = thumbs.filter((t) => t.kind === "audio");
 
   const dynamicEditorCss = `
     body {
@@ -119,13 +130,14 @@ export default function Editor({
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <View style={styles.topBar}>
         {!isReadOnly && (
-          <TouchableOpacity
-      style={{marginLeft: "auto", paddingHorizontal: 10}}
-      onPress={handleAddMedia}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-    >
-      <Ionicons name="attach" size={24} color={colors.text} />
-    </TouchableOpacity>
+          <View style={{ marginLeft: "auto", flexDirection: "row" }}>
+            <TouchableOpacity style={{ paddingHorizontal: 10 }} onPress={handleAddMedia} hitSlop={12}>
+              <Ionicons name="attach" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={{ paddingHorizontal: 10 }} onPress={handleAddAudio} hitSlop={12}>
+              <Ionicons name="musical-notes-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         )}
   <View style={styles.leftHeaderGroup}>
     <TouchableOpacity
@@ -160,25 +172,23 @@ export default function Editor({
         />
 
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
-        {thumbs.length > 0 && (
+        {visual.length > 0 && (
           <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.mediaStrip}
           contentContainerStyle={styles.mediaStripContent}
           >
-            {thumbs.map((t) => (
+            {visual.map((t) => (
               <View key={t.key} style={styles.thumb}>
                 <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setViewing({uri: t.uri, kind: t.kind})}
+                onPress={() => setViewing({uri: t.uri, kind: t.kind as "image" | "video"})}
                 >
                 {t.kind === "image" ? (
                  <Image source={{uri: t.uri}} style={styles.thumbImg} /> 
                 ):(
-                  <View style={[styles.thumbImg, styles.videoPlaceholder]}>
-                    <Ionicons name="play-circle" size={32} color={colors.textMuted} />
-                    </View>
+                  <VideoThumb uri={t.uri} style={styles.thumbImg} />
                 )}
                 </TouchableOpacity>
                 {!isReadOnly && (
@@ -190,6 +200,9 @@ export default function Editor({
             ))}
           </ScrollView>
         )}
+        {audio.map((t) => (
+          <AudioRow key={t.key} uri={t.uri} name={t.name} onRemove={isReadOnly ? undefined : t.remove} />
+        ))}
         <RichText editor={editor} style={styles.editor} />
       </View>
       {!isReadOnly && (

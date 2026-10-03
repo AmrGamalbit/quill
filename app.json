@@ -44,7 +44,9 @@
       "expo-font",
       "@react-native-vector-icons/ionicons",
       "expo-sqlite",
-      "expo-video"
+      "expo-video",
+      "expo-image",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

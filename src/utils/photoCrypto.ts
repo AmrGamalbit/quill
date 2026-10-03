@@ -2,7 +2,23 @@ import { StorageAdapter } from "@/src/services/storage/StorageAdapter";
 import { decryptData, encryptData } from "@/src/utils/crypto";
 import * as FileSystem from "expo-file-system/legacy";
 
-// Helper: converts a Base64 text string into raw machine bytes (Uint8Array)
+const AVATAR_PREFIX = "avatar_";
+const inflightDownloads = new Map<string, Promise<string>>();
+
+export const avatarPathForNonce = (nonceHex: string) =>
+  `${FileSystem.documentDirectory}${AVATAR_PREFIX}${nonceHex}.jpg`;
+
+export async function getValidAvatarUrl(
+  stored: string | null | undefined,
+): Promise<string | null> {
+  if (!stored || !FileSystem.documentDirectory) return null;
+  const name = stored.split("/").pop();
+  if (!name) return null;
+  const uri = `${FileSystem.documentDirectory}${name}`;
+  const info = await FileSystem.getInfoAsync(uri).catch(() => null);
+  return info?.exists ? uri : null;
+}
+
 function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -46,47 +62,63 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-export async function downloadAndDecryptPhoto(
+export function downloadAndDecryptPhoto(
   storagePath: string,
   photoNonceHex: string,
   encryptionKey: Uint8Array,
   storage: StorageAdapter,
 ): Promise<string> {
-  const encryptedFileBytes = await storage.downloadFile(storagePath);
-  const cipherHex = new TextDecoder().decode(encryptedFileBytes);
-  const decryptedImageBytes = decryptData(
-    cipherHex,
-    photoNonceHex,
-    encryptionKey,
-  );
-  const decryptedBase64 = uint8ArrayToBase64(decryptedImageBytes);
+  const existing = inflightDownloads.get(photoNonceHex);
+  if (existing) return existing;
 
-  const localCachePath = `${FileSystem.cacheDirectory}avatar_${Date.now()}.jpg`;
-  await FileSystem.writeAsStringAsync(localCachePath, decryptedBase64, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  await FileSystem.writeAsStringAsync(localCachePath, decryptedBase64, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
+  const p = (async () => {
+    const localPath = avatarPathForNonce(photoNonceHex);
+    if ((await FileSystem.getInfoAsync(localPath)).exists) return localPath;
 
-  await clearLocalAvatarCache(localCachePath).catch(() => {});
-  return localCachePath;
+    const encryptedFileBytes = await storage.downloadFile(storagePath);
+    const cipherHex = new TextDecoder().decode(encryptedFileBytes);
+    const decrypted = decryptData(cipherHex, photoNonceHex, encryptionKey);
+
+    await FileSystem.writeAsStringAsync(
+      localPath,
+      uint8ArrayToBase64(decrypted),
+      {
+        encoding: FileSystem.EncodingType.Base64,
+      },
+    );
+    await clearLocalAvatarCache(localPath).catch(() => {});
+    return localPath;
+  })().finally(() => inflightDownloads.delete(photoNonceHex));
+
+  inflightDownloads.set(photoNonceHex, p);
+  return p;
 }
 
 export async function clearLocalAvatarCache(keepPath?: string): Promise<void> {
-  const dir = FileSystem.cacheDirectory;
-  if (!dir) return;
-
-  const names = await FileSystem.readDirectoryAsync(dir);
-  await Promise.all(
-    names
-      .filter((n) => n.startsWith("avatar_"))
-      .map((n) => `${dir}${n}`)
-      .filter((path) => path !== keepPath)
-      .map((path) => FileSystem.deleteAsync(path, { idempotent: true })),
-  );
-
-  if (!keepPath) {
-    await FileSystem.deleteAsync(`${dir}ImagePicker`, { idempotent: true });
+  for (const dir of [FileSystem.documentDirectory, FileSystem.cacheDirectory]) {
+    if (!dir) continue;
+    const names = await FileSystem.readDirectoryAsync(dir);
+    await Promise.all(
+      names
+        .filter((n) => n.startsWith(AVATAR_PREFIX))
+        .map((n) => `${dir}${n}`)
+        .filter((p) => p !== keepPath)
+        .map((p) => FileSystem.deleteAsync(p, { idempotent: true })),
+    );
   }
+  if (!keepPath && FileSystem.cacheDirectory) {
+    await FileSystem.deleteAsync(`${FileSystem.cacheDirectory}ImagePicker`, {
+      idempotent: true,
+    });
+  }
+}
+
+export async function persistLocalAvatar(
+  srcUri: string,
+  nonceHex: string,
+): Promise<string> {
+  const dest = avatarPathForNonce(nonceHex);
+  await FileSystem.copyAsync({ from: srcUri, to: dest });
+  await clearLocalAvatarCache(dest).catch(() => {});
+  return dest;
 }

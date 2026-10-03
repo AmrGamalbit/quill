@@ -15,12 +15,13 @@ import {
 } from "react-native";
 import { useUserSession } from "../context/UserSessionContext";
 import useTheme from "../hooks/useTheme";
+import { removeAllMedia } from "../services/attachments";
 import { clearDerivedKey, getStoredDerivedKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { deleteAccount, signOut, updateUserEncryptedProfile } from "../utils/auth";
 import { encryptUserProfile } from "../utils/crypto";
-import { resetLocalDatabase } from "../utils/db";
-import { clearLocalAvatarCache, encryptAndUploadPhoto } from "../utils/photoCrypto";
+import { resetLocalDatabase, saveCachedProfile } from "../utils/db";
+import { clearLocalAvatarCache, encryptAndUploadPhoto, persistLocalAvatar } from "../utils/photoCrypto";
 import Button from "./Button";
 interface SettingsModalProps {
     isOpen: boolean;
@@ -65,6 +66,7 @@ export default function SettingsModal({
                             clearSession();
 
                             resetLocalDatabase();
+                            await removeAllMedia().catch(() => {});
                             await clearLocalAvatarCache().catch(() => {});
 
                             await signOut().catch(() => {});
@@ -129,12 +131,14 @@ export default function SettingsModal({
                 encProfile.encryptedProfileHex,
                 encProfile.profileNonceHex
             );
+            const persistedUri = await persistLocalAvatar(newLocalUri, uploadResult.photoNonceHex);
+            saveCachedProfile(session.userId, session.name, persistedUri, session.publicKeyHex);
 
             setSession({
                 userId: session.userId,
                 email: session.email,
                 name: session.name,
-                photoUri: newLocalUri,
+                photoUri: persistedUri,
                 rawPrivateKey: session.rawPrivateKey,
                 publicKeyHex: session.publicKeyHex,
             });
@@ -163,6 +167,7 @@ export default function SettingsModal({
                         await signOut(); // Clear Supabase auth session
                         clearSession(); // Wipe in-memory private key & profile
                         resetLocalDatabase();
+                        await removeAllMedia().catch(() => {})
                         await clearLocalAvatarCache().catch(() => {});
                         onClose();
                         if (onLogoutSuccess) onLogoutSuccess();

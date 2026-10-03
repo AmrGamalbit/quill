@@ -5,7 +5,8 @@ export const db = SQLite.openDatabaseSync("diary.db");
 export interface Attachment {
   id: number;
   entry_id: number;
-  kind: "image" | "video";
+  kind: "image" | "video" | "audio";
+  name: string | null;
   rel_path: string;
   mime_type: string;
   width: number | null;
@@ -69,13 +70,14 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS attachments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entry_id INTEGER NOT NULL,
-    kind TEXT NOT NULL CHECK (kind IN ('image', 'video')),
+    kind TEXT NOT NULL,
     rel_path TEXT NOT NULL,
     mime_type TEXT NOT NULL,
     width INTEGER,
     height INTEGER,
     duration_ms INTEGER,
-    size_bytes INTEGER
+    size_bytes INTEGER,
+    name TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (entry_id) REFERENCES entries (id) ON DELETE CASCADE
     );
@@ -220,17 +222,18 @@ export function resetLocalDatabase(): void {
 }
 export function insertAttachment(a: Omit<Attachment, "id">): number {
   const r = db.runSync(
-    `INSERT INTO attachments (entry_id, kind, rel_path, mime_type, width, height, duration_ms, size_bytes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO attachments (entry_id, kind, rel_path, mime_type, width, height, duration_ms, size_bytes, name)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       a.entry_id,
       a.kind,
       a.rel_path,
       a.mime_type,
       a.width,
-      a.duration_ms === undefined ? null : a.height,
+      a.height,
       a.duration_ms,
       a.size_bytes,
+      a.name,
     ],
   );
   return r.lastInsertRowId;

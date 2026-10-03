@@ -10,26 +10,19 @@ import {
     updateEntry,
 } from "@/src/utils/db";
 import * as Crypto from "expo-crypto";
+import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 
-// ---------------------------------------------------------------------------
-// Paths
-// ---------------------------------------------------------------------------
-
 const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 
-/** DB stores paths relative to documentDirectory (the iOS container path changes across updates). */
 export const resolveAttachmentUri = (relPath: string) =>
   `${FileSystem.documentDirectory}${relPath}`;
 
-// ---------------------------------------------------------------------------
-// Picking
-// ---------------------------------------------------------------------------
-
 export interface PendingAttachment {
-  kind: "image" | "video";
-  uri: string; // picker cache URI, not yet persisted
+  kind: "image" | "video" | "audio";
+  name: string | null;
+  uri: string;
   mimeType: string;
   width: number | null;
   height: number | null;
@@ -51,6 +44,7 @@ export async function pickMedia(): Promise<PendingAttachment[]> {
     .filter((a) => a.type === "image" || a.type === "video")
     .map((a) => ({
       kind: a.type as "image" | "video",
+      name: null,
       uri: a.uri,
       mimeType: a.mimeType ?? (a.type === "video" ? "video/mp4" : "image/jpeg"),
       width: a.width ?? null,
@@ -58,6 +52,24 @@ export async function pickMedia(): Promise<PendingAttachment[]> {
       durationMs: a.duration ?? null,
       sizeBytes: a.fileSize ?? null,
     }));
+}
+export async function pickAudio(): Promise<PendingAttachment[]> {
+  const res = await DocumentPicker.getDocumentAsync({
+    type: "audio/*",
+    multiple: true,
+    copyToCacheDirectory: true,
+  });
+  if (res.canceled) return [];
+  return res.assets.map((a) => ({
+    kind: "audio" as const,
+    name: a.name,
+    uri: a.uri,
+    mimeType: a.mimeType ?? "audio/mpeg",
+    width: null,
+    height: null,
+    durationMs: null,
+    sizeBytes: a.size ?? null,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -77,9 +89,16 @@ export async function persistAttachments(
 
   try {
     for (const p of pending) {
+      const fileName = p.uri.split("?")[0].split("/").pop() ?? "";
+      const dot = fileName.lastIndexOf(".");
       const ext =
-        p.uri.split("?")[0].split(".").pop() ??
-        (p.kind === "video" ? "mp4" : "jpg");
+        dot > 0 && /^[a-z0-9]{1,5}$/i.test(fileName.slice(dot + 1))
+          ? fileName.slice(dot + 1).toLowerCase()
+          : p.kind === "video"
+            ? "mp4"
+            : p.kind === "audio"
+              ? "m4a"
+              : "jpg";
       const relPath =
         (current = `attachments/${entryId}/${Crypto.randomUUID()}.${ext}`);
 
@@ -91,6 +110,7 @@ export async function persistAttachments(
       const row = {
         entry_id: entryId,
         kind: p.kind,
+        name: p.name,
         rel_path: relPath,
         mime_type: p.mimeType,
         width: p.width,

@@ -17,8 +17,9 @@ export default function NewEntryScreen() {
     try {
       await createEntryWithMedia(diaryId, title, body, media.added);
       router.back();
-    } catch {
-      Alert.alert("Couldn't save", "The media couldn't be stored. Please try again.");
+    } catch (e) {
+      console.error("Save failed:", e);
+      Alert.alert("Couldn't save", e instanceof Error ? e.message : "Please try again.");
     }
   };
 

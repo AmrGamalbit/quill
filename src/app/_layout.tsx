@@ -19,7 +19,7 @@ import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapt
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptData, decryptUserProfile } from "../utils/crypto";
 import { getCachedProfile, initDatabase, saveCachedProfile } from "../utils/db";
-import { downloadAndDecryptPhoto } from "../utils/photoCrypto";
+import { downloadAndDecryptPhoto, getValidAvatarUrl } from "../utils/photoCrypto";
 
 
 export { ErrorBoundary } from "expo-router";
@@ -38,12 +38,14 @@ function AppNavigator() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { colors } = useTheme();
-  const { session: userSession, setSession } = useUserSession();
+  const { setSession } = useUserSession();
   const router = useRouter();
 
   const [dbReady, setDbReady] = useState(false);
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  let cachedPhotoUri: string | null = null;
 
   const [loaded, error] = useFonts({
     PlusJakartaSans_400Regular,
@@ -72,13 +74,14 @@ function AppNavigator() {
       try {
         const cached = getCachedProfile(newSession.user.id);
         if (cached?.name) {
+          cachedPhotoUri = await getValidAvatarUrl(cached.photo_uri);
           setSession({
             userId: newSession.user.id,
             email: newSession.user.email ?? "",
             name: cached.name,
-            photoUri: cached.photo_uri ?? null,
-            rawPrivateKey: userSession?.rawPrivateKey ?? new Uint8Array(32),
-            publicKeyHex: cached.public_key ?? userSession?.publicKeyHex ?? "",
+            photoUri: cached.photo_uri,
+            rawPrivateKey: null,
+            publicKeyHex: cached.public_key ?? "",
           });
           // Unblock rendering immediately so the UI doesn't freeze on "Friend"
           setIsAuthLoading(false);
@@ -107,12 +110,17 @@ function AppNavigator() {
           let decryptedPhotoUri: string | null = null;
           if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
             const storage = new SupabaseStorageAdapter("avatars");
-            decryptedPhotoUri = await downloadAndDecryptPhoto(
-              decryptedProfile.photoPath,
-              decryptedProfile.photoNonce,
-              derivedKey,
-              storage
-            );
+            try {
+              decryptedPhotoUri = await downloadAndDecryptPhoto(
+                decryptedProfile.photoPath,
+                decryptedProfile.photoNonce,
+                derivedKey,
+                storage
+              );
+            } catch (photoErr) {
+              console.warn("Avatar restore failed: ", photoErr);
+              decryptedPhotoUri = cachedPhotoUri;
+            }
           }
 
           // Persist the freshly decrypted metadata to local SQLite cache

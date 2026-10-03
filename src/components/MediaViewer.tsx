@@ -23,15 +23,16 @@ export default function MediaViewer({ item, onClose }: {item: ViewerItem | null;
         <Modal visible={!!item} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
             <View style={{flex: 1, backgroundColor: colors.background}}>
                 {item?.kind === "video" && <VideoPane uri={item.uri} />}
-                <View style={styles.container}>
+                
       {item?.kind === "image" && item?.uri && (
+        <View style={styles.container}>
         <Image
           source={{ uri: item.uri }}
           style={styles.image}
           resizeMode="contain"
         />
-      )}
     </View>
+      )}
                 <TouchableOpacity
                 onPress={onClose}
                 hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}
