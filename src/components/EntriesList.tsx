@@ -1,6 +1,7 @@
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   Alert,
   FlatList,
@@ -32,6 +33,14 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const handleSelectDate = (date: string) => {
+    console.log(date);
+    setSelectedDate(date);
+  };
+
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
 
@@ -112,7 +121,14 @@ export default function EntriesList({
           contentContainerStyle={
             entries.length === 0 ? styles.emptyContainer : styles.listContent
           }
-          ListHeaderComponent={<DiaryWeekCalendar />}
+          ListHeaderComponent={
+            <View style={{ marginVertical: 10 }}>
+              <DiaryWeekCalendar
+                selectedDate={selectedDate}
+                onSelectDate={(date) => handleSelectDate(date)}
+              />
+            </View>
+          }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons
