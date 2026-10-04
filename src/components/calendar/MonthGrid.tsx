@@ -1,20 +1,19 @@
-import { getMonthDays } from "@/src/utils/dates";
 import { View } from "react-native";
 import WeekStrip from "./WeekStrip";
 
 type MonthGridProps = {
+  monthDays: Date[][];
   month: Date;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 };
 
 export default function MonthGrid({
+  monthDays,
   month,
   selectedDate,
   onSelectDate,
 }: MonthGridProps) {
-  const monthDays = getMonthDays(month, 0);
-
   return (
     <View style={{ margin: 10 }}>
       {monthDays.map((week) => {
