@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Entry } from "../types/entry";
-import DiaryWeekCalendar from "./DiaryWeekCalendar";
+import MonthGrid from "./calendar/MonthGrid";
 
 interface EntriesListProps {
   entries: Entry[];
@@ -123,10 +123,7 @@ export default function EntriesList({
           }
           ListHeaderComponent={
             <View style={{ marginVertical: 10 }}>
-              <DiaryWeekCalendar
-                selectedDate={selectedDate}
-                onSelectDate={(date) => handleSelectDate(date)}
-              />
+              <MonthGrid month={new Date()} />
             </View>
           }
           ListEmptyComponent={
