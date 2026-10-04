@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Entry } from "../types/entry";
-import MonthGrid from "./calendar/MonthGrid";
+import Calendar from "./calendar/Calendar";
 
 interface EntriesListProps {
   entries: Entry[];
@@ -112,8 +112,7 @@ export default function EntriesList({
           </View>
         </View>
         <View style={{ marginVertical: 10 }}>
-          <MonthGrid
-            month={new Date()}
+          <Calendar
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
           />
