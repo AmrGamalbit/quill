@@ -1,6 +1,7 @@
 import { getMonthDays, isSameDay } from "@/src/utils/dates";
 import { View } from "react-native";
 import DayCell from "./DayCell";
+import MonthHeader from "./MonthHeader";
 import WeekHeader from "./WeekHeader";
 
 type MonthGridProps = {
@@ -24,6 +25,7 @@ export default function MonthGrid({
 
   return (
     <View style={{ margin: 10 }}>
+      <MonthHeader month={month} />
       <WeekHeader weekStartOn={0} />
       {monthDays.map((week) => {
         const weekKey = week[0].toISOString();
