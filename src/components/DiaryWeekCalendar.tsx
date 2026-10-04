@@ -1,6 +1,9 @@
+import {
+  CalendarBody,
+  CalendarContainer,
+  CalendarHeader,
+} from "@howljs/calendar-kit";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
-import { CalendarProvider, ExpandableCalendar } from "react-native-calendars";
 import useTheme from "../hooks/useTheme";
 
 export default function DiaryWeekCalendar({
@@ -19,27 +22,9 @@ export default function DiaryWeekCalendar({
   }, []);
 
   return (
-    <View
-      style={{
-        borderRadius: 10,
-        overflow: "hidden",
-      }}
-    >
-      <CalendarProvider date={selectedDate} onDateChanged={onSelectDate}>
-        <ExpandableCalendar
-          firstDay={1}
-          theme={{
-            calendarBackground: colors.background,
-            selectedDayBackgroundColor: colors.accent,
-            selectedDayTextColor: colors.textOnAccent,
-            backgroundColor: colors.card,
-            todayBackgroundColor: colors.border,
-            todayTextColor: colors.accent,
-          }}
-          style={{ borderRadius: 10, backgroundColor: colors.background }}
-          key={forceRenderKey}
-        />
-      </CalendarProvider>
-    </View>
+    <CalendarContainer>
+      <CalendarHeader />
+      <CalendarBody />
+    </CalendarContainer>
   );
 }
