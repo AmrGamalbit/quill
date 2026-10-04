@@ -1,9 +1,11 @@
+import { play } from "@/modules/haptic-engine";
 import { Image as ExpoImage } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { collapse, expand } from "../services/hapticPatterns";
 import { IconButton } from "./PressableScale";
 import { getCachedThumb } from "./VideoThumb";
 
@@ -69,6 +71,7 @@ export default function MediaViewer({
     setShown(item);
 
     const raf = requestAnimationFrame(() => {
+      play(expand(duration));
       progress.value = withTiming(1, { duration, easing: Easing.out(Easing.cubic) });
       timer.current = setTimeout(() => setSettled(true), duration);
     });
@@ -78,6 +81,7 @@ export default function MediaViewer({
   const requestClose = () => {
     if (closing.current) return;
     closing.current = true;
+    play(collapse(duration));
     clearTimeout(timer.current);
     setSettled(false);
     progress.value = withTiming(0, { duration, easing: Easing.in(Easing.cubic) });

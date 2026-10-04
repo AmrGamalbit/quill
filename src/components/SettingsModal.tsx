@@ -16,6 +16,7 @@ import {
 import { useUserSession } from "../context/UserSessionContext";
 import useTheme from "../hooks/useTheme";
 import { removeAllMedia } from "../services/attachments";
+import { haptic } from "../services/haptics";
 import { clearDerivedKey, getStoredDerivedKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { deleteAccount, signOut, updateUserEncryptedProfile } from "../utils/auth";
@@ -49,6 +50,7 @@ export default function SettingsModal({
     }
 
     const handleDeleteAccount = () => {
+        haptic.warning();
         Alert.alert(
             "Delete Account",
             "This action is permanent. All data stored or associated with your account will be permanently deleted.",
@@ -143,11 +145,12 @@ export default function SettingsModal({
                 publicKeyHex: session.publicKeyHex,
             });
 
+            haptic.success();
             Alert.alert("Success", "Profile photo updated successfully!");
-
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setIsPhotoExpanded(false);
         } catch (err: any) {
+            haptic.error();
             Alert.alert("Upload Failed", err.message || "Could not update profile photo.");
         } finally {
             setIsPickingOrUploading(false);

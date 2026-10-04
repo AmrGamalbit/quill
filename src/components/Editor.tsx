@@ -1,3 +1,4 @@
+import { play } from "@/modules/haptic-engine";
 import { Attachment } from "@/src/utils/db";
 import {
   CoreBridge,
@@ -9,9 +10,11 @@ import {
 } from "@10play/tentap-editor";
 import { useState } from "react";
 import { Keyboard, KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
 import { PendingAttachment, pickAudio, pickMedia, resolveAttachmentUri } from "../services/attachments";
+import { celebrate } from "../services/hapticPatterns";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
 import Button from "./Button";
@@ -19,6 +22,9 @@ import MediaThumb from "./MediaThumb";
 import MediaViewer, { Rect, ViewerItem } from "./MediaViewer";
 import { IconButton } from "./PressableScale";
 import VoiceRecorder from "./VoiceRecorder";
+
+const saveScale = useSharedValue(1);
+const saveStyle = useAnimatedStyle(() => ({transform: [{ scale: saveScale.value}]}));
 
 interface EditorProps {
   initialTitle?: string;
@@ -129,6 +135,8 @@ export default function Editor({
   );
 
   const handleSave = async () => {
+    saveScale.value = withSequence(withTiming(0.92, { duration: 60 }), withSpring(1, { damping: 4, stiffness: 300 }));
+    play(celebrate);
     const contentHtml = await editor.getHTML();
     onSave(title, contentHtml, {added, removedIds});
   };
@@ -151,8 +159,10 @@ export default function Editor({
       { key: "voice", icon: "mic-outline", label: "Record voice note", onPress: openRecorder},
     ]}
     />
-    <Button label="Save" onPress={handleSave} size="sm" style={{width: 72}} />
-    </>
+    <Animated.View style={saveStyle}>
+      <Button label="Save" onPress={handleSave} size="sm" style={{width: 72}} />
+      </Animated.View>
+      </>
   )}
 </View>
 

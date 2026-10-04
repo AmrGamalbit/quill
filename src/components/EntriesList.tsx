@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { haptic } from "../services/haptics";
 
 interface EntriesListProps {
   entries: JournalEntry[];
@@ -35,7 +36,7 @@ export default function EntriesList({
 
   const handleLongPress = (entry: JournalEntry) => {
     if (!onDeleteEntry) return;
-
+    haptic.press();
     Alert.alert(
       "Delete Entry",
       `Are you sure you want to delete "${entry.title}"?`,
@@ -44,7 +45,7 @@ export default function EntriesList({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => onDeleteEntry(entry.id),
+          onPress: () => {haptic.warning(); onDeleteEntry(entry.id)},
         },
       ]
     );
