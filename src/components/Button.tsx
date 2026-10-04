@@ -25,10 +25,6 @@ interface ButtonProps {
   size?: "sm" | "md";
 }
 
-type buttonProps = {
-  label: string;
-  onPress: () => void;
-};
 export default function Button({
   label,
   onPress,

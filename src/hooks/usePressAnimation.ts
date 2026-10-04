@@ -7,7 +7,7 @@ export default function usePressAnimation(fromColor: string, toColor: string) {
     Animated.timing(pressProgress, {
       toValue: pressed ? 1 : 0,
       duration: 200,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   const animatedColor = pressProgress.interpolate({
     inputRange: [0, 1],
