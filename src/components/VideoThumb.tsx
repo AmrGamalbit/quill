@@ -5,10 +5,13 @@ import { useEffect, useState } from "react";
 import { StyleProp, View, ViewStyle } from "react-native";
 import useTheme from "../hooks/useTheme";
 
+const thumbCache = new Map<string, VideoThumbnail>();
+export const getCachedThumb = (uri: string) => thumbCache.get(uri);
+
 export default function VideoThumb({ uri, style }: { uri: string; style: StyleProp<ViewStyle>}) {
     const { colors } = useTheme();
     const player = useVideoPlayer(uri);
-    const [thumb, setThumb] = useState<VideoThumbnail | null>(null);
+    const [thumb, setThumb] = useState<VideoThumbnail | null>(() => thumbCache.get(uri) ?? null);
 
     useEffect(() => {
         let alive = true;
@@ -18,7 +21,11 @@ export default function VideoThumb({ uri, style }: { uri: string; style: StylePr
             started = true;
             player
             .generateThumbnailsAsync([0])
-            .then((t) => alive && t[0] && setThumb(t[0]))
+            .then((t) => {
+                if (!t[0]) return;
+                thumbCache.set(uri, t[0]);
+                if (alive) setThumb(t[0]);
+            })
             .catch(() => {});
         };
         if (player.status === "readyToPlay") gen();
