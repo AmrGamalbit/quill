@@ -5,14 +5,23 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type DayCellProps = {
   day: Date;
+  isCurrentMonth: boolean;
   isSelected: boolean;
   onSelect: (day: Date) => void;
 };
-export default function DayCell({ day, isSelected, onSelect }: DayCellProps) {
+export default function DayCell({
+  day,
+  isCurrentMonth,
+  isSelected,
+  onSelect,
+}: DayCellProps) {
   const { colors } = useTheme();
   const isToday = isSameDay(day, new Date());
   return (
-    <Pressable style={styles.cellContainer} onPress={() => onSelect(day)}>
+    <Pressable
+      style={[styles.cellContainer, !isCurrentMonth && { opacity: 0.4 }]}
+      onPress={() => onSelect(day)}
+    >
       <View
         style={[
           styles.textWrapper,

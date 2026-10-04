@@ -15,6 +15,13 @@ export default function MonthGrid({
   onSelectDate,
 }: MonthGridProps) {
   const monthDays = getMonthDays(month, 0);
+  const isCurrentMonth = (day: Date) => {
+    return (
+      day.getMonth() == month.getMonth() &&
+      day.getFullYear() == month.getFullYear()
+    );
+  };
+
   return (
     <View style={{ margin: 10 }}>
       <WeekHeader weekStartOn={0} />
@@ -34,6 +41,7 @@ export default function MonthGrid({
               <DayCell
                 key={day.toISOString()}
                 day={day}
+                isCurrentMonth={isCurrentMonth(day)}
                 isSelected={isSameDay(day, selectedDate)}
                 onSelect={onSelectDate}
               />
