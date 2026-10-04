@@ -1,6 +1,7 @@
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   Alert,
   FlatList,
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Entry } from "../types/entry";
+import Calendar from "./calendar/Calendar";
 
 interface EntriesListProps {
   entries: Entry[];
@@ -31,6 +33,10 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
+  };
 
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
@@ -105,7 +111,13 @@ export default function EntriesList({
             </Text>
           </View>
         </View>
-
+        <View style={{ marginVertical: 10 }}>
+          <Calendar
+            entries={entries}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+          />
+        </View>
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id.toString()}
@@ -127,9 +139,8 @@ export default function EntriesList({
             </View>
           }
         />
-
-        <FloatingActionButton onPress={onNewEntry} />
       </View>
+      <FloatingActionButton onPress={onNewEntry} />
     </SafeAreaView>
   );
 }
