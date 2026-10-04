@@ -1,16 +1,39 @@
-import { getMonthDays } from "@/src/utils/dates";
-import { Text, View } from "react-native";
+import { getMonthDays, isSameDay } from "@/src/utils/dates";
+import { View } from "react-native";
+import DayCell from "./DayCell";
 
-type props = { month: Date };
-export default function MonthGrid({ month }: props) {
+type MonthGridProps = {
+  month: Date;
+  selectedDate: Date;
+  onSelectDate: (date: Date) => void;
+};
+export default function MonthGrid({
+  month,
+  selectedDate,
+  onSelectDate,
+}: MonthGridProps) {
   const monthDays = getMonthDays(month, 0);
   return (
-    <View>
-      {monthDays.map((w) => {
+    <View style={{ margin: 10 }}>
+      {monthDays.map((week) => {
+        const weekKey = week[0].toISOString();
         return (
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            {w.map((d) => (
-              <Text>{d.toLocaleDateString()}</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 10,
+              justifyContent: "space-around",
+              margin: 5,
+            }}
+            key={weekKey}
+          >
+            {week.map((day: Date) => (
+              <DayCell
+                key={day.toISOString()}
+                day={day}
+                isSelected={isSameDay(day, selectedDate)}
+                onSelect={onSelectDate}
+              />
             ))}
           </View>
         );

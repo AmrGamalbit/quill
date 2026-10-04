@@ -33,11 +33,8 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
-  const handleSelectDate = (date: string) => {
-    console.log(date);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
   };
 
@@ -114,17 +111,19 @@ export default function EntriesList({
             </Text>
           </View>
         </View>
+        <View style={{ marginVertical: 10 }}>
+          <MonthGrid
+            month={new Date()}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+          />
+        </View>
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={
             entries.length === 0 ? styles.emptyContainer : styles.listContent
-          }
-          ListHeaderComponent={
-            <View style={{ marginVertical: 10 }}>
-              <MonthGrid month={new Date()} />
-            </View>
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
