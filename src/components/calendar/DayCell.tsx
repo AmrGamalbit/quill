@@ -1,16 +1,19 @@
 import { radius } from "@/src/constants/radius";
 import useTheme from "@/src/hooks/useTheme";
 import { isSameDay } from "@/src/utils/dates";
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type DayCellProps = {
   day: Date;
+  hasEntries: boolean;
   isCurrentMonth: boolean;
   isSelected: boolean;
   onSelect: (day: Date) => void;
 };
 export default function DayCell({
   day,
+  hasEntries,
   isCurrentMonth,
   isSelected,
   onSelect,
@@ -43,6 +46,12 @@ export default function DayCell({
         >
           {day.getDate()}
         </Text>
+        {hasEntries && !isSelected && (
+          <Ionicons name="ellipse" color={colors.accent} />
+        )}
+        {hasEntries && isSelected && (
+          <Ionicons name="ellipse" color={colors.textOnAccent} />
+        )}
       </View>
     </Pressable>
   );

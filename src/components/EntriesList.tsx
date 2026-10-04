@@ -113,6 +113,7 @@ export default function EntriesList({
         </View>
         <View style={{ marginVertical: 10 }}>
           <Calendar
+            entries={entries}
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
           />

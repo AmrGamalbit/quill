@@ -1,7 +1,9 @@
+import type { Entry } from "@/src/types/entry";
 import { View } from "react-native";
 import WeekStrip from "./WeekStrip";
 
 type MonthGridProps = {
+  entries: Entry[];
   monthDays: Date[][];
   month: Date;
   selectedDate: Date;
@@ -9,6 +11,7 @@ type MonthGridProps = {
 };
 
 export default function MonthGrid({
+  entries,
   monthDays,
   month,
   selectedDate,
@@ -20,6 +23,7 @@ export default function MonthGrid({
         const weekKey = week[0].toISOString();
         return (
           <WeekStrip
+            entries={entries}
             key={weekKey}
             week={week}
             month={month}

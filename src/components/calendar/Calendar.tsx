@@ -1,3 +1,4 @@
+import { Entry } from "@/src/types/entry";
 import { getMonthDays } from "@/src/utils/dates";
 import { useState } from "react";
 import { View } from "react-native";
@@ -7,11 +8,13 @@ import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
 import WeekStrip from "./WeekStrip";
 type CalendarProps = {
+  entries: Entry[];
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 };
 
 export default function Calendar({
+  entries,
   selectedDate,
   onSelectDate,
 }: CalendarProps) {
@@ -50,6 +53,7 @@ export default function Calendar({
           />
           <WeekHeader weekStartOn={0} />
           <MonthGrid
+            entries={entries}
             month={currentMonth}
             monthDays={monthDays}
             selectedDate={selectedDate}
@@ -61,6 +65,7 @@ export default function Calendar({
         <View>
           <WeekHeader weekStartOn={0} />
           <WeekStrip
+            entries={entries}
             week={currentWeek}
             month={currentMonth}
             selectedDate={selectedDate}

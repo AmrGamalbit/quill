@@ -10,8 +10,6 @@ export const isSameDay = (date1: Date, date2: Date) => {
   return dayjs(date1).isSame(dayjs(date2), "day");
 };
 
-export const getWeekDays = (date: Date)=>{}
-
 export const getMonthDays = (month: Date, weekStartOn: number): Date[][] => {
   const startOfMonth = dayjs(month).startOf("month");
   const offset = (startOfMonth.day() - weekStartOn + 7) % 7;
