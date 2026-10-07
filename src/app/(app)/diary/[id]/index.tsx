@@ -1,31 +1,36 @@
 import EntriesList from "@/src/components/EntriesList";
 import { spacing } from "@/src/constants/spacings";
+import { getDiaryById } from "@/src/db/diaries";
+import useEntries from "@/src/hooks/useEntries";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
-import type { JournalEntry } from "@/src/utils/db";
-import { getAllDiaries, getEntriesByDiaryId } from "@/src/utils/db";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  StyleSheet,
-  useColorScheme
-} from "react-native";
+import { Animated, Dimensions, StyleSheet, useColorScheme } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const { entries, refresh } = useEntries(diaryId);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const styles = getStyles();
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const router = useRouter();
+  const [diaryName, setDiaryName] = useState<string>();
 
-  const diaryName = getAllDiaries().find((d) => d.id === diaryId)?.name || "Diary";
- // const targetDiary = diaries.find((d) => d.id === diaryId);
- // const diaryName = targetDiary ? targetDiary.name : "Diary";
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      const loadDiaryName = async () => {
+        const targetDiary = await getDiaryById(diaryId);
+        if (isMounted) setDiaryName(targetDiary.name);
+      };
+      loadDiaryName();
+      return () => (isMounted = false);
+    }, [diaryId]),
+  );
 
   const slideInEntries = () => {
     Animated.timing(slideAnim, {
@@ -47,15 +52,8 @@ export default function DiaryScreen() {
 
   const handleDeleteEntry = async (entryId: number) => {
     await deleteEntryWithMedia(entryId);
-    setEntries(getEntriesByDiaryId(diaryId));
-  }
-
-  useFocusEffect(
-    useCallback(() => {
-      const result = getEntriesByDiaryId(Number(id));
-      setEntries(result);
-    }, [id]),
-  );
+    refresh();
+  };
 
   useEffect(() => {
     slideInEntries();
@@ -71,8 +69,7 @@ export default function DiaryScreen() {
         },
       ]}
     >
-
-
+      <SafeAreaView style={{ flex: 1 }}>
         <EntriesList
           entries={entries}
           onBack={() => router.back()}
@@ -83,6 +80,7 @@ export default function DiaryScreen() {
           }}
           onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
         />
+      </SafeAreaView>
     </Animated.View>
   );
 }

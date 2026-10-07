@@ -1,5 +1,8 @@
 import Editor from "@/src/components/Editor";
-import { createEntryWithMedia, PendingAttachment } from "@/src/services/attachments";
+import {
+  createEntryWithMedia,
+  PendingAttachment,
+} from "@/src/services/attachments";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,14 +15,17 @@ export default function NewEntryScreen() {
   const handleSave = async (
     title: string,
     body: string,
-    media: {added: PendingAttachment[]; removedIds: number[] },
+    media: { added: PendingAttachment[]; removedIds: number[] },
   ) => {
     try {
       await createEntryWithMedia(diaryId, title, body, media.added);
       router.back();
     } catch (e) {
       console.error("Save failed:", e);
-      Alert.alert("Couldn't save", e instanceof Error ? e.message : "Please try again.");
+      Alert.alert(
+        "Couldn't save",
+        e instanceof Error ? e.message : "Please try again.",
+      );
     }
   };
 

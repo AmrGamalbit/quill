@@ -1,18 +1,20 @@
-import {
-    Attachment,
-    deleteAttachmentRow,
-    deleteDiary,
-    deleteEntry,
-    getAttachmentsByEntryId,
-    getEntriesByDiaryId,
-    insertAttachment,
-    saveEntry,
-    updateEntry,
-} from "@/src/utils/db";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
+import {
+  deleteAttachmentRow,
+  getAttachmentsByEntryId,
+  insertAttachment,
+} from "../db/attachments";
+import { deleteDiary } from "../db/diaries";
+import {
+  deleteEntry,
+  getEntriesByDiaryId,
+  saveEntry,
+  updateEntry,
+} from "../db/entries";
+import type { Attachment } from "../types/attachment";
 
 const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 
@@ -108,17 +110,18 @@ export async function persistAttachments(
       });
 
       const row = {
-        entry_id: entryId,
+        entryId: entryId,
         kind: p.kind,
         name: p.name,
-        rel_path: relPath,
-        mime_type: p.mimeType,
+        relPath: relPath,
+        mimeType: p.mimeType,
         width: p.width,
         height: p.height,
-        duration_ms: p.durationMs,
-        size_bytes: p.sizeBytes,
+        durationMs: p.durationMs,
+        sizeBytes: p.sizeBytes,
       };
-      saved.push({ id: insertAttachment(row), ...row });
+      const inserted = await insertAttachment(row);
+      saved.push(inserted);
       current = null;
     }
   } catch (e) {
@@ -126,7 +129,7 @@ export async function persistAttachments(
     if (current) await removeAttachmentFile(current).catch(() => {});
     for (const s of saved) {
       deleteAttachmentRow(s.id);
-      await removeAttachmentFile(s.rel_path).catch(() => {});
+      await removeAttachmentFile(s.relPath).catch(() => {});
     }
     throw e;
   }
@@ -159,7 +162,7 @@ export async function createEntryWithMedia(
   body: string,
   added: PendingAttachment[],
 ): Promise<number> {
-  const entryId = saveEntry(diaryId, title, body);
+  const entryId = await saveEntry(diaryId, title, body);
   try {
     if (added.length) await persistAttachments(entryId, added);
   } catch (e) {
@@ -182,11 +185,11 @@ export async function updateEntryWithMedia(
   if (media.added.length) await persistAttachments(entryId, media.added);
 
   if (media.removedIds.length) {
-    const doomed = getAttachmentsByEntryId(entryId).filter((a) =>
+    const doomed = (await getAttachmentsByEntryId(entryId)).filter((a) =>
       media.removedIds.includes(a.id),
     );
     for (const a of doomed) {
-      await removeAttachmentFile(a.rel_path);
+      await removeAttachmentFile(a.relPath);
       deleteAttachmentRow(a.id);
     }
   }
@@ -198,7 +201,7 @@ export async function deleteEntryWithMedia(entryId: number): Promise<void> {
 }
 
 export async function deleteDiaryWithMedia(diaryId: number): Promise<void> {
-  for (const e of getEntriesByDiaryId(diaryId)) {
+  for (const e of await getEntriesByDiaryId(diaryId)) {
     await removeEntryMedia(e.id);
   }
   deleteDiary(diaryId);

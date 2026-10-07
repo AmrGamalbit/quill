@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1790174478755,
+      "tag": "0000_bitter_matthew_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790184635502,
+      "tag": "0001_noisy_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790186805433,
+      "tag": "0002_milky_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790862208131,
+      "tag": "0003_glossy_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791397583147,
+      "tag": "0004_powerful_greymalkin",
+      "breakpoints": true
+    }
+  ]
+}

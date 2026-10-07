@@ -1,4 +1,11 @@
-import { Alert, Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
@@ -9,16 +16,26 @@ import type { Diary } from "../types/diary";
 
 type DiaryCardProps = {
   diary: Diary;
+  entryCount: number;
+  latestEntryBody?: string;
   onPress: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 };
 
-export default function DiaryCard({ diary, onPress, onDelete }: DiaryCardProps) {
+export default function DiaryCard({
+  diary,
+  entryCount,
+  latestEntryBody,
+  onPress,
+  onDelete,
+}: DiaryCardProps) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
     colors.cardPressed,
   );
+  console.log("this is entryCount" + entryCount);
+  console.log(latestEntryBody);
 
   const handleLongPress = () => {
     haptic.warning();
@@ -32,7 +49,7 @@ export default function DiaryCard({ diary, onPress, onDelete }: DiaryCardProps) 
           style: "destructive",
           onPress: () => {haptic.thud(); onDelete(diary.id)},
         },
-      ]
+      ],
     );
   };
 
@@ -55,18 +72,20 @@ export default function DiaryCard({ diary, onPress, onDelete }: DiaryCardProps) 
         ]}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>{diary.name}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {diary.name}
+          </Text>
           <Text style={[styles.entryCount, { color: colors.textMuted }]}>
-            {diary.entries?.length || 0} {diary.entries?.length === 1 ? "entry" : "entries"}
+            {entryCount || 0} {entryCount === 1 ? "entry" : "entries"}
           </Text>
         </View>
 
-        {diary.entries && diary.entries.length > 0 && diary.entries[0]?.body ? (
+        {entryCount > 0 && latestEntryBody ? (
           <Text
             style={[styles.preview, { color: colors.textMuted }]}
             numberOfLines={2}
           >
-            {diary.entries[0].body.replace(/<[^>]+>/g, "").trim()}
+            {latestEntryBody.replace(/<[^>]+>/g, "").trim()}
           </Text>
         ) : (
           <Text style={[styles.emptyPreview, { color: colors.textMuted }]}>

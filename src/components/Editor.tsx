@@ -1,5 +1,4 @@
 import { play } from "@/modules/haptic-engine";
-import { Attachment } from "@/src/utils/db";
 import {
   CoreBridge,
   darkEditorTheme,
@@ -9,12 +8,35 @@ import {
   useEditorBridge,
 } from "@10play/tentap-editor";
 import { useState } from "react";
-import { Keyboard, KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import useTheme from "../hooks/useTheme";
-import { PendingAttachment, pickAudio, pickMedia, resolveAttachmentUri } from "../services/attachments";
+import {
+  PendingAttachment,
+  pickAudio,
+  pickMedia,
+  resolveAttachmentUri,
+} from "../services/attachments";
 import { celebrate } from "../services/hapticPatterns";
+import type { Attachment } from "../types/attachment";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
 import Button from "./Button";
@@ -24,18 +46,20 @@ import { IconButton } from "./PressableScale";
 import VoiceRecorder from "./VoiceRecorder";
 
 const saveScale = useSharedValue(1);
-const saveStyle = useAnimatedStyle(() => ({transform: [{ scale: saveScale.value}]}));
+const saveStyle = useAnimatedStyle(() => ({
+  transform: [{ scale: saveScale.value }],
+}));
 
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;
-  initialDate?: string;
+  initialDate?: Date;
   initialReadOnly?: boolean;
   initialAttachments?: Attachment[];
   onSave: (
     title: string,
     body: string,
-    media: {added: PendingAttachment[]; removedIds: number[]},
+    media: { added: PendingAttachment[]; removedIds: number[] },
   ) => void;
   onBack?: () => void;
 }
@@ -56,12 +80,17 @@ export default function Editor({
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
-  const [viewing, setViewing] = useState<{key: string; item: ViewerItem; origin: Rect } | null>(null);
+  const [viewing, setViewing] = useState<{
+    key: string;
+    item: ViewerItem;
+    origin: Rect;
+  } | null>(null);
   const [recorderOpen, setRecorderOpen] = useState(false);
-  const [existing, setExisting] = useState<Attachment[]>(initialAttachments ?? []);
+  const [existing, setExisting] = useState<Attachment[]>(
+    initialAttachments ?? [],
+  );
   const [added, setAdded] = useState<PendingAttachment[]>([]);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
-
 
   const handleAddAudio = async () => {
     const picked = await pickAudio();
@@ -77,7 +106,7 @@ export default function Editor({
   const handleRecorded = (rec: PendingAttachment) => {
     setAdded((prev) => [...prev, rec]);
     setRecorderOpen(false);
-  }
+  };
 
   const handleAddMedia = async () => {
     const picked = await pickMedia();
@@ -86,16 +115,26 @@ export default function Editor({
 
   const thumbs = [
     ...existing.map((a) => ({
-      key: `e${a.id}`, uri: resolveAttachmentUri(a.rel_path), kind: a.kind, name: a.name ?? "Audio",
-      width: a.width, height: a.height, durationMs: a.duration_ms,
+      key: `e${a.id}`,
+      uri: resolveAttachmentUri(a.relPath),
+      kind: a.kind,
+      name: a.name ?? "Audio",
+      width: a.width,
+      height: a.height,
+      durationMs: a.durationMs,
       remove: () => {
         setExisting((p) => p.filter((x) => x.id !== a.id));
         setRemovedIds((p) => [...p, a.id]);
       },
     })),
     ...added.map((a) => ({
-      key: `n${a.uri}`, uri: a.uri, kind: a.kind, name: a.name ?? "Audio",
-      width: a.width, height: a.height, durationMs: a.durationMs,
+      key: `n${a.uri}`,
+      uri: a.uri,
+      kind: a.kind,
+      name: a.name ?? "Audio",
+      width: a.width,
+      height: a.height,
+      durationMs: a.durationMs,
       remove: () => setAdded((p) => p.filter((x) => x.uri !== a.uri)),
     })),
   ];
@@ -135,40 +174,76 @@ export default function Editor({
   );
 
   const handleSave = async () => {
-    saveScale.value = withSequence(withTiming(0.92, { duration: 60 }), withSpring(1, { damping: 4, stiffness: 300 }));
+    saveScale.value = withSequence(
+      withTiming(0.92, { duration: 60 }),
+      withSpring(1, { damping: 4, stiffness: 300 }),
+    );
     play(celebrate);
     const contentHtml = await editor.getHTML();
-    onSave(title, contentHtml, {added, removedIds});
+    onSave(title, contentHtml, { added, removedIds });
   };
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
-<View style={styles.topBar}>
-  <View style={styles.leftHeaderGroup}>
-    <IconButton icon="arrow-back" label="Go back" onPress={() => onBack?.()} color={colors.text} />
-      <Text accessibilityRole="header" style={styles.newJournalText} numberOfLines={1}>
-        {initialTitle ? (isReadOnly ? "Journal Entry" : "Edit Journal") : "New Journal"}
-      </Text>
-  </View>
-  {!isReadOnly && (
-    <>
-    <AttachMenu
-    actions={[
-      { key: "media", icon: "images-outline", label: "Photo or video", onPress: handleAddMedia},
-      {key: "audio", icon: "musical-note-outline", label: "Audio file", onPress: handleAddAudio},
-      { key: "voice", icon: "mic-outline", label: "Record voice note", onPress: openRecorder},
-    ]}
-    />
-    <Animated.View style={saveStyle}>
-      <Button label="Save" onPress={handleSave} size="sm" style={{width: 72}} />
-      </Animated.View>
-      </>
-  )}
-</View>
+      <View style={styles.topBar}>
+        <View style={styles.leftHeaderGroup}>
+          <IconButton
+            icon="arrow-back"
+            label="Go back"
+            onPress={() => onBack?.()}
+            color={colors.text}
+          />
+          <Text
+            accessibilityRole="header"
+            style={styles.newJournalText}
+            numberOfLines={1}
+          >
+            {initialTitle
+              ? isReadOnly
+                ? "Journal Entry"
+                : "Edit Journal"
+              : "New Journal"}
+          </Text>
+        </View>
+        {!isReadOnly && (
+          <>
+            <AttachMenu
+              actions={[
+                {
+                  key: "media",
+                  icon: "images-outline",
+                  label: "Photo or video",
+                  onPress: handleAddMedia,
+                },
+                {
+                  key: "audio",
+                  icon: "musical-note-outline",
+                  label: "Audio file",
+                  onPress: handleAddAudio,
+                },
+                {
+                  key: "voice",
+                  icon: "mic-outline",
+                  label: "Record voice note",
+                  onPress: openRecorder,
+                },
+              ]}
+            />
+            <Animated.View style={saveStyle}>
+              <Button
+                label="Save"
+                onPress={handleSave}
+                size="sm"
+                style={{ width: 72 }}
+              />
+            </Animated.View>
+          </>
+        )}
+      </View>
 
       <View style={styles.bodyContainer}>
         <TextInput
-        accessibilityLabel="Entry title"
+          accessibilityLabel="Entry title"
           style={styles.titleInput}
           placeholder="Entry Title..."
           placeholderTextColor={colors.textMuted}
@@ -179,38 +254,67 @@ export default function Editor({
 
         <Text style={styles.dateSubtitle}>{displayDate}</Text>
         {visual.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaStrip} contentContainerStyle={styles.mediaStripContent}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.mediaStrip}
+            contentContainerStyle={styles.mediaStripContent}
+          >
             {visual.map((t) => (
               <MediaThumb
-              key={t.key}
-              uri={t.uri}
-              kind={t.kind as "image" | "video"}
-              label={t.kind === "image" ? "Photo" : "Video"}
-              hidden={viewing?.key === t.key}
-              onOpen={(origin) =>
-                setViewing({ key: t.key, origin, item: { uri: t.uri, kind: t.kind as "image" | "video", width: t.width, height: t.height }})
-              }
-              onRemove={isReadOnly ? undefined : t.remove}
+                key={t.key}
+                uri={t.uri}
+                kind={t.kind as "image" | "video"}
+                label={t.kind === "image" ? "Photo" : "Video"}
+                hidden={viewing?.key === t.key}
+                onOpen={(origin) =>
+                  setViewing({
+                    key: t.key,
+                    origin,
+                    item: {
+                      uri: t.uri,
+                      kind: t.kind as "image" | "video",
+                      width: t.width,
+                      height: t.height,
+                    },
+                  })
+                }
+                onRemove={isReadOnly ? undefined : t.remove}
               />
             ))}
           </ScrollView>
         )}
         {audio.map((t) => (
-          <AudioRow key={t.key} uri={t.uri} name={t.name} durationMs={t.durationMs} onRemove={isReadOnly ? undefined : t.remove} />
+          <AudioRow
+            key={t.key}
+            uri={t.uri}
+            name={t.name}
+            durationMs={t.durationMs}
+            onRemove={isReadOnly ? undefined : t.remove}
+          />
         ))}
         <RichText editor={editor} style={styles.editor} />
       </View>
       {!isReadOnly && (
         <KeyboardAvoidingView
-    behavior={'padding'}
-    style={styles.keyboardToolbarContainer}
-    keyboardVerticalOffset={keyboardVerticalOffset}
-  >
-    <Toolbar editor={editor} />
-  </KeyboardAvoidingView>
-        )}
-        <MediaViewer item={viewing?.item ?? null} origin={viewing?.origin ?? null} onClose={() => setViewing(null)} />
-          {recorderOpen && <VoiceRecorder onDone={handleRecorded} onCancel={() => setRecorderOpen(false)} />}
+          behavior={"padding"}
+          style={styles.keyboardToolbarContainer}
+          keyboardVerticalOffset={keyboardVerticalOffset}
+        >
+          <Toolbar editor={editor} />
+        </KeyboardAvoidingView>
+      )}
+      <MediaViewer
+        item={viewing?.item ?? null}
+        origin={viewing?.origin ?? null}
+        onClose={() => setViewing(null)}
+      />
+      {recorderOpen && (
+        <VoiceRecorder
+          onDone={handleRecorded}
+          onCancel={() => setRecorderOpen(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -268,8 +372,8 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       marginHorizontal: 20,
     },
     keyboardToolbarContainer: {
-      position: 'absolute',
-      width: '100%',
+      position: "absolute",
+      width: "100%",
       bottom: 0,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
@@ -287,16 +391,16 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     mediaStripContent: {
       paddingHorizontal: 20,
-      gap: 10
+      gap: 10,
     },
     thumb: {
       width: 84,
-      height: 84
+      height: 84,
     },
     thumbImg: {
       width: 84,
       height: 84,
-      borderRadius: 10
+      borderRadius: 10,
     },
     videoPlaceholder: {
       backgroundColor: colors.surface,
@@ -306,9 +410,14 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       justifyContent: "center",
     },
     thumbRemove: {
-      position: "absolute", top: 4, right: 4,
-      width: 22, height: 22, borderRadius: 11,
+      position: "absolute",
+      top: 4,
+      right: 4,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
       backgroundColor: colors.surface,
-      alignItems: "center", justifyContent: "center",
-    }
+      alignItems: "center",
+      justifyContent: "center",
+    },
   });

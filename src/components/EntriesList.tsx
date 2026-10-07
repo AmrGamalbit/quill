@@ -1,7 +1,7 @@
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
-import { JournalEntry } from "@/src/utils/db";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   Alert,
   FlatList,
@@ -10,14 +10,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { haptic } from "../services/haptics";
+import type { Entry } from "../types/entry";
+import Calendar from "./calendar/Calendar";
 
 interface EntriesListProps {
-  entries: JournalEntry[];
+  entries: Entry[];
   diaryName?: string;
   onNewEntry: () => void;
-  onSelectEntry?: (entry: JournalEntry) => void;
+  onSelectEntry?: (entry: Entry) => void;
   onBack?: () => void;
   onDeleteEntry?: (id: number) => void;
 }
@@ -32,9 +34,12 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const insets = useSafeAreaInsets();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
+  };
 
-  const handleLongPress = (entry: JournalEntry) => {
+  const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
     haptic.press();
     Alert.alert(
@@ -45,15 +50,19 @@ export default function EntriesList({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {haptic.warning(); onDeleteEntry(entry.id)},
+          onPress: () => {
+            haptic.warning();
+            onDeleteEntry(entry.id);
+          },
         },
-      ]
+      ],
     );
   };
 
-  const renderItem = ({ item }: { item: JournalEntry }) => {
-    const cleanPreview = item.body.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
-    const formattedDate = new Date(item.created_at).toLocaleDateString("en-US", {
+  const renderItem = ({ item }: { item: Entry }) => {
+    const cleanPreview =
+      item.body?.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
+    const formattedDate = new Date(item.createdAt).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -82,48 +91,60 @@ export default function EntriesList({
   };
 
   return (
-   <SafeAreaView style={styles.container} edges={["top", "bottom", "left", "right"]}>
-    <View style={styles.container}>
-      <View style={styles.topBar}>
-        {onBack && (
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={onBack}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
-          </TouchableOpacity>
-        )}
-        <View style={styles.titleContainer}>
-          <Text style={styles.diaryHeading} numberOfLines={1}>
-            {diaryName}
-          </Text>
-          <Text style={styles.entryCountSubtitle}>
-            {entries.length} {entries.length === 1 ? "entry" : "entries"}
-          </Text>
-        </View>
-      </View>
-
-      <FlatList
-        data={entries}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={
-          entries.length === 0 ? styles.emptyContainer : styles.listContent
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Ionicons name="book-outline" size={44} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No Entries Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Tap the pencil below to write your first entry.
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <View style={styles.container}>
+        <View style={styles.topBar}>
+          {onBack && (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={onBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="arrow-back" size={22} color={colors.text} />
+            </TouchableOpacity>
+          )}
+          <View style={styles.titleContainer}>
+            <Text style={styles.diaryHeading} numberOfLines={1}>
+              {diaryName}
+            </Text>
+            <Text style={styles.entryCountSubtitle}>
+              {entries.length} {entries.length === 1 ? "entry" : "entries"}
             </Text>
           </View>
-        }
-      />
-
-      <FloatingActionButton onPress={onNewEntry} />
+        </View>
+        <View style={{ marginVertical: 10 }}>
+          <Calendar
+            entries={entries}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+          />
+        </View>
+        <FlatList
+          data={entries}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={
+            entries.length === 0 ? styles.emptyContainer : styles.listContent
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons
+                name="book-outline"
+                size={44}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyTitle}>No Entries Yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Tap the pencil below to write your first entry.
+              </Text>
+            </View>
+          }
+        />
       </View>
+      <FloatingActionButton onPress={onNewEntry} />
     </SafeAreaView>
   );
 }
