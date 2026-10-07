@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const diariesTable = sqliteTable("diaries", {
   id: int().primaryKey({ autoIncrement: true }).notNull(),
@@ -34,3 +34,25 @@ export const localProfileTable = sqliteTable("local_profile", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const AttachmentsTable = sqliteTable(
+  "attachments",
+  {
+    id: int().primaryKey({ autoIncrement: true }).notNull(),
+    entryId: int()
+      .references(() => entriesTable.id, { onDelete: "cascade" })
+      .notNull(),
+    kind: text().notNull(),
+    relPath: text("rel_path").notNull(),
+    mimeType: text("mimeType").notNull(),
+    width: int(),
+    height: int(),
+    durationMs: int("duration_ms"),
+    sizeBytes: int("size_bytes"),
+    name: text(),
+    createdAt: int("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_attachments_entry").on(t.entryId)],
+);

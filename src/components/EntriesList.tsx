@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { haptic } from "../services/haptics";
 import type { Entry } from "../types/entry";
 import Calendar from "./calendar/Calendar";
 
@@ -40,7 +41,7 @@ export default function EntriesList({
 
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
-
+    haptic.press();
     Alert.alert(
       "Delete Entry",
       `Are you sure you want to delete "${entry.title}"?`,
@@ -49,7 +50,10 @@ export default function EntriesList({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => onDeleteEntry(entry.id),
+          onPress: () => {
+            haptic.warning();
+            onDeleteEntry(entry.id);
+          },
         },
       ],
     );

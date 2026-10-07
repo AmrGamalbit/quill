@@ -1,4 +1,4 @@
-import { Session } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { supabase } from "./supabase";
 
@@ -29,7 +29,7 @@ export async function signUp(
   email: string,
   password: string,
   metadata?: SignUpMetadata,
-): Promise<{ session: Session | null }> {
+): Promise<{ session: Session | null; user: User | null }> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -39,7 +39,7 @@ export async function signUp(
     },
   });
   if (error) throw error;
-  return { session: data.session };
+  return { session: data.session, user: data.user };
 }
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
@@ -129,5 +129,14 @@ export async function updateUserEncryptedProfile(
 
   if (error) {
     throw error;
+  }
+}
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.functions.invoke("delete-account", {
+    method: "POST",
+  });
+  if (error) {
+    const body = await (error as any).context?.json?.().catch(() => null);
+    throw new Error(body ? JSON.stringify(body) : error.message);
   }
 }

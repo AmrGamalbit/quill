@@ -2,11 +2,16 @@ import Button from "@/src/components/Button";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fontSizes, fonts } from "@/src/constants/typography";
-import { useUserSession } from '@/src/context/UserSessionContext';
+import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { saveDerivedKey } from "@/src/services/storage/secureKeyStore";
-import { SupabaseStorageAdapter } from '@/src/services/storage/SupabaseStorageAdapter';
-import { getUserProfileRecord, sendPasswordResetEmail, signIn, signUp } from "@/src/utils/auth";
+import { SupabaseStorageAdapter } from "@/src/services/storage/SupabaseStorageAdapter";
+import {
+  getUserProfileRecord,
+  sendPasswordResetEmail,
+  signIn,
+  signUp
+} from "@/src/utils/auth";
 import {
   bytesToHex,
   decryptData,
@@ -15,16 +20,16 @@ import {
   encryptData,
   encryptUserProfile,
   generateUserKeyPair,
-  hexToBytes
-} from '@/src/utils/crypto';
-import { downloadAndDecryptPhoto, encryptAndUploadPhoto } from '@/src/utils/photoCrypto';
-import * as Crypto from 'expo-crypto';
-import * as ImagePicker from 'expo-image-picker';
+  hexToBytes,
+} from "@/src/utils/crypto";
+import {
+  downloadAndDecryptPhoto
+} from "@/src/utils/photoCrypto";
+import * as Crypto from "expo-crypto";
 import { useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Image,
   KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
@@ -36,7 +41,6 @@ import {
   UIManager,
   View
 } from "react-native";
-
 
 if (
   Platform.OS === "android" &&
@@ -52,28 +56,15 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
-  const [name, setName] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const {setSession} = useUserSession();
+  const [name, setName] = useState("");
+  const { setSession } = useUserSession();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const forgotAnim = useRef(new Animated.Value(isSignUp ? 0 : 1)).current;
 
-  async function handlePickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  }
-
   async function handleAuth() {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("MIssing details", "Please fill in both email and password.");
+      Alert.alert("Missing details", "Please fill in both email and password.");
       return;
     }
 
@@ -86,35 +77,26 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
+        // 1. Generate client-side cryptographic keys
         const keyPair = generateUserKeyPair();
-
         const passwordSalt = Crypto.getRandomValues(new Uint8Array(16));
-
         const derivedKey = await deriveKeyFromPassword(password, passwordSalt);
         await saveDerivedKey(derivedKey);
 
         const encPrivateKey = encryptData(keyPair.rawPrivateKey, derivedKey);
 
-        let uploadedPhotoPath: string | null = null;
-        let uploadedPhotoNonce: string | null = null;
-        if (photoUri) {
-          const tempFolderId = Crypto.randomUUID();
-          const storage = new SupabaseStorageAdapter('avatars');
-
-          const uploadResult = await encryptAndUploadPhoto(
-            photoUri,
-            tempFolderId,
-            derivedKey,
-            storage
-          );
-          uploadedPhotoPath = uploadResult.storagePath;
-          uploadedPhotoNonce = uploadResult.photoNonceHex;
-        }
+        // 2. Encrypt profile metadata with derived key BEFORE calling signUp
+        // Note: Photo upload is deferred until post-confirmation/login when the user has authenticated RLS rights
         const encProfile = encryptUserProfile(
-          {name: name.trim(), photoPath: uploadedPhotoPath, photoNonce: uploadedPhotoNonce,},
+          {
+            name: name.trim(),
+            photoPath: null,
+            photoNonce: null,
+          },
           derivedKey
         );
 
+        // 3. Atomically pass encrypted ciphertext to Supabase Auth metadata
         const { session } = await signUp(email.trim(), password, {
           publicKey: keyPair.publicKeyHex,
           encryptedPrivateKey: encPrivateKey.cipherHex,
@@ -123,7 +105,7 @@ export default function Auth() {
           encryptedProfile: encProfile.encryptedProfileHex,
           profileNonce: encProfile.profileNonceHex,
         });
-        
+
         if (!session) {
           Alert.alert(
             "Check your inbox",
@@ -131,53 +113,54 @@ export default function Auth() {
           );
         }
       } else {
-       const authData = await signIn(email.trim(), password);
-       const user = authData?.user;
-       if (!user) throw new Error("Could not retrieve user session.");
+        const authData = await signIn(email.trim(), password);
+        const user = authData?.user;
+        if (!user) throw new Error("Could not retrieve user session.");
 
-       const profileRecord = await getUserProfileRecord(user.id);
-       const saltBytes = hexToBytes(profileRecord.password_salt);
-       const derivedKey = await deriveKeyFromPassword(password, saltBytes);
-       await saveDerivedKey(derivedKey);
+        const profileRecord = await getUserProfileRecord(user.id);
+        const saltBytes = hexToBytes(profileRecord.password_salt);
+        const derivedKey = await deriveKeyFromPassword(password, saltBytes);
+        await saveDerivedKey(derivedKey);
 
-       const rawPrivateKey = decryptData(
-        profileRecord.encrypted_private_key,
-        profileRecord.private_key_nonce,
-        derivedKey
-       );
-
-       const decryptedProfile = decryptUserProfile(
-        profileRecord.encrypted_profile,
-        profileRecord.profile_nonce,
-        derivedKey
-       );
-
-       let decryptedPhotoUri: string | null = null;
-
-       if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
-        const storage = new SupabaseStorageAdapter('avatars');
-        decryptedPhotoUri = await downloadAndDecryptPhoto(
-          decryptedProfile.photoPath,
-          decryptedProfile.photoNonce,
-          derivedKey,
-          storage
+        const rawPrivateKey = decryptData(
+          profileRecord.encrypted_private_key,
+          profileRecord.private_key_nonce,
+          derivedKey
         );
-       }
 
-       setSession({
-        userId: user.id,
-        email: user.email ?? email.trim(),
-        name: decryptedProfile.name,
-        photoUri: decryptedPhotoUri,
-        rawPrivateKey,
-        publicKeyHex: profileRecord.public_key,
-       })
+        const decryptedProfile = decryptUserProfile(
+          profileRecord.encrypted_profile,
+          profileRecord.profile_nonce,
+          derivedKey
+        );
+
+        let decryptedPhotoUri: string | null = null;
+        const storage = new SupabaseStorageAdapter("avatars");
+
+        if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
+          try {
+            decryptedPhotoUri = await downloadAndDecryptPhoto(
+              decryptedProfile.photoPath,
+              decryptedProfile.photoNonce,
+              derivedKey,
+              new SupabaseStorageAdapter("avatars")
+            );
+          } catch (downloadErr) {
+            console.warn("Avatar download/decryption failed on login:", downloadErr);
+          }
+        }
+
+        setSession({
+          userId: user.id,
+          email: user.email ?? email.trim(),
+          name: decryptedProfile.name,
+          photoUri: decryptedPhotoUri,
+          rawPrivateKey,
+          publicKeyHex: profileRecord.public_key,
+        });
       }
     } catch (err: any) {
-      console.error("Full Signup Error:", err);
-      console.error("Stack Trace:", err?.stack);
-      console.error("Error Name:", err?.name);
-      console.error("Error Message", err?.message);
+      console.error("Auth Error:", err);
       Alert.alert(
         isSignUp ? "Sign Up Error" : "Login Error",
         err?.message || "Something went wrong."
@@ -186,6 +169,7 @@ export default function Auth() {
       setLoading(false);
     }
   }
+
   async function handleForgotPassword() {
     if (!email.trim()) {
       Alert.alert(
@@ -208,11 +192,10 @@ export default function Auth() {
       setLoading(false);
     }
   }
-     const toggleAuthMode = () => {
-    // Tell React Native to glide other screen elements smoothly
+
+  const toggleAuthMode = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-    // 1. Fade out the title/subtitle
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 150,
@@ -221,14 +204,12 @@ export default function Auth() {
       const nextIsSignUp = !isSignUp;
       setIsSignUp(nextIsSignUp);
 
-      // 2. Animate the Forgot Password button (0 = hide, 1 = show)
       Animated.timing(forgotAnim, {
         toValue: nextIsSignUp ? 0 : 1,
         duration: 200,
         useNativeDriver: false,
       }).start();
 
-      // 3. Fade back in the title/subtitle
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 200,
@@ -246,11 +227,6 @@ export default function Auth() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/*SVG Illustration Slot
-        <View style={styles.illustrationWrapper}>
-          <LoginArt width={180} height={180} />
-        </View>
-*/}
         <Animated.View
           style={[
             styles.headerBlock,
@@ -281,23 +257,6 @@ export default function Auth() {
           {isSignUp && (
             <>
               <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-                PROFILE PHOTO
-              </Text>
-              <TouchableOpacity 
-                onPress={handlePickImage} 
-                style={[
-                  styles.photoButton, 
-                  { borderColor: colors.accent, backgroundColor: colors.surface }
-                ]}
-              >
-                {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={styles.previewImage} />
-                ) : (
-                  <Text style={{ color: colors.accent, textAlign: "center", fontSize: 12 }}>Tap to select</Text>
-                )}
-              </TouchableOpacity>
-
-              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
                 NAME
               </Text>
               <TextInput
@@ -316,6 +275,7 @@ export default function Auth() {
               />
             </>
           )}
+
           <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
             EMAIL
           </Text>
@@ -355,6 +315,7 @@ export default function Auth() {
             onChangeText={setPassword}
             secureTextEntry
           />
+
           {!isSignUp && (
             <Animated.View
               style={[
@@ -391,7 +352,7 @@ export default function Auth() {
 
           <Button
             label={isSignUp ? "Sign Up" : "Sign In"}
-            variant='primary'
+            variant="primary"
             onPress={handleAuth}
             loading={loading}
           />
@@ -411,8 +372,9 @@ export default function Auth() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -423,22 +385,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
     paddingBottom: spacing.xl,
     justifyContent: "center",
-  },
-  illustrationWrapper: {
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  placeholderArt: {
-    width: 140,
-    height: 140,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  placeholderText: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.label,
   },
   headerBlock: {
     marginBottom: spacing.xl,
@@ -487,8 +433,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   forgotContainer: {
-    overflow: 'hidden',
-    alignSelf: 'flex-end',
+    overflow: "hidden",
+    alignSelf: "flex-end",
   },
   forgotBtn: {
     paddingVertical: spacing.xs,
@@ -497,22 +443,5 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     fontFamily: fonts.label,
     fontWeight: "600",
-  },
-  photoButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginBottom: spacing.md,
-    overflow: "hidden", 
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
   },
 });

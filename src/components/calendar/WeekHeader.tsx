@@ -12,6 +12,7 @@ export default function WeekHeader({ weekStartOn }: WeekHeaderProp) {
       {headers.map((header) => {
         return (
           <Text
+            key={header}
             style={[styles.text, { color: colors.textMuted }]}
             adjustsFontSizeToFit
             numberOfLines={1}

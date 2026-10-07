@@ -43,7 +43,15 @@
       "expo-secure-store",
       "expo-font",
       "@react-native-vector-icons/ionicons",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-video",
+      "expo-image",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Microphone permission to record voice notes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

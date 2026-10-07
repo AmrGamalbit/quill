@@ -11,6 +11,7 @@ import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
 import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
+import { haptic } from "../services/haptics";
 import type { Diary } from "../types/diary";
 
 type DiaryCardProps = {
@@ -37,6 +38,7 @@ export default function DiaryCard({
   console.log(latestEntryBody);
 
   const handleLongPress = () => {
+    haptic.warning();
     Alert.alert(
       "Delete Diary",
       `Are you sure you want to delete "${diary.name}"? This action cannot be undone.`,
@@ -45,7 +47,7 @@ export default function DiaryCard({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => onDelete(diary.id),
+          onPress: () => {haptic.thud(); onDelete(diary.id)},
         },
       ],
     );

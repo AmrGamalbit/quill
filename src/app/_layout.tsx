@@ -28,12 +28,17 @@ import {
 } from "../context/UserSessionContext";
 import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
-import { getStoredDerivedKey } from "../services/storage/secureKeyStore";
+import {
+  clearDerivedKey,
+  getStoredDerivedKey,
+} from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptData, decryptUserProfile } from "../utils/crypto";
-import { downloadAndDecryptPhoto } from "../utils/photoCrypto";
-
+import {
+  downloadAndDecryptPhoto,
+  getValidAvatarUrl,
+} from "../utils/photoCrypto";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -62,6 +67,7 @@ function AppNavigator() {
 
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  let cachedPhotoUri: string | null = null;
 
   useEffect(() => {
     if (fontLoadingError) {
@@ -93,12 +99,13 @@ function AppNavigator() {
       try {
         const cached = await getLocalProfile(newSession.user.id);
         if (cached?.name) {
+          cachedPhotoUri = await getValidAvatarUrl(cached.photoUri);
           setSession({
             userId: newSession.user.id,
             email: newSession.user.email ?? "",
             name: cached.name,
             photoUri: cached.photoUri ?? null,
-            rawPrivateKey: userSession?.rawPrivateKey ?? new Uint8Array(32),
+            rawPrivateKey: null,
             publicKeyHex: cached.publicKey ?? userSession?.publicKeyHex ?? "",
           });
           // Unblock rendering immediately so the UI doesn't freeze on "Friend"
@@ -106,6 +113,7 @@ function AppNavigator() {
         }
       } catch (err) {
         console.warn("Failed reading cached local profile:", err);
+        await clearDerivedKey();
       }
 
       // Background sync: Fetch cryptographic keys and latest cloud profile
@@ -127,12 +135,17 @@ function AppNavigator() {
           let decryptedPhotoUri: string | null = null;
           if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
             const storage = new SupabaseStorageAdapter("avatars");
-            decryptedPhotoUri = await downloadAndDecryptPhoto(
-              decryptedProfile.photoPath,
-              decryptedProfile.photoNonce,
-              derivedKey,
-              storage,
-            );
+            try {
+              decryptedPhotoUri = await downloadAndDecryptPhoto(
+                decryptedProfile.photoPath,
+                decryptedProfile.photoNonce,
+                derivedKey,
+                storage,
+              );
+            } catch (photoErr) {
+              console.warn("Avatar restore failed: ", photoErr);
+              decryptedPhotoUri = cachedPhotoUri;
+            }
           }
 
           // Persist the freshly decrypted metadata to local SQLite cache

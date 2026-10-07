@@ -5,6 +5,7 @@ import m0000 from './0000_bitter_matthew_murdock.sql';
 import m0001 from './0001_noisy_red_hulk.sql';
 import m0002 from './0002_milky_manta.sql';
 import m0003 from './0003_glossy_skrulls.sql';
+import m0004 from './0004_powerful_greymalkin.sql';
 
   export default {
     journal,
@@ -12,7 +13,8 @@ import m0003 from './0003_glossy_skrulls.sql';
       m0000,
 m0001,
 m0002,
-m0003
+m0003,
+m0004
     }
   }
   

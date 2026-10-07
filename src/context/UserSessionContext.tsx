@@ -5,7 +5,7 @@ export interface UserSessionData {
     email: string;
     name: string;
     photoUri: string | null;
-    rawPrivateKey: Uint8Array;
+    rawPrivateKey: Uint8Array | null;
     publicKeyHex: string;
 }
 

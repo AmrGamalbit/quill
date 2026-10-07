@@ -139,7 +139,7 @@ const getStyles = (colors: any) =>
       marginTop: 4,
     },
     settingsIconColor: {
-      color: "#62726E",
+      color: colors.textMuted,
     },
     emptyList: {
       justifyContent: "center",

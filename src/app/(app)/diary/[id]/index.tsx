@@ -2,6 +2,7 @@ import EntriesList from "@/src/components/EntriesList";
 import { spacing } from "@/src/constants/spacings";
 import { getDiaryById } from "@/src/db/diaries";
 import useEntries from "@/src/hooks/useEntries";
+import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, useColorScheme } from "react-native";
@@ -11,7 +12,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
-  const { entries, deleteEntry } = useEntries(diaryId);
+  const { entries, refresh } = useEntries(diaryId);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const styles = getStyles();
@@ -49,8 +50,9 @@ export default function DiaryScreen() {
     });
   };
 
-  const handleDeleteEntry = (entryId: number) => {
-    deleteEntry(entryId);
+  const handleDeleteEntry = async (entryId: number) => {
+    await deleteEntryWithMedia(entryId);
+    refresh();
   };
 
   useEffect(() => {

@@ -1,30 +1,50 @@
 import Editor from "@/src/components/Editor";
-import { getEntryById, saveEntry } from "@/src/db/entries";
+import { getAttachmentsByEntryId } from "@/src/db/attachments";
+import { getEntryById } from "@/src/db/entries";
+import {
+  PendingAttachment,
+  updateEntryWithMedia,
+} from "@/src/services/attachments";
+import { Attachment } from "@/src/types/attachment";
 import { Entry } from "@/src/types/entry";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EntryEditScreen() {
-  const { id, entryId } = useLocalSearchParams();
-  const [entry, setEntry] = useState<Entry>();
-  const diaryId = Number(id);
+  const { entryId } = useLocalSearchParams();
+  const [entry, setEntry] = useState<Entry | null>();
+  const [attachments, setAttachments] = useState<Attachment[]>();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const loadEntry = async () => {
       setLoading(true);
-      const result = await getEntryById(Number(entryId));
-      setEntry(result);
+      const loadedEntry = await getEntryById(Number(entryId));
+      const loadedAttachments = await getAttachmentsByEntryId(Number(entryId));
+      setEntry(loadedEntry);
+      setAttachments(loadedAttachments);
       setLoading(false);
     };
     loadEntry();
   }, [entryId]);
 
-  const handleSave = (title: string, body: string) => {
-    saveEntry(diaryId, title, body);
-    router.back();
+  const handleSave = async (
+    title: string,
+    body: string,
+    media: { added: PendingAttachment[]; removedIds: number[] },
+  ) => {
+    try {
+      await updateEntryWithMedia(Number(entryId), title, body, media);
+      router.back();
+    } catch {
+      Alert.alert(
+        "Couldn't save",
+        "The media couldn't be stored. Please try again.",
+      );
+    }
   };
 
   if (loading) {
@@ -34,11 +54,12 @@ export default function EntryEditScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Editor
+        initialAttachments={attachments}
         initialTitle={entry?.title}
-        initialBody={entry?.body}
-        initialDate={entry?.createdAt}
+        initialBody={entry?.body ?? undefined}
+        initialDate={entry?.createdAt ?? undefined}
         initialReadOnly={true}
-        onSave={(title, body) => handleSave(title, body)}
+        onSave={handleSave}
         onBack={() => {
           router.back();
         }}

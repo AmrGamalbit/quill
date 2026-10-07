@@ -1,7 +1,7 @@
 import { count, eq } from "drizzle-orm";
 import { db } from ".";
-import { entriesTable as entries } from "./schema";
 import type { Entry } from "../types/entry";
+import { entriesTable as entries } from "./schema";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,
@@ -16,6 +16,17 @@ export const saveEntry = async (
 ): Promise<number> => {
   const result = await db.insert(entries).values({ diaryId, title, body });
   return result.lastInsertRowId;
+};
+
+export const updateEntry = async (
+  id: number,
+  title: string,
+  body: string,
+): Promise<void> => {
+  await db
+    .update(entries)
+    .set({ title: title, body: body })
+    .where(eq(entries.id, id));
 };
 
 export const getEntryById = async (entryId: number): Promise<Entry | null> => {
