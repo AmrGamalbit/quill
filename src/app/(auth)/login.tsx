@@ -1,4 +1,5 @@
 import Button from "@/src/components/Button";
+import FormField from "@/src/components/FormField";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fontSizes, fonts } from "@/src/constants/typography";
@@ -10,7 +11,7 @@ import {
   getUserProfileRecord,
   sendPasswordResetEmail,
   signIn,
-  signUp
+  signUp,
 } from "@/src/utils/auth";
 import {
   bytesToHex,
@@ -22,9 +23,7 @@ import {
   generateUserKeyPair,
   hexToBytes,
 } from "@/src/utils/crypto";
-import {
-  downloadAndDecryptPhoto
-} from "@/src/utils/photoCrypto";
+import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
 import * as Crypto from "expo-crypto";
 import { useRef, useState } from "react";
 import {
@@ -39,7 +38,7 @@ import {
   TextInput,
   TouchableOpacity,
   UIManager,
-  View
+  View,
 } from "react-native";
 
 if (
@@ -93,7 +92,7 @@ export default function Auth() {
             photoPath: null,
             photoNonce: null,
           },
-          derivedKey
+          derivedKey,
         );
 
         // 3. Atomically pass encrypted ciphertext to Supabase Auth metadata
@@ -109,7 +108,7 @@ export default function Auth() {
         if (!session) {
           Alert.alert(
             "Check your inbox",
-            "We sent a confirmation link to your email."
+            "We sent a confirmation link to your email.",
           );
         }
       } else {
@@ -125,13 +124,13 @@ export default function Auth() {
         const rawPrivateKey = decryptData(
           profileRecord.encrypted_private_key,
           profileRecord.private_key_nonce,
-          derivedKey
+          derivedKey,
         );
 
         const decryptedProfile = decryptUserProfile(
           profileRecord.encrypted_profile,
           profileRecord.profile_nonce,
-          derivedKey
+          derivedKey,
         );
 
         let decryptedPhotoUri: string | null = null;
@@ -143,10 +142,13 @@ export default function Auth() {
               decryptedProfile.photoPath,
               decryptedProfile.photoNonce,
               derivedKey,
-              new SupabaseStorageAdapter("avatars")
+              new SupabaseStorageAdapter("avatars"),
             );
           } catch (downloadErr) {
-            console.warn("Avatar download/decryption failed on login:", downloadErr);
+            console.warn(
+              "Avatar download/decryption failed on login:",
+              downloadErr,
+            );
           }
         }
 
@@ -163,7 +165,7 @@ export default function Auth() {
       console.error("Auth Error:", err);
       Alert.alert(
         isSignUp ? "Sign Up Error" : "Login Error",
-        err?.message || "Something went wrong."
+        err?.message || "Something went wrong.",
       );
     } finally {
       setLoading(false);
@@ -174,7 +176,7 @@ export default function Auth() {
     if (!email.trim()) {
       Alert.alert(
         "Enter your email",
-        "Please enter your email address in the field above first, then tap Forgot Password."
+        "Please enter your email address in the field above first, then tap Forgot Password.",
       );
       return;
     }
@@ -184,7 +186,7 @@ export default function Auth() {
       await sendPasswordResetEmail(email.trim());
       Alert.alert(
         "Check your inbox",
-        "We've sent a password reset link to your email."
+        "We've sent a password reset link to your email.",
       );
     } catch (err: any) {
       Alert.alert("Reset Error", err.message || "Failed to send reset email.");
@@ -255,46 +257,20 @@ export default function Auth() {
 
         <View style={styles.form}>
           {isSignUp && (
-            <>
-              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-                NAME
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="Your display name"
-                placeholderTextColor={colors.textMuted}
-                value={name}
-                onChangeText={setName}
-              />
-            </>
+            <FormField
+              label="NAME"
+              value={name}
+              onChangeText={setName}
+              placeholder="Your display name"
+            />
           )}
 
-          <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-            EMAIL
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                color: colors.text,
-              },
-            ]}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.textMuted}
+          <FormField
+            label="EMAIL"
             value={email}
             onChangeText={setEmail}
-            autoCapitalize="none"
+            placeholder="you@example.com"
             keyboardType="email-address"
-            autoCorrect={false}
           />
 
           <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
