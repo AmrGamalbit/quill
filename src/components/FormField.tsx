@@ -10,6 +10,8 @@ type FormFieldProps = {
   value: string;
   placeholder?: string;
   keyboardType?: KeyboardTypeOptions;
+  rightElement?: React.ReactNode;
+  secureTextEntry?: boolean;
   onChangeText: (text: string) => void;
 };
 export default function FormField({
@@ -17,6 +19,8 @@ export default function FormField({
   value,
   placeholder,
   keyboardType,
+  rightElement,
+  secureTextEntry,
   onChangeText,
 }: FormFieldProps) {
   const { colors } = useTheme();
@@ -25,23 +29,33 @@ export default function FormField({
   return (
     <View style={styles.container}>
       <Text style={{ color: colors.textMuted }}>{label}</Text>
-      <TextInput
+      <View
         style={[
-          styles.input,
+          styles.inputRow,
           {
             backgroundColor: colors.card,
             borderColor: colors.border,
-            color: colors.text,
           },
         ]}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        value={value}
-        onChangeText={onChangeText}
-        autoCapitalize="none"
-        keyboardType={keyboardType}
-        autoCorrect={false}
-      ></TextInput>
+      >
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: colors.text,
+            },
+          ]}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          value={value}
+          onChangeText={onChangeText}
+          autoCapitalize="none"
+          keyboardType={keyboardType}
+          autoCorrect={false}
+          secureTextEntry={secureTextEntry}
+        ></TextInput>
+        {rightElement}
+      </View>
     </View>
   );
 }
@@ -49,6 +63,15 @@ export default function FormField({
 const getStyles = (isIos: boolean) =>
   StyleSheet.create({
     container: { gap: 8 },
+    inputRow: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+    },
     inputLabel: {
       fontSize: fontSizes.xs,
       fontFamily: fonts.label,
@@ -57,10 +80,7 @@ const getStyles = (isIos: boolean) =>
     },
     input: {
       // height: isIos ? 32 : "auto",
-      borderWidth: 1,
-      borderRadius: radius.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
+      flex: 1,
       fontSize: fontSizes.md,
       fontFamily: fonts.body,
     },

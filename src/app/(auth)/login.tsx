@@ -1,5 +1,6 @@
 import Button from "@/src/components/Button";
 import FormField from "@/src/components/FormField";
+import PasswordField from "@/src/components/PasswordField";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fontSizes, fonts } from "@/src/constants/typography";
@@ -35,7 +36,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   UIManager,
   View,
@@ -272,25 +272,7 @@ export default function Auth() {
             placeholder="you@example.com"
             keyboardType="email-address"
           />
-
-          <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-            PASSWORD
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                color: colors.text,
-              },
-            ]}
-            placeholder="******"
-            placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <PasswordField password={password} onChangePassword={setPassword} />
 
           {!isSignUp && (
             <Animated.View
