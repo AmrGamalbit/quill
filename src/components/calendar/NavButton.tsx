@@ -17,6 +17,7 @@ export default function NavButton({ icon, onPress }: NavIconProps) {
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={8}
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
     >

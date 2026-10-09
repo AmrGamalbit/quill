@@ -3,7 +3,11 @@ import useTheme from "@/src/hooks/useTheme";
 import { StyleSheet, Text, View } from "react-native";
 import NavButton from "./NavButton";
 
-type MonthHeaderProps = { month: Date; onPrev: () => void; onNext: () => void };
+type MonthHeaderProps = {
+  month: number;
+  onPrev: () => void;
+  onNext: () => void;
+};
 const formatter = new Intl.DateTimeFormat("en", { month: "long" });
 
 export default function MonthHeader({
@@ -17,7 +21,7 @@ export default function MonthHeader({
     <View style={styles.container}>
       <NavButton icon="arrow-back" onPress={onPrev} />
       <Text style={[styles.text, { color: colors.text }]}>
-        {formatter.format(month)}
+        {formatter.format(new Date(2026, month, 1))}
       </Text>
       <NavButton icon="arrow-forward" onPress={onNext} />
     </View>

@@ -1,12 +1,14 @@
+import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import { Entry } from "@/src/types/entry";
-import { getMonthDays } from "@/src/utils/dates";
+import { getMonthWeeks } from "@/src/utils/dates";
 import { useState } from "react";
 import { View } from "react-native";
+import Animated from "react-native-reanimated";
 import MonthGrid from "./MonthGrid";
 import MonthHeader from "./MonthHeader";
 import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
-import WeekStrip from "./WeekStrip";
+
 type CalendarProps = {
   entries: Entry[];
   selectedDate: Date;
@@ -18,71 +20,56 @@ export default function Calendar({
   selectedDate,
   onSelectDate,
 }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [isExpanded, setIsExpanded] = useState(true);
-  const monthDays = getMonthDays(currentMonth, 0);
-  const currentWeek = monthDays.find((week) => {
-    return (
-      week.some((day) => day.toDateString() == selectedDate.toDateString()) ??
-      monthDays[0]
-    );
-  });
-  console.log(currentWeek);
+  const [currentMonth, setCurrentMonth] = useState<number>(
+    new Date().getMonth(),
+  );
+  const weeks = getMonthWeeks(currentMonth, 0);
+  const currentWeek =
+    weeks.find((week) => {
+      return week.some(
+        (day) => day.toDateString() == selectedDate.toDateString(),
+      );
+    }) ?? weeks[0];
   const handlePrevMonth = () => {
-    setCurrentMonth(
-      (prev: Date) =>
-        new Date(prev.getFullYear(), prev.getMonth() - 1, prev.getDay()),
-    );
+    setCurrentMonth((prev) => prev--);
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(
-      (prev: Date) =>
-        new Date(prev.getFullYear(), prev.getMonth() + 1, prev.getDay()),
-    );
+    setCurrentMonth((prev) => prev++);
   };
+
+  const { toggle, headerStyle, gridContainerStyle, gridStyle } =
+    useCalendarCollapse(2);
 
   return (
     <View>
-      {isExpanded && (
-        <View>
-          <MonthHeader
-            month={currentMonth}
-            onPrev={handlePrevMonth}
-            onNext={handleNextMonth}
-          />
-          <WeekHeader weekStartOn={0} />
+      <Animated.View style={headerStyle}>
+        <MonthHeader
+          month={currentMonth}
+          onPrev={handlePrevMonth}
+          onNext={handleNextMonth}
+        />
+      </Animated.View>
+      <WeekHeader weekStartOn={0} />
+      <Animated.View style={[gridContainerStyle, { overflow: "hidden" }]}>
+        <Animated.View style={gridStyle}>
           <MonthGrid
             entries={entries}
             month={currentMonth}
-            monthDays={monthDays}
+            weeks={weeks}
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />
-        </View>
-      )}
-      {!isExpanded && (
-        <View>
-          <WeekHeader weekStartOn={0} />
-          <WeekStrip
-            entries={entries}
-            week={currentWeek}
-            month={currentMonth}
-            selectedDate={selectedDate}
-            onSelectDate={onSelectDate}
-          />
-        </View>
-      )}
+        </Animated.View>
+      </Animated.View>
+
       <View
         style={{
           justifyContent: "center",
           alignItems: "center",
         }}
       >
-        <NavButton
-          icon={"reorder-three-outline"}
-          onPress={() => setIsExpanded((prev) => !prev)}
-        />
+        <NavButton icon={"reorder-three-outline"} onPress={toggle} />
       </View>
     </View>
   );

@@ -4,22 +4,22 @@ import WeekStrip from "./WeekStrip";
 
 type MonthGridProps = {
   entries: Entry[];
-  monthDays: Date[][];
-  month: Date;
+  weeks: Date[][];
+  month: number;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 };
 
 export default function MonthGrid({
   entries,
-  monthDays,
+  weeks,
   month,
   selectedDate,
   onSelectDate,
 }: MonthGridProps) {
   return (
     <View style={{ margin: 10 }}>
-      {monthDays.map((week) => {
+      {weeks.map((week) => {
         const weekKey = week[0].toISOString();
         return (
           <WeekStrip

@@ -5,7 +5,7 @@ import DayCell from "./DayCell";
 
 type WeekStripProps = {
   week: Date[];
-  month: Date;
+  month: number;
   entries: Entry[];
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
@@ -19,10 +19,7 @@ export default function WeekStrip({
   onSelectDate,
 }: WeekStripProps) {
   const isCurrentMonth = (day: Date) => {
-    return (
-      day.getMonth() == month.getMonth() &&
-      day.getFullYear() == month.getFullYear()
-    );
+    return day.getMonth() == month;
   };
   const hasEntries = (day: Date): boolean => {
     return entries.some(
