@@ -1,3 +1,4 @@
+import { useWindowDimensions } from "react-native";
 import {
     interpolate,
     useAnimatedStyle,
@@ -6,7 +7,9 @@ import {
 } from "react-native-reanimated";
 
 export default function useCalendarCollapse(selectedRow: number) {
-  const progress = useSharedValue(1);
+  const progress = useSharedValue(0);
+  const { width } = useWindowDimensions();
+  const rowH = width / 7;
 
   const toggle = () => {
     progress.value = withTiming(progress.value === 1 ? 0 : 1, {
@@ -15,19 +18,19 @@ export default function useCalendarCollapse(selectedRow: number) {
   };
 
   const headerStyle = useAnimatedStyle(() => ({
-    height: interpolate(progress.value, [0, 1], [0, 40]),
+    height: interpolate(progress.value, [0, 1], [0, 48]),
     opacity: interpolate(progress.value, [0, 1], [0, 1]),
   }));
 
   const gridContainerStyle = useAnimatedStyle(() => ({
-    height: interpolate(progress.value, [0, 1], [50, 300]),
+    height: interpolate(progress.value, [0, 1], [rowH, rowH * 6]),
   }));
 
   const gridStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
       progress.value,
       [0, 1],
-      [-selectedRow * 40, 0],
+      [-selectedRow * rowH, 0],
     );
     return {
       transform: [{ translateY }],

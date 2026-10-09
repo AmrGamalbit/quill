@@ -20,7 +20,10 @@ export default function MonthHeader({
   return (
     <View style={styles.container}>
       <NavButton icon="arrow-back" onPress={onPrev} />
-      <Text style={[styles.text, { color: colors.text }]}>
+      <Text
+        style={[styles.text, { color: colors.text }]}
+        maxFontSizeMultiplier={1.2}
+      >
         {formatter.format(new Date(2026, month, 1))}
       </Text>
       <NavButton icon="arrow-forward" onPress={onNext} />
@@ -31,9 +34,9 @@ export default function MonthHeader({
 const styles = StyleSheet.create({
   container: {
     justifyContent: "space-around",
-    alignItems: "center",
     marginVertical: 10,
     flexDirection: "row",
+    height: 48,
   },
   text: {
     fontSize: fontSizes.md,

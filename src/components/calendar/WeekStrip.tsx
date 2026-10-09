@@ -1,6 +1,6 @@
 import type { Entry } from "@/src/types/entry";
 import { isSameDay } from "@/src/utils/dates";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import DayCell from "./DayCell";
 
 type WeekStripProps = {
@@ -26,13 +26,14 @@ export default function WeekStrip({
       (e) => e.createdAt.toDateString() === day.toDateString(),
     );
   };
+  const { width } = useWindowDimensions();
+  const height = width / 7;
   return (
     <View
       style={{
         flexDirection: "row",
-        gap: 10,
-        justifyContent: "space-around",
-        margin: 5,
+        justifyContent: "center",
+        height: height,
       }}
     >
       {week.map((day: Date) => (

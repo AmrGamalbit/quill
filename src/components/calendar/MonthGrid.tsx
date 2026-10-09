@@ -18,7 +18,7 @@ export default function MonthGrid({
   onSelectDate,
 }: MonthGridProps) {
   return (
-    <View style={{ margin: 10 }}>
+    <View>
       {weeks.map((week) => {
         const weekKey = week[0].toISOString();
         return (
