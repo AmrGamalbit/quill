@@ -5,7 +5,7 @@ import WeekStrip from "./WeekStrip";
 type MonthGridProps = {
   entries: Entry[];
   weeks: Date[][];
-  month: number;
+  month: Date;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 };

@@ -4,11 +4,14 @@ import { StyleSheet, Text, View } from "react-native";
 import NavButton from "./NavButton";
 
 type MonthHeaderProps = {
-  month: number;
+  month: Date;
   onPrev: () => void;
   onNext: () => void;
 };
-const formatter = new Intl.DateTimeFormat("en", { month: "long" });
+const formatter = new Intl.DateTimeFormat("en", {
+  year: "numeric",
+  month: "long",
+});
 
 export default function MonthHeader({
   month,
@@ -24,7 +27,7 @@ export default function MonthHeader({
         style={[styles.text, { color: colors.text }]}
         maxFontSizeMultiplier={1.2}
       >
-        {formatter.format(new Date(2026, month, 1))}
+        {formatter.format(month)}
       </Text>
       <NavButton icon="arrow-forward" onPress={onNext} />
     </View>

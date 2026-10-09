@@ -1,11 +1,16 @@
 import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import { Entry } from "@/src/types/entry";
-import { getMonthWeeks, isSameDay } from "@/src/utils/dates";
+import {
+  addMonths,
+  getMonthWeeks,
+  isSameDay,
+  startOfMonth,
+} from "@/src/utils/dates";
 import { useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
+import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
-import MonthHeader from "./MonthHeader";
 import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
 
@@ -20,8 +25,8 @@ export default function Calendar({
   selectedDate,
   onSelectDate,
 }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState<number>(
-    new Date().getMonth(),
+  const [currentMonth, setCurrentMonth] = useState<Date>(
+    startOfMonth(selectedDate),
   );
   const weeks = getMonthWeeks(currentMonth, 0);
   const selectedRow = weeks.findIndex((w) =>
@@ -29,11 +34,11 @@ export default function Calendar({
   );
 
   const handlePrevMonth = () => {
-    setCurrentMonth((prev) => prev--);
+    setCurrentMonth((prev) => addMonths(prev, -1));
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth((prev) => prev++);
+    setCurrentMonth((prev) => addMonths(prev, 1));
   };
 
   const { toggle, headerStyle, gridContainerStyle, gridStyle } =
@@ -42,7 +47,7 @@ export default function Calendar({
   return (
     <View>
       <Animated.View style={headerStyle}>
-        <MonthHeader
+        <CalendarHeader
           month={currentMonth}
           onPrev={handlePrevMonth}
           onNext={handleNextMonth}
