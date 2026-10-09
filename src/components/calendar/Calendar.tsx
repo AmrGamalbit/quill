@@ -1,6 +1,6 @@
 import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import { Entry } from "@/src/types/entry";
-import { getMonthWeeks } from "@/src/utils/dates";
+import { getMonthWeeks, isSameDay } from "@/src/utils/dates";
 import { useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -24,12 +24,10 @@ export default function Calendar({
     new Date().getMonth(),
   );
   const weeks = getMonthWeeks(currentMonth, 0);
-  const currentWeek =
-    weeks.find((week) => {
-      return week.some(
-        (day) => day.toDateString() == selectedDate.toDateString(),
-      );
-    }) ?? weeks[0];
+  const selectedRow = weeks.findIndex((w) =>
+    w.some((d) => isSameDay(d, selectedDate)),
+  );
+
   const handlePrevMonth = () => {
     setCurrentMonth((prev) => prev--);
   };
@@ -39,7 +37,7 @@ export default function Calendar({
   };
 
   const { toggle, headerStyle, gridContainerStyle, gridStyle } =
-    useCalendarCollapse(2);
+    useCalendarCollapse(selectedRow);
 
   return (
     <View>
