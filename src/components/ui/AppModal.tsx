@@ -1,12 +1,13 @@
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type AppModalProps = {
@@ -30,30 +31,43 @@ export default function AppModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-          <View
-            style={[styles.handleIndicator, { backgroundColor: colors.border }]}
-          />
+      <KeyboardAvoidingView
+        behavior={"padding"}
+        style={styles.keyboardContainer}
+      >
+        <View style={styles.overlay}>
+          <Pressable style={styles.backdrop} onPress={onClose} />
+          <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+            <View
+              style={[
+                styles.handleIndicator,
+                { backgroundColor: colors.border },
+              ]}
+            />
 
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            <TouchableOpacity
-              onPress={onClose}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={22} color={colors.text} />
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {title}
+              </Text>
+              <TouchableOpacity
+                onPress={onClose}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={22} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {children}
           </View>
-          {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     justifyContent: "flex-end",

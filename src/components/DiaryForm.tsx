@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import type { DiaryFormData } from "../types/diary";
 import Button from "./Button";
 import FormField from "./FormField";
+import AppModal from "./ui/AppModal";
 
 type DiaryFormProps = {
   isOpen: boolean;
@@ -13,7 +14,11 @@ type DiaryFormProps = {
   onSubmit: (data: DiaryFormData) => void;
 };
 
-export default function DiaryForm({ isOpen, onClose, onSubmit }: DiaryFormProps) {
+export default function DiaryForm({
+  isOpen,
+  onClose,
+  onSubmit,
+}: DiaryFormProps) {
   const { colors } = useTheme();
   const [formData, setFormData] = useState({ name: "", description: "" });
 
@@ -25,36 +30,19 @@ export default function DiaryForm({ isOpen, onClose, onSubmit }: DiaryFormProps)
   };
 
   return (
-    <Modal
-    visible={isOpen}
-    animationType="slide"
-    transparent={true}
-    onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-      behavior={"padding"}
-      style={styles.keyboardContainer}
-      >
-    <View style={styles.overlay}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, {backgroundColor: colors.surface }]}>
-        <View style={styles.handleIndicator} />
-        <Text style={[styles.title, {color: colors.text}]}>New Diary</Text>
-        <View style={styles.formContent}>
-          <FormField
+    <AppModal title="New Diary" isOpen={isOpen} onClose={onClose}>
+      <View style={styles.formContent}>
+        <FormField
           label="Title"
           placeholder="Personal, Work, Travel"
           value={formData.name}
-          onChangeText={(newText) => 
-            setFormData((prev) => ({ ...prev, name: newText}))
+          onChangeText={(newText) =>
+            setFormData((prev) => ({ ...prev, name: newText }))
           }
-          />
-          <Button label="Create Diary" onPress={handleSubmit} />
-        </View>
+        />
+        <Button label="Create Diary" onPress={handleSubmit} />
       </View>
-    </View>
-    </KeyboardAvoidingView>
-    </Modal>
+    </AppModal>
   );
 }
 
@@ -64,8 +52,8 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
@@ -80,19 +68,19 @@ const styles = StyleSheet.create({
   handleIndicator: {
     width: 36,
     height: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: "#d1d5db",
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: spacing.md,
   },
   title: {
     fontSize: fontSizes.lg,
     fontFamily: fonts.heading,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: spacing.md,
   },
   formContent: {
     gap: spacing.md,
   },
-  modal: { width: "100%", padding: spacing.xl, },
+  modal: { width: "100%", padding: spacing.xl },
 });
