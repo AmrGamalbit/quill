@@ -1,13 +1,16 @@
 import { useWindowDimensions } from "react-native";
+import { Gesture } from "react-native-gesture-handler";
 import {
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
 export default function useCalendarCollapse(selectedRow: number) {
   const progress = useSharedValue(0);
+  const startProgress = useSharedValue(0);
   const { width } = useWindowDimensions();
   const rowH = width / 7;
 
@@ -37,5 +40,25 @@ export default function useCalendarCollapse(selectedRow: number) {
     };
   });
 
-  return { toggle, headerStyle, gridContainerStyle, gridStyle };
+  const panGesture = Gesture.Pan()
+    .activeOffsetY([-10, 10])
+    .failOffsetX([-20, 20])
+    .onStart(() => {
+      startProgress.value = progress.value;
+    })
+    .onUpdate((event) => {
+      const next = startProgress.value + event.translationY / (rowH * 5);
+      progress.value = Math.min(Math.max(next, 0), 1);
+    })
+    .onEnd((event) => {
+      const target = progress.value > 0.5 ? 1 : 0;
+      progress.value = withSpring(target, {
+        velocity: event.velocityY / (rowH * 5),
+        overshootClamping: target == 0,
+        damping: 50,
+        stiffness: 200,
+      });
+    });
+
+  return { toggle, headerStyle, gridContainerStyle, gridStyle, panGesture };
 }

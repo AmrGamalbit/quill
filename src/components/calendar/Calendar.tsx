@@ -9,6 +9,7 @@ import {
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import AppModal from "../ui/AppModal";
 import CalendarHeader from "./CalendarHeader";
@@ -47,7 +48,7 @@ export default function Calendar({
     setCurrentMonth((prev) => addMonths(prev, 1));
   };
 
-  const { toggle, headerStyle, gridContainerStyle, gridStyle } =
+  const { toggle, headerStyle, gridContainerStyle, gridStyle, panGesture } =
     useCalendarCollapse(selectedRow);
 
   return (
@@ -61,26 +62,29 @@ export default function Calendar({
         />
       </Animated.View>
       <WeekHeader weekStartOn={0} />
-      <Animated.View style={[gridContainerStyle, { overflow: "hidden" }]}>
-        <Animated.View style={gridStyle}>
-          <MonthGrid
-            entries={entries}
-            month={currentMonth}
-            weeks={weeks}
-            selectedDate={selectedDate}
-            onSelectDate={onSelectDate}
-          />
-        </Animated.View>
-      </Animated.View>
-
-      <View
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <NavButton icon={"reorder-three-outline"} onPress={toggle} />
-      </View>
+      <GestureDetector gesture={panGesture}>
+        <View>
+          <Animated.View style={[gridContainerStyle, { overflow: "hidden" }]}>
+            <Animated.View style={gridStyle}>
+              <MonthGrid
+                entries={entries}
+                month={currentMonth}
+                weeks={weeks}
+                selectedDate={selectedDate}
+                onSelectDate={onSelectDate}
+              />
+            </Animated.View>
+          </Animated.View>
+          <View
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <NavButton icon={"reorder-three-outline"} onPress={toggle} />
+          </View>
+        </View>
+      </GestureDetector>
       <AppModal
         title="Jump To"
         isOpen={showPicker}
