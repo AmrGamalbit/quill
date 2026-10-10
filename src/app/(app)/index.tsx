@@ -11,14 +11,12 @@ import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
 import type { DiaryFormData } from "@/src/types/diary";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -53,40 +51,23 @@ export default function Home() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <View style={styles.headerTextGroup}>
-              <GreetingHeader name={firstName} />
-              {/*   <DatePill /> */}
+        <FlatList
+        numColumns={2}
+        data={diaries}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContent}
+       ListHeaderComponent={<GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />}
+       ListEmptyComponent={
+            <View style={styles.emptyList}>
+              <EmptyArt width={220} height={220} />
+              <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
+              <Text style={{ color: colors.textMuted }}>
+                Join or create a new one.
+              </Text>
             </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => setIsSettingsOpen(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={styles.settingsIconColor.color}
-              />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={diaries}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={
-              diaries.length === 0 ? styles.emptyContainer : undefined
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyList}>
-                <EmptyArt width={220} height={220} />
-                <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
-                <Text style={{ color: colors.textMuted }}>
-                  Join or create a new one.
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => (
+          }
+          renderItem={({ item }) => (
+            <View style={styles.cell}>
               <DiaryCard
                 diary={item}
                 entryCount={item.entryCount}
@@ -96,10 +77,9 @@ export default function Home() {
                 }}
                 onDelete={(id) => handleDeleteDiary(id)}
               />
-            )}
-          />
-        </View>
-
+            </View>
+          )}
+        />
         <DiaryForm
           isOpen={showDiaryForm}
           onClose={() => setShowDiaryForm(false)}
@@ -123,33 +103,18 @@ export default function Home() {
 const getStyles = (colors: any) =>
   StyleSheet.create({
     screen: { flex: 1 },
-    content: { padding: spacing.lg, flex: 1 },
-    header: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      marginBottom: spacing.md,
+    listContent: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: 96,
     },
-    headerTextGroup: {
-      flex: 1,
-    },
-    settingsButton: {
-      padding: 6,
-      borderRadius: 20,
-      marginTop: 4,
-    },
-    settingsIconColor: {
-      color: colors.textMuted,
+    cell: {
+      width: '50%',
+      padding: spacing.xs,
     },
     emptyList: {
-      justifyContent: "center",
       alignItems: "center",
       paddingHorizontal: 24,
-    },
-    emptyContainer: {
-      flexGrow: 1, // Crucial: lets the scroll surface expand to fill the full height
-      justifyContent: "center",
-      alignItems: "center",
+      paddingVertical: spacing.xl,
     },
     noDiaryText: {
       fontSize: fontSizes.xl,

@@ -51,7 +51,8 @@
         {
           "microphonePermission": "Microphone permission to record voice notes."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

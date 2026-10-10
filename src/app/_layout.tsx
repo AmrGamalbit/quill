@@ -1,8 +1,5 @@
-import { Merriweather_400Regular } from "@expo-google-fonts/merriweather";
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-} from "@expo-google-fonts/plus-jakarta-sans";
+import { Gabarito_400Regular, Gabarito_500Medium, Gabarito_700Bold } from "@expo-google-fonts/gabarito";
+import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import type { Session } from "@supabase/supabase-js";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import "expo-blob";
@@ -40,6 +37,7 @@ import {
   downloadAndDecryptPhoto,
   getValidAvatarUrl,
 } from "../utils/photoCrypto";
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -59,9 +57,10 @@ function AppNavigator() {
     migrations,
   );
   const [isFontsLoaded, fontLoadingError] = useFonts({
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    Merriweather_400Regular,
+    Roboto_400Regular,
+    Gabarito_400Regular,
+    Gabarito_500Medium,
+    Gabarito_700Bold
   });
   const { session: userSession, setSession } = useUserSession();
   const router = useRouter();

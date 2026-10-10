@@ -1,7 +1,7 @@
 export const fonts = {
-  heading: "Merriweather_400Regular",
-  label: "PlusJakartaSans_500Medium",
-  body: "PlusJakartaSans_400Regular",
+  heading: "Gabarito_500Medium",
+  label: "Gabarito_500Medium",
+  body: "Gabarito_400Regular",
 } as const;
 
 export const fontSizes = {
