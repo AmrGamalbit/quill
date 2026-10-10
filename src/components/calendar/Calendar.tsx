@@ -31,9 +31,6 @@ export default function Calendar({
   const [currentMonth, setCurrentMonth] = useState<Date>(
     startOfMonth(selectedDate),
   );
-  useEffect(() => {
-    setCurrentMonth(startOfMonth(selectedDate));
-  }, [selectedDate]);
   const weeks = getMonthWeeks(currentMonth, 0);
   const [showPicker, setShowPicker] = useState(false);
   const selectedRow = weeks.findIndex((w) =>
@@ -48,8 +45,18 @@ export default function Calendar({
     setCurrentMonth((prev) => addMonths(prev, 1));
   };
 
-  const { toggle, headerStyle, gridContainerStyle, gridStyle, panGesture } =
-    useCalendarCollapse(selectedRow);
+  const {
+    toggle,
+    headerStyle,
+    gridContainerStyle,
+    gridStyle,
+    panGesture,
+    isExapnded,
+  } = useCalendarCollapse(selectedRow);
+
+  useEffect(() => {
+    setCurrentMonth(startOfMonth(selectedDate));
+  }, [selectedDate, isExapnded]);
 
   return (
     <View>

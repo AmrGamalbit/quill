@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import {
@@ -9,6 +10,7 @@ import {
 } from "react-native-reanimated";
 
 export default function useCalendarCollapse(selectedRow: number) {
+  const [isExapnded, setIsExpanded] = useState(false);
   const progress = useSharedValue(0);
   const startProgress = useSharedValue(0);
   const { width } = useWindowDimensions();
@@ -18,6 +20,7 @@ export default function useCalendarCollapse(selectedRow: number) {
     progress.value = withTiming(progress.value === 1 ? 0 : 1, {
       duration: 300,
     });
+    setIsExpanded((prev) => !prev);
   };
 
   const headerStyle = useAnimatedStyle(() => ({
@@ -60,5 +63,12 @@ export default function useCalendarCollapse(selectedRow: number) {
       });
     });
 
-  return { toggle, headerStyle, gridContainerStyle, gridStyle, panGesture };
+  return {
+    toggle,
+    headerStyle,
+    gridContainerStyle,
+    gridStyle,
+    panGesture,
+    isExapnded,
+  };
 }
