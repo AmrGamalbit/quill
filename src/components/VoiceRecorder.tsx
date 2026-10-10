@@ -1,10 +1,11 @@
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import { Ionicons } from "@expo/vector-icons";
 import {
-    RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync,
-    useAudioRecorder, useAudioRecorderState,
+  RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync,
+  useAudioRecorder, useAudioRecorderState,
 } from "expo-audio";
 import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Alert, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import useTheme from "../hooks/useTheme";
 import type { PendingAttachment } from "../services/attachments";
@@ -39,7 +40,7 @@ export default function VoiceRecorder({
         (async () => {
             const perm = await requestRecordingPermissionsAsync();
             if (!perm.granted) {
-                Alert.alert("Microphone access needed", "Enable microphone permission in Settings to record voice notes.");
+                dialog.alert("Microphone access needed", "Enable microphone permission in Settings to record voice notes.");
                 onCancel();
                 return;
             }
@@ -51,7 +52,7 @@ export default function VoiceRecorder({
             AccessibilityInfo.announceForAccessibility("Recording started");
         })().catch((e) => {
             console.error("Reocrder start failed:", e);
-            Alert.alert("Couldn't start recording", e?.message ?? "Please try again.");
+            dialog.alert("Couldn't start recording", e?.message ?? "Please try again.");
             onCancel();
         });
 
@@ -108,7 +109,7 @@ export default function VoiceRecorder({
         } catch (e: any) {
             busy.current = false;
             console.error("Recording stop failes: ", e);
-            Alert.alert("Couldn't save recording", e?.message ?? "Please try again.");
+            dialog.alert("Couldn't save recording", e?.message ?? "Please try again.");
         }
     };
 

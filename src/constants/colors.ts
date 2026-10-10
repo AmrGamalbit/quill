@@ -14,6 +14,7 @@ const primitives = {
   forestDark: "#123327",
   mintSoft: "#E8F2EC",
   wine: "#8B2635",
+  wineDark: "#6E1E2B",
 } as const;
 
 export const colors = {
@@ -30,6 +31,7 @@ export const colors = {
     border: primitives.borderLight,
     shadow: primitives.charcoal,
     danger: primitives.wine,
+    dangerPressed: primitives.wineDark,
   },
   dark: {
     background: "#111715",
@@ -44,5 +46,6 @@ export const colors = {
     border: "#283934",
     shadow: "#000000",
     danger: "#E56B7A",
+    dangerPressed: "#C95868",
   },
 };

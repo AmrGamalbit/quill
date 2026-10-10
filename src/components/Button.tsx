@@ -17,7 +17,7 @@ import useTheme from "../hooks/useTheme";
 interface ButtonProps {
   label: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "outline";
+  variant?: "primary" | "secondary" | "outline" | "danger";
   loading?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -41,14 +41,19 @@ export default function Button({
 
   const isPrimary = variant === "primary";
   const isOutline = variant === "outline";
+  const isDanger = variant === "danger";
 
-  const defaultBg = isPrimary
+  const defaultBg = isDanger
+    ? colors.danger
+    : isPrimary
     ? colors.accent
     : isOutline
     ? "transparent"
     : colors.card;
 
   const pressedBg = isPrimary
+    ? colors.dangerPressed
+    : isPrimary
     ? colors.accentPressed
     : isOutline
     ? colors.cardPressed
@@ -56,7 +61,7 @@ export default function Button({
 
   const { animatePress, animatedColor } = usePressAnimation(defaultBg, pressedBg);
 
-  const textColor = isPrimary
+  const textColor = isPrimary || isDanger
     ? colors.textOnAccent
     : isOutline
     ? colors.accent

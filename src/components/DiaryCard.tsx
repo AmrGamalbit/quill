@@ -1,10 +1,9 @@
 import {
-  Alert,
   Animated,
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
@@ -13,6 +12,7 @@ import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import { haptic } from "../services/haptics";
 import type { Diary } from "../types/diary";
+import { dialog } from "./Dialog/DialogProvider";
 
 type DiaryCardProps = {
   diary: Diary;
@@ -34,12 +34,10 @@ export default function DiaryCard({
     colors.card,
     colors.cardPressed,
   );
-  console.log("this is entryCount" + entryCount);
-  console.log(latestEntryBody);
 
   const handleLongPress = () => {
     haptic.warning();
-    Alert.alert(
+    dialog.alert(
       "Delete Diary",
       `Are you sure you want to delete "${diary.name}"? This action cannot be undone.`,
       [
