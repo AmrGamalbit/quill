@@ -9,36 +9,35 @@ import useTheme from "@/src/hooks/useTheme";
 import { saveDerivedKey } from "@/src/services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "@/src/services/storage/SupabaseStorageAdapter";
 import {
-  getUserProfileRecord,
-  sendPasswordResetEmail,
-  signIn,
-  signUp,
+    getUserProfileRecord,
+    sendPasswordResetEmail,
+    signIn,
+    signUp,
 } from "@/src/utils/auth";
 import {
-  bytesToHex,
-  decryptData,
-  decryptUserProfile,
-  deriveKeyFromPassword,
-  encryptData,
-  encryptUserProfile,
-  generateUserKeyPair,
-  hexToBytes,
+    bytesToHex,
+    decryptData,
+    decryptUserProfile,
+    deriveKeyFromPassword,
+    encryptData,
+    encryptUserProfile,
+    generateUserKeyPair,
+    hexToBytes,
 } from "@/src/utils/crypto";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
 import * as Crypto from "expo-crypto";
 import { useRef, useState } from "react";
 import {
-  Alert,
-  Animated,
-  KeyboardAvoidingView,
-  LayoutAnimation,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
-  View,
+    Animated,
+    KeyboardAvoidingView,
+    LayoutAnimation,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View
 } from "react-native";
 
 if (
@@ -63,12 +62,12 @@ export default function Auth() {
 
   async function handleAuth() {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Missing details", "Please fill in both email and password.");
+      dialog.alert("Missing details", "Please fill in both email and password.");
       return;
     }
 
     if (isSignUp && !name.trim()) {
-      Alert.alert("Missing details", "Please enter your name.");
+      dialog.alert("Missing details", "Please enter your name.");
       return;
     }
 
@@ -106,7 +105,7 @@ export default function Auth() {
         });
 
         if (!session) {
-          Alert.alert(
+          dialog.alert(
             "Check your inbox",
             "We sent a confirmation link to your email.",
           );
@@ -163,7 +162,7 @@ export default function Auth() {
       }
     } catch (err: any) {
       console.error("Auth Error:", err);
-      Alert.alert(
+      dialog.alert(
         isSignUp ? "Sign Up Error" : "Login Error",
         err?.message || "Something went wrong.",
       );
@@ -174,7 +173,7 @@ export default function Auth() {
 
   async function handleForgotPassword() {
     if (!email.trim()) {
-      Alert.alert(
+      dialog.alert(
         "Enter your email",
         "Please enter your email address in the field above first, then tap Forgot Password.",
       );
@@ -184,12 +183,12 @@ export default function Auth() {
     setLoading(true);
     try {
       await sendPasswordResetEmail(email.trim());
-      Alert.alert(
+      dialog.alert(
         "Check your inbox",
         "We've sent a password reset link to your email.",
       );
     } catch (err: any) {
-      Alert.alert("Reset Error", err.message || "Failed to send reset email.");
+      dialog.alert("Reset Error", err.message || "Failed to send reset email.");
     } finally {
       setLoading(false);
     }

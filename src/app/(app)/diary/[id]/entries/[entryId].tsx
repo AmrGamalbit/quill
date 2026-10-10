@@ -1,3 +1,4 @@
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
 import { getAttachmentsByEntryId } from "@/src/db/attachments";
 import { getEntryById } from "@/src/db/entries";
@@ -9,7 +10,6 @@ import { Attachment } from "@/src/types/attachment";
 import { Entry } from "@/src/types/entry";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EntryEditScreen() {
@@ -40,7 +40,7 @@ export default function EntryEditScreen() {
       await updateEntryWithMedia(Number(entryId), title, body, media);
       router.back();
     } catch {
-      Alert.alert(
+      dialog.alert(
         "Couldn't save",
         "The media couldn't be stored. Please try again.",
       );

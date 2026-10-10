@@ -1,10 +1,10 @@
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
 import {
   createEntryWithMedia,
   PendingAttachment,
 } from "@/src/services/attachments";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NewEntryScreen() {
@@ -22,7 +22,7 @@ export default function NewEntryScreen() {
       router.back();
     } catch (e) {
       console.error("Save failed:", e);
-      Alert.alert(
+      dialog.alert(
         "Couldn't save",
         e instanceof Error ? e.message : "Please try again.",
       );

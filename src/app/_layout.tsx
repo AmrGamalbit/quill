@@ -22,6 +22,7 @@ export {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { DialogProvider } from "../components/Dialog/DialogProvider";
 import {
   UserSessionProvider,
   useUserSession,
@@ -201,7 +202,7 @@ function AppNavigator() {
       >
         <ActivityIndicator
           size="large"
-          color={isDark ? "#4E9E80" : "#1B4938"}
+          color={colors.accent}
         />
       </SafeAreaView>
     );
@@ -209,6 +210,7 @@ function AppNavigator() {
 
   return (
     <SafeAreaProvider>
+      <DialogProvider>
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.background },
@@ -218,6 +220,7 @@ function AppNavigator() {
         <Stack.Screen name="(app)" />
         <Stack.Screen name="(auth)" />
       </Stack>
+      </DialogProvider>
     </SafeAreaProvider>
   );
 }

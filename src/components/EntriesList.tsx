@@ -1,14 +1,14 @@
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { haptic } from "../services/haptics";
@@ -42,7 +42,7 @@ export default function EntriesList({
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
     haptic.press();
-    Alert.alert(
+    dialog.alert(
       "Delete Entry",
       `Are you sure you want to delete "${entry.title}"?`,
       [

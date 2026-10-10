@@ -1,9 +1,9 @@
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   LayoutAnimation,
   Modal,
@@ -11,7 +11,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useUserSession } from "../context/UserSessionContext";
 import { clearLocalDatabase } from "../db";
@@ -64,13 +64,13 @@ export default function SettingsModal({
 
   const handleDeleteAccount = () => {
     haptic.warning();
-    Alert.alert(
+    dialog.alert(
       "Delete Account",
       "This action is permanent. All data stored or associated with your account will be permanently deleted.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete Account",
+          text: "Confirm",
           style: "destructive",
           onPress: async () => {
             setIsDeletingAccount(true);
@@ -89,7 +89,7 @@ export default function SettingsModal({
               onClose();
               if (onLogoutSuccess) onLogoutSuccess();
             } catch (err: any) {
-              Alert.alert(
+              dialog.alert(
                 "Deletion Failed",
                 err.message || "Could not delete account. Please try again.",
               );
@@ -169,12 +169,12 @@ export default function SettingsModal({
       });
 
       haptic.success();
-      Alert.alert("Success", "Profile photo updated successfully!");
+      dialog.alert("Success", "Profile photo updated successfully!");
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setIsPhotoExpanded(false);
     } catch (err: any) {
       haptic.error();
-      Alert.alert(
+      dialog.alert(
         "Upload Failed",
         err.message || "Could not update profile photo.",
       );
@@ -184,7 +184,7 @@ export default function SettingsModal({
   };
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+    dialog.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Sign Out",
@@ -201,7 +201,7 @@ export default function SettingsModal({
             onClose();
             if (onLogoutSuccess) onLogoutSuccess();
           } catch (err: any) {
-            Alert.alert(
+            dialog.alert(
               "Error signing out",
               err.message || "Please try again later.",
             );
