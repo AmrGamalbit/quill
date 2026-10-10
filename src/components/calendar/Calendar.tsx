@@ -6,9 +6,11 @@ import {
   isSameDay,
   startOfMonth,
 } from "@/src/utils/dates";
-import { useState } from "react";
+import { DatePicker } from "@quidone/react-native-wheel-picker";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
+import AppModal from "../ui/AppModal";
 import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
 import NavButton from "./NavButton";
@@ -28,7 +30,11 @@ export default function Calendar({
   const [currentMonth, setCurrentMonth] = useState<Date>(
     startOfMonth(selectedDate),
   );
+  useEffect(() => {
+    setCurrentMonth(startOfMonth(selectedDate));
+  }, [selectedDate]);
   const weeks = getMonthWeeks(currentMonth, 0);
+  const [showPicker, setShowPicker] = useState(false);
   const selectedRow = weeks.findIndex((w) =>
     w.some((d) => isSameDay(d, selectedDate)),
   );
@@ -51,6 +57,7 @@ export default function Calendar({
           month={currentMonth}
           onPrev={handlePrevMonth}
           onNext={handleNextMonth}
+          onTitlePress={() => setShowPicker((prev) => !prev)}
         />
       </Animated.View>
       <WeekHeader weekStartOn={0} />
@@ -74,6 +81,20 @@ export default function Calendar({
       >
         <NavButton icon={"reorder-three-outline"} onPress={toggle} />
       </View>
+      <AppModal
+        title="Jump To"
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+      >
+        <View style={{ alignItems: "center" }}>
+          <DatePicker
+            date={selectedDate.toISOString().split("T")[0]}
+            onDateChanged={({ date }: { date: string }) =>
+              onSelectDate(new Date(date))
+            }
+          />
+        </View>
+      </AppModal>
     </View>
   );
 }

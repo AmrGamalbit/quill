@@ -5,10 +5,15 @@ import { Animated, Pressable, StyleSheet } from "react-native";
 
 type NavIconProps = {
   icon: keyof typeof Ionicons.glyphMap;
+  iconSize?: number;
   onPress: () => void;
 };
 
-export default function NavButton({ icon, onPress }: NavIconProps) {
+export default function NavButton({
+  icon,
+  iconSize = 20,
+  onPress,
+}: NavIconProps) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
     colors.background,
@@ -24,7 +29,7 @@ export default function NavButton({ icon, onPress }: NavIconProps) {
       <Animated.View
         style={[{ backgroundColor: animatedColor }, styles.ionButton]}
       >
-        <Ionicons name={icon} size={20} color={colors.textMuted} />
+        <Ionicons name={icon} size={iconSize} color={colors.textMuted} />
       </Animated.View>
     </Pressable>
   );
