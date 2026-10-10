@@ -125,6 +125,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                             <View key={i} style={shown.buttons.length <= 2 && { flex: 1 }}>
                                 <Button
                                     label={b.text}
+                                    size='md'
                                     variant={variantFor(b.style)}
                                     onPress={() => close(b)}
                                 />

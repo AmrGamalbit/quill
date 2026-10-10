@@ -70,7 +70,7 @@ export default function SettingsModal({
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete Account",
+          text: "Confirm",
           style: "destructive",
           onPress: async () => {
             setIsDeletingAccount(true);
