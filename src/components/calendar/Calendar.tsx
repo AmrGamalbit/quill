@@ -1,4 +1,5 @@
 import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
+import useTheme from "@/src/hooks/useTheme";
 import { Entry } from "@/src/types/entry";
 import {
   addMonths,
@@ -33,6 +34,7 @@ export default function Calendar({
   const [currentMonth, setCurrentMonth] = useState<Date>(
     startOfMonth(selectedDate),
   );
+  const { colors } = useTheme();
   const weeks = getMonthWeeks(currentMonth, 0);
   const [showPicker, setShowPicker] = useState(false);
   const selectedRow = weeks.findIndex((w) =>
@@ -102,6 +104,7 @@ export default function Calendar({
       >
         <View style={{ alignItems: "center" }}>
           <DatePicker
+            itemTextStyle={{ color: colors.text }}
             date={toDateKey(selectedDate)}
             onDateChanged={({ date }: { date: string }) =>
               onDayPress(new Date(date))
