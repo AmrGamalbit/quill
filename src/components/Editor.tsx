@@ -85,7 +85,7 @@ export default function Editor({
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
   const [entryDate, setEntryDate] = useState(
-    initialDate ? fromDateKey(initialDate) : new Date(),
+    initialDate ?? toDateKey(new Date()),
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [viewing, setViewing] = useState<{
@@ -174,7 +174,7 @@ export default function Editor({
     ],
     theme: isDark ? darkEditorTheme : undefined,
   });
-  const displayDate = entryDate.toLocaleDateString("en-US", {
+  const displayDate = fromDateKey(entryDate).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -188,7 +188,13 @@ export default function Editor({
     );
     play(celebrate);
     const contentHtml = await editor.getHTML();
-    onSave(title, toDateKey(entryDate), contentHtml, { added, removedIds });
+    setIsReadOnly(true);
+    onSave(title, entryDate, contentHtml, { added, removedIds });
+  };
+
+  const handleStartEditing = () => {
+    setIsReadOnly(false);
+    play(celebrate);
   };
 
   return (
@@ -217,7 +223,7 @@ export default function Editor({
           <Animated.View style={saveStyle}>
             <Button
               label="Edit"
-              onPress={() => setIsReadOnly((prev) => !prev)}
+              onPress={handleStartEditing}
               size="sm"
               style={{ width: 72 }}
             />
@@ -341,10 +347,8 @@ export default function Editor({
       >
         <View style={{ alignItems: "center" }}>
           <DatePicker
-            date={toDateKey(entryDate)}
-            onDateChanged={({ date }: { date: string }) =>
-              setEntryDate(new Date(date))
-            }
+            date={entryDate}
+            onDateChanged={({ date }: { date: string }) => setEntryDate(date)}
           />
         </View>
       </AppModal>

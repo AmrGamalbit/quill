@@ -38,8 +38,13 @@ export default function EntryEditScreen() {
     media: { added: PendingAttachment[]; removedIds: number[] },
   ) => {
     try {
-      await updateEntryWithMedia(Number(entryId), title, entryDate, body, media);
-      router.back();
+      await updateEntryWithMedia(
+        Number(entryId),
+        title,
+        entryDate,
+        body,
+        media,
+      );
     } catch {
       dialog.alert(
         "Couldn't save",
