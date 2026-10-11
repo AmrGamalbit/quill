@@ -76,6 +76,10 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
+  const saveScale = useSharedValue(1);
+  const saveStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: saveScale.value }],
+  }));
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
   const { top } = useSafeAreaInsets();
