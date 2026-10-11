@@ -304,7 +304,7 @@ export default function Editor({
           editable={!isReadOnly}
         />
 
-        <Pressable onPress={handleDatePress}>
+        <Pressable onLongPress={handleDatePress}>
           <Text style={styles.dateSubtitle}>{displayDate}</Text>
         </Pressable>
         {visual.length > 0 && (
