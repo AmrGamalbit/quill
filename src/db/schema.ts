@@ -1,14 +1,27 @@
 import { sql } from "drizzle-orm";
-import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { check, index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const diariesTable = sqliteTable("diaries", {
   id: int().primaryKey({ autoIncrement: true }).notNull(),
   name: text().notNull(),
   description: text(),
+  color: text().notNull().default("cobalt"),
+  lastOpenedAt: int("last_opened_at", { mode: "timestamp_ms" }),
   createdAt: int("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const appStateTable = sqliteTable(
+  "app_state",
+  {
+    id: int().primaryKey().notNull(),
+    resumeDiaryId: int("resume_diary_id").references(() => diariesTable.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [check("app_state_singleton", sql`${t.id} = 1`)],
+);
 
 export const entriesTable = sqliteTable("entries", {
   id: int().primaryKey({ autoIncrement: true }).notNull(),

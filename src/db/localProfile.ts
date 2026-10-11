@@ -28,5 +28,11 @@ export const saveLocalProfile = async (
   photoUri: string | null,
   publicKey: string | null,
 ) => {
-  db.insert(profile).values({ userId, name, photoUri, publicKey });
+  await db
+    .insert(profile)
+    .values({ userId, name, photoUri, publicKey })
+    .onConflictDoUpdate({
+      target: profile.userId,
+      set: { name, photoUri, publicKey, updatedAt: new Date() },
+    });
 };

@@ -1,5 +1,5 @@
 import EmptyArt from "@/assets/images/empty.svg";
-import DiaryCard from "@/src/components/DiaryCard";
+import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
@@ -13,18 +13,12 @@ import useUserEmail from "@/src/hooks/useUserEmail";
 import type { DiaryFormData } from "@/src/types/diary";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const { colors } = useTheme();
   const { session } = useUserSession();
-
   const styles = getStyles(colors);
 
   const firstName = session?.name
@@ -39,20 +33,26 @@ export default function Home() {
   const router = useRouter();
 
   const handleAddDiary = (data: DiaryFormData) => {
-    if (!data.name.trim()) return;
-    addDiary(data.name.trim(), "");
-    setShowDiaryForm(false);
+    const name = data.name.trim();
+    if (!name) return;
+    addDiary(name, data.color).catch((e) =>
+    console.error("Failed to create diary: ", e),
+  );
+  setShowDiaryForm(false);
   };
 
   const handleDeleteDiary = async (id: number) => {
-    await deleteDiary(id);
+    deleteDiary(id).catch((e) => console.error("Failed to delete diary: ", e));
+  };
+
+  const handleOpenDiary = (id: number) => {
+    router.replace(`/(app)/diary/${id}`);
   };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.screen}>
         <FlatList
-        numColumns={2}
         data={diaries}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
@@ -67,17 +67,11 @@ export default function Home() {
             </View>
           }
           renderItem={({ item }) => (
-            <View style={styles.cell}>
               <DiaryCard
                 diary={item}
-                entryCount={item.entryCount}
-                latestEntryBody={item.latestEntryBody}
-                onPress={() => {
-                  router.push(`/(app)/diary/${item.id}`);
-                }}
-                onDelete={(id) => handleDeleteDiary(id)}
+                onPress={() => handleOpenDiary(item.id)}
+                onDelete={handleDeleteDiary}
               />
-            </View>
           )}
         />
         <DiaryForm
@@ -100,16 +94,12 @@ export default function Home() {
   );
 }
 
-const getStyles = (colors: any) =>
+const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     screen: { flex: 1 },
     listContent: {
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: STACK_SIDE_PADDING,
       paddingBottom: 96,
-    },
-    cell: {
-      width: '50%',
-      padding: spacing.xs,
     },
     emptyList: {
       alignItems: "center",

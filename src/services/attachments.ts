@@ -128,8 +128,7 @@ export async function persistAttachments(
     // Roll back only what this call created; never touch pre-existing attachments.
     if (current) await removeAttachmentFile(current).catch(() => {});
     for (const s of saved) {
-      deleteAttachmentRow(s.id);
-      await removeAttachmentFile(s.relPath).catch(() => {});
+      await deleteAttachmentRow(s.id).catch(() => {});
     }
     throw e;
   }
@@ -166,7 +165,7 @@ export async function createEntryWithMedia(
   try {
     if (added.length) await persistAttachments(entryId, added);
   } catch (e) {
-    deleteEntry(entryId); // don't leave an entry the user believes has media
+    await deleteEntry(entryId).catch(() => {});
     await removeEntryMedia(entryId).catch(() => {});
     throw e;
   }
@@ -179,9 +178,8 @@ export async function updateEntryWithMedia(
   body: string,
   media: { added: PendingAttachment[]; removedIds: number[] },
 ): Promise<void> {
-  updateEntry(entryId, title, body);
+  await updateEntry(entryId, title, body);
 
-  // Add first: it can throw and rolls itself back, so removals never run on failure.
   if (media.added.length) await persistAttachments(entryId, media.added);
 
   if (media.removedIds.length) {
@@ -190,19 +188,19 @@ export async function updateEntryWithMedia(
     );
     for (const a of doomed) {
       await removeAttachmentFile(a.relPath);
-      deleteAttachmentRow(a.id);
+      await deleteAttachmentRow(a.id);
     }
   }
 }
 
 export async function deleteEntryWithMedia(entryId: number): Promise<void> {
   await removeEntryMedia(entryId);
-  deleteEntry(entryId);
+  await deleteEntry(entryId);
 }
 
 export async function deleteDiaryWithMedia(diaryId: number): Promise<void> {
   for (const e of await getEntriesByDiaryId(diaryId)) {
     await removeEntryMedia(e.id);
   }
-  deleteDiary(diaryId);
+  await deleteDiary(diaryId);
 }

@@ -36,6 +36,13 @@
       "when": 1791397583147,
       "tag": "0004_powerful_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791703231763,
+      "tag": "0005_powerful_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,22 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import {
+  DEFAULT_DIARY_COLOR,
+  diaryColors,
+  resolveDiaryColor,
+  type DiaryColorKey,
+} from "../constants/colors";
 import { spacing } from "../constants/spacings";
 import { fontSizes, fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
+import { haptic } from "../services/haptics";
 import type { DiaryFormData } from "../types/diary";
 import Button from "./Button";
 import FormField from "./FormField";
@@ -13,42 +27,80 @@ type DiaryFormProps = {
   onSubmit: (data: DiaryFormData) => void;
 };
 
+const COLOR_KEYS = Object.keys(diaryColors) as DiaryColorKey[];
+const EMPTY_FORM: DiaryFormData = { name: "", color: DEFAULT_DIARY_COLOR};
+
 export default function DiaryForm({ isOpen, onClose, onSubmit }: DiaryFormProps) {
-  const { colors } = useTheme();
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const { colors, isDark } = useTheme();
+  const [formData, setFormData] = useState<DiaryFormData>(EMPTY_FORM);
+  const scheme = isDark ? "dark" : "light";
+
+  const close = () => {
+    setFormData(EMPTY_FORM);
+    onClose();
+  }
 
   const handleSubmit = () => {
-    if (!formData.name.trim()) return;
-    onSubmit(formData);
-    console.log("submitted");
-    onClose();
-  };
+    const name = formData.name.trim();
+    if (!name) return;
+    onSubmit({name, color: formData.color});
+    close();
+  }
 
   return (
     <Modal
     visible={isOpen}
     animationType="slide"
     transparent={true}
-    onRequestClose={onClose}
+    onRequestClose={close}
     >
       <KeyboardAvoidingView
       behavior={"padding"}
       style={styles.keyboardContainer}
       >
     <View style={styles.overlay}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <Pressable style={styles.backdrop} onPress={close} />
       <View style={[styles.sheet, {backgroundColor: colors.surface }]}>
-        <View style={styles.handleIndicator} />
+        <View style={[styles.handleIndicator, {backgroundColor: colors.border}]} />
         <Text style={[styles.title, {color: colors.text}]}>New Diary</Text>
         <View style={styles.formContent}>
           <FormField
           label="Title"
-          placeholder="Personal, Work, Travel"
+          placeholder="Family, Friends, etc."
           value={formData.name}
-          onChangeText={(newText) => 
-            setFormData((prev) => ({ ...prev, name: newText}))
+          onChangeText={(name) => 
+            setFormData((prev) => ({ ...prev, name}))
           }
           />
+
+          <View style={styles.colorSection}>
+            <Text style={{color: colors.textMuted}}>Ribbon color</Text>
+            <View style={styles.swatchRow}>
+              {COLOR_KEYS.map((key) => {
+                const selected = key === formData.color;
+                return (
+                  <Pressable
+                  key={key}
+                  accessibilityRole="radio"
+                  accessibilityState={{selected}}
+                  accessibilityLabel={key}
+                  hitSlop={4}
+                  onPress={() => {
+                    haptic.select();
+                    setFormData((prev) => ({ ...prev, color: key }));
+                  }}
+                  style={[
+                    styles.swatch,
+                    {
+                      backgroundColor: resolveDiaryColor(key, scheme),
+                      borderColor: selected ? colors.text : "transparent",
+                    },
+                  ]}
+                  />
+                );
+              })}
+            </View>
+          </View>
           <Button label="Create Diary" onPress={handleSubmit} />
         </View>
       </View>
@@ -80,7 +132,6 @@ const styles = StyleSheet.create({
   handleIndicator: {
     width: 36,
     height: 4,
-    backgroundColor: '#d1d5db',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: spacing.md,
@@ -94,5 +145,16 @@ const styles = StyleSheet.create({
   formContent: {
     gap: spacing.md,
   },
-  modal: { width: "100%", padding: spacing.xl, },
+  colorSection: {
+    gap: spacing.sm,
+  },
+  swatchRow: {
+    flexDirection: "row", flexWrap: "wrap", gap: "spacing.sm",
+  },
+  swatch: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 3
+  },
 });

@@ -10,7 +10,9 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import "react-native-reanimated";
 import migrations from "../../drizzle/migrations";
-import { db, sqlite } from "../db";
+import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
+import { db, dbStatus, sqlite } from "../db";
+import { getResumeDiaryId } from "../db/appState";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -41,6 +43,9 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  if (dbStatus === "locked") {
+    return <LockedDatabaseScreen />;
+  }
   return (
     <UserSessionProvider>
       <AppNavigator />
@@ -174,15 +179,20 @@ function AppNavigator() {
 
     return () => unsubscribe();
   }, []);
-
+  
+  const isSignedIn = supabaseSession !== null;
+  const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
-    if (isAuthLoading) return;
-    if (supabaseSession) {
-      router.replace("/(app)");
-    } else {
+    if (!isNavReady) return;
+    if (!isSignedIn) {
       router.replace("/(auth)/login");
+      return;
     }
-  }, [supabaseSession, isAuthLoading]);
+    const resumeDiaryId = getResumeDiaryId();
+    router.replace(
+      resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
+    );
+  }, [isSignedIn, isNavReady]);
 
   useEffect(() => {
     if (isFontsLoaded && isDbMigrated) {

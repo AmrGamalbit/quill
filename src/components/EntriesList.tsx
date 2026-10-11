@@ -20,7 +20,7 @@ interface EntriesListProps {
   diaryName?: string;
   onNewEntry: () => void;
   onSelectEntry?: (entry: Entry) => void;
-  onBack?: () => void;
+  onClose?: () => void;
   onDeleteEntry?: (id: number) => void;
 }
 
@@ -29,7 +29,7 @@ export default function EntriesList({
   diaryName = "Diary",
   onNewEntry,
   onSelectEntry,
-  onBack,
+  onClose,
   onDeleteEntry,
 }: EntriesListProps) {
   const { colors } = useTheme();
@@ -97,13 +97,15 @@ export default function EntriesList({
     >
       <View style={styles.container}>
         <View style={styles.topBar}>
-          {onBack && (
+          {onClose && (
             <TouchableOpacity
               style={styles.backBtn}
-              onPress={onBack}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close diary"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="arrow-back" size={22} color={colors.text} />
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
           <View style={styles.titleContainer}>

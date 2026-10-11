@@ -51,3 +51,21 @@ export const colors = {
     dangerPressed: "#E54E67",
   },
 };
+
+export const diaryColors = {
+  cobalt: { light: "#2D62A4", dark: "#BDC2F7" },
+  rose: { light: "#D62845", dark: "#FF6B82" },
+  amber: { light: "#B7791F", dark: "#F6C453" },
+  forest: { light: "#2F7D5B", dark: "#6FD3A5" },
+  teal: { light: "#1F7A8C", dark: "#6CC6D6" },
+  violet: { light: "#7B4FB8", dark: "#C2A3F2" },
+  slate: { light: "#5E6692", dark: "#9DA5D4" },
+} as const;
+
+export type DiaryColorKey = keyof typeof diaryColors;
+export const DEFAULT_DIARY_COLOR: DiaryColorKey = "cobalt";
+
+export const resolveDiaryColor = (key: string, scheme: "light" | "dark") =>
+  (diaryColors[key as DiaryColorKey] ?? diaryColors[DEFAULT_DIARY_COLOR])[
+    scheme
+  ];
