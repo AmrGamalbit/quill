@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { fonts } from "../constants/typography";
 import { haptic } from "../services/haptics";
 import type { Entry } from "../types/entry";
 import Calendar from "./calendar/Calendar";
@@ -22,6 +23,7 @@ interface EntriesListProps {
   onSelectEntry?: (entry: Entry) => void;
   onClose?: () => void;
   onDeleteEntry?: (id: number) => void;
+  closing?: boolean;
 }
 
 export default function EntriesList({
@@ -31,6 +33,7 @@ export default function EntriesList({
   onSelectEntry,
   onClose,
   onDeleteEntry,
+  closing,
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -99,7 +102,7 @@ export default function EntriesList({
         <View style={styles.topBar}>
           {onClose && (
             <TouchableOpacity
-              style={styles.backBtn}
+              style={[styles.backBtn, closing && styles.hidden]}
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Close diary"
@@ -109,7 +112,7 @@ export default function EntriesList({
             </TouchableOpacity>
           )}
           <View style={styles.titleContainer}>
-            <Text style={styles.diaryHeading} numberOfLines={1}>
+            <Text style={[styles.diaryHeading, closing && styles.hidden]} numberOfLines={1}>
               {diaryName}
             </Text>
             <Text style={styles.entryCountSubtitle}>
@@ -174,10 +177,10 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       flex: 1,
     },
     diaryHeading: {
+      fontFamily: fonts.heading,
       fontSize: 20,
-      fontWeight: "700",
+      fontWeight: "600",
       color: colors.text,
-      letterSpacing: -0.3,
     },
     entryCountSubtitle: {
       fontSize: 12,
@@ -248,4 +251,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       textAlign: "center",
       lineHeight: 20,
     },
+    hidden: {
+      opacity: 100,
+    }
   });

@@ -35,3 +35,4 @@ export function play(events: HapticEvent[]) {
 }
 
 export const cancel = () => Native?.cancel();
+export const isSupported = (): boolean => !!Native?.isSupported();

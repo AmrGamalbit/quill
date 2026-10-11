@@ -6,12 +6,13 @@ import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
 import type { DiaryFormData } from "@/src/types/diary";
-import { useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,34 +31,31 @@ export default function Home() {
 
   const email = useUserEmail();
   const { diaries, deleteDiary, addDiary } = useDiaries();
-  const router = useRouter();
+  const { open } = useDiaryTransition();
 
   const handleAddDiary = (data: DiaryFormData) => {
     const name = data.name.trim();
     if (!name) return;
     addDiary(name, data.color).catch((e) =>
-    console.error("Failed to create diary: ", e),
-  );
-  setShowDiaryForm(false);
+      console.error("Failed to create diary: ", e),
+    );
+    setShowDiaryForm(false);
   };
 
   const handleDeleteDiary = async (id: number) => {
     deleteDiary(id).catch((e) => console.error("Failed to delete diary: ", e));
   };
 
-  const handleOpenDiary = (id: number) => {
-    router.replace(`/(app)/diary/${id}`);
-  };
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <Stack.Screen options={{ animation: "none" }} />
       <View style={styles.screen}>
         <FlatList
-        data={diaries}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
-       ListHeaderComponent={<GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />}
-       ListEmptyComponent={
+          data={diaries}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={<GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />}
+          ListEmptyComponent={
             <View style={styles.emptyList}>
               <EmptyArt width={220} height={220} />
               <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
@@ -66,12 +64,13 @@ export default function Home() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-              <DiaryCard
-                diary={item}
-                onPress={() => handleOpenDiary(item.id)}
-                onDelete={handleDeleteDiary}
-              />
+          renderItem={({ item, index }) => (
+            <DiaryCard
+              diary={item}
+              isFirst={index === 0}
+              onPress={(origin) => open(item, origin)}
+              onDelete={handleDeleteDiary}
+            />
           )}
         />
         <DiaryForm

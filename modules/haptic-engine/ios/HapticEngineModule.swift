@@ -30,6 +30,7 @@ public class HapticEngineModule: Module {
     }
 
     OnAppEntersForeground { self.prepare() }
+    OnCreate { self.prepare() }
     OnDestroy { self.engine?.stop() }
   }
 
@@ -80,7 +81,7 @@ public class HapticEngineModule: Module {
       }
     }
 
-    let pattern = try CHHapticPatern(events: chEvents, parameterCurves: curves)
+    let pattern = try CHHapticPattern(events: chEvents, parameterCurves: curves)
     let p = try engine.makePlayer(with: pattern)
     player = p
     try p.start(atTime: CHHapticTimeImmediate)

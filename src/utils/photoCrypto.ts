@@ -1,3 +1,4 @@
+import { secure } from "@/modules/file-guard";
 import { StorageAdapter } from "@/src/services/storage/StorageAdapter";
 import { decryptData, encryptData } from "@/src/utils/crypto";
 import * as FileSystem from "expo-file-system/legacy";
@@ -86,10 +87,10 @@ export function downloadAndDecryptPhoto(
         encoding: FileSystem.EncodingType.Base64,
       },
     );
+    await secure(localPath, { protect: true }).catch(() => {});
     await clearLocalAvatarCache(localPath).catch(() => {});
     return localPath;
   })().finally(() => inflightDownloads.delete(photoNonceHex));
-
   inflightDownloads.set(photoNonceHex, p);
   return p;
 }
@@ -119,6 +120,13 @@ export async function persistLocalAvatar(
 ): Promise<string> {
   const dest = avatarPathForNonce(nonceHex);
   await FileSystem.copyAsync({ from: srcUri, to: dest });
+  await secure(dest, { protect: true }).catch(() => {});
+  if (
+    FileSystem.cacheDirectory &&
+    srcUri.startsWith(FileSystem.cacheDirectory)
+  ) {
+    await FileSystem.deleteAsync(srcUri, { idempotent: true }).catch(() => {});
+  }
   await clearLocalAvatarCache(dest).catch(() => {});
   return dest;
 }

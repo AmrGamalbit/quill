@@ -1,3 +1,4 @@
+import { secure } from "@/modules/file-guard";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -16,7 +17,7 @@ import {
 } from "../db/entries";
 import type { Attachment } from "../types/attachment";
 
-const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
+export const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 
 export const resolveAttachmentUri = (relPath: string) =>
   `${FileSystem.documentDirectory}${relPath}`;
@@ -74,9 +75,25 @@ export async function pickAudio(): Promise<PendingAttachment[]> {
   }));
 }
 
-// ---------------------------------------------------------------------------
-// Persisting / removing files
-// ---------------------------------------------------------------------------
+async function protectOrThrow(uri: string): Promise<void> {
+  const failures = await secure(uri, { protect: true });
+  if (failures > 0)
+    throw new Error("Could not apply file protection to an attachment.");
+}
+
+export async function discardPending(
+  pending: PendingAttachment[],
+): Promise<void> {
+  const cache = FileSystem.cacheDirectory;
+  if (!cache) return;
+  await Promise.all(
+    pending
+      .filter((p) => p.uri.startsWith(cache))
+      .map((p) =>
+        FileSystem.deleteAsync(p.uri, { idempotent: true }).catch(() => {}),
+      ),
+  );
+}
 
 export async function persistAttachments(
   entryId: number,
@@ -85,6 +102,8 @@ export async function persistAttachments(
   await FileSystem.makeDirectoryAsync(`${ROOT()}${entryId}/`, {
     intermediates: true,
   });
+
+  await protectOrThrow(ROOT());
 
   const saved: Attachment[] = [];
   let current: string | null = null;
@@ -108,6 +127,7 @@ export async function persistAttachments(
         from: p.uri,
         to: resolveAttachmentUri(relPath),
       });
+      await protectOrThrow(resolveAttachmentUri(relPath));
 
       const row = {
         entryId: entryId,
@@ -132,7 +152,7 @@ export async function persistAttachments(
     }
     throw e;
   }
-
+  await discardPending(pending);
   return saved;
 }
 

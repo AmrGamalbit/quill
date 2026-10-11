@@ -7,7 +7,7 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -32,10 +32,11 @@ import { GabaritoFont } from "../constants/Gabarito";
 import { fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import {
+  discardPending,
   PendingAttachment,
   pickAudio,
   pickMedia,
-  resolveAttachmentUri,
+  resolveAttachmentUri
 } from "../services/attachments";
 import { celebrate } from "../services/hapticPatterns";
 import type { Attachment } from "../types/attachment";
@@ -94,6 +95,16 @@ export default function Editor({
   const [added, setAdded] = useState<PendingAttachment[]>([]);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
 
+  const addedRef = useRef(added);
+  addedRef.current = added;
+  const handedOffRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (!handedOffRef.current) void discardPending(addedRef.current);
+    },
+    [],
+  )
+
   const handleAddAudio = async () => {
     const picked = await pickAudio();
     if (picked.length) setAdded((prev) => [...prev, ...picked]);
@@ -137,7 +148,10 @@ export default function Editor({
       width: a.width,
       height: a.height,
       durationMs: a.durationMs,
-      remove: () => setAdded((p) => p.filter((x) => x.uri !== a.uri)),
+      remove: () => {
+        void discardPending([a]);
+        setAdded((p) => p.filter((x) => x.uri !== a.uri));
+      },
     })),
   ];
 
@@ -193,6 +207,7 @@ export default function Editor({
     );
     play(celebrate);
     const contentHtml = await editor.getHTML();
+    handedOffRef.current = true;
     onSave(title, contentHtml, { added, removedIds });
   };
 

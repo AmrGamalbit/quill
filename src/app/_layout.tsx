@@ -11,8 +11,12 @@ import { ActivityIndicator, useColorScheme } from "react-native";
 import "react-native-reanimated";
 import migrations from "../../drizzle/migrations";
 import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
+import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
 import { db, dbStatus, sqlite } from "../db";
 import { getResumeDiaryId } from "../db/appState";
+import { protectLocalStorage } from "../services/localProtection";
+import { finishPendingWipe } from "../services/localWipe";
+
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -73,17 +77,25 @@ function AppNavigator() {
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   let cachedPhotoUri: string | null = null;
-
+  
   useEffect(() => {
     if (fontLoadingError) {
       console.error("Fonts error:", fontLoadingError);
     }
   }, [fontLoadingError]);
-
+  
   useEffect(() => {
     if (isDbMigrated) {
       sqlite.execSync("PRAGMA foreign_keys = ON;");
     }
+  }, [isDbMigrated]);
+  
+  useEffect(() => {
+    if (!isDbMigrated) return;
+    (async () => {
+      await finishPendingWipe();
+      await protectLocalStorage();
+    })().catch((e) => console.error("Local storage hardening failed:", e));
   }, [isDbMigrated]);
 
   useEffect(() => {
@@ -220,6 +232,7 @@ function AppNavigator() {
   return (
     <SafeAreaProvider>
       <DialogProvider>
+        <DiaryTransitionProvider>
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.background },
@@ -229,6 +242,7 @@ function AppNavigator() {
         <Stack.Screen name="(app)" />
         <Stack.Screen name="(auth)" />
       </Stack>
+      </DiaryTransitionProvider>
       </DialogProvider>
     </SafeAreaProvider>
   );
