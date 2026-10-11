@@ -1,4 +1,4 @@
-name: Build Android (debug-signed)
+name: Build Android (Debug)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   android:
-    name: Build Android (release, debug-signed)
+    name: Build Android (debug)
     runs-on: ubuntu-latest
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -38,31 +38,15 @@ jobs:
       - name: Expo prebuild (android)
         run: npx expo prebuild --platform android --no-install
 
-      - name: Force release build type to sign with debug key
-        working-directory: android/app
-        run: |
-          if grep -q "signingConfig signingConfigs.release" build.gradle; then
-            sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/' build.gradle
-            echo "Patched release buildType to use debug signingConfig"
-          else
-            echo "release buildType already uses debug signingConfig (Expo default)"
-          fi
-
-      - name: Build release APK (debug-signed)
+      - name: Build debug APK
         working-directory: android
         run: |
           chmod +x ./gradlew
           ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --build-cache
 
-      - name: Locate APK
-        id: apk
-        run: |
-          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7
         with:
-          name: android-release-debugsigned-apk
-          path: ${{ steps.apk.outputs.path }}
+          name: android-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
