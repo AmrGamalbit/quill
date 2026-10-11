@@ -1,3 +1,4 @@
+import { secure } from "@/modules/file-guard";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -16,7 +17,7 @@ import {
 } from "../db/entries";
 import type { Attachment } from "../types/attachment";
 
-const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
+export const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 
 export const resolveAttachmentUri = (relPath: string) =>
   `${FileSystem.documentDirectory}${relPath}`;
@@ -74,9 +75,25 @@ export async function pickAudio(): Promise<PendingAttachment[]> {
   }));
 }
 
-// ---------------------------------------------------------------------------
-// Persisting / removing files
-// ---------------------------------------------------------------------------
+async function protectOrThrow(uri: string): Promise<void> {
+  const failures = await secure(uri, { protect: true });
+  if (failures > 0)
+    throw new Error("Could not apply file protection to an attachment.");
+}
+
+export async function discardPending(
+  pending: PendingAttachment[],
+): Promise<void> {
+  const cache = FileSystem.cacheDirectory;
+  if (!cache) return;
+  await Promise.all(
+    pending
+      .filter((p) => p.uri.startsWith(cache))
+      .map((p) =>
+        FileSystem.deleteAsync(p.uri, { idempotent: true }).catch(() => {}),
+      ),
+  );
+}
 
 export async function persistAttachments(
   entryId: number,
@@ -85,6 +102,8 @@ export async function persistAttachments(
   await FileSystem.makeDirectoryAsync(`${ROOT()}${entryId}/`, {
     intermediates: true,
   });
+
+  await protectOrThrow(ROOT());
 
   const saved: Attachment[] = [];
   let current: string | null = null;
@@ -108,6 +127,7 @@ export async function persistAttachments(
         from: p.uri,
         to: resolveAttachmentUri(relPath),
       });
+      await protectOrThrow(resolveAttachmentUri(relPath));
 
       const row = {
         entryId: entryId,
@@ -128,12 +148,11 @@ export async function persistAttachments(
     // Roll back only what this call created; never touch pre-existing attachments.
     if (current) await removeAttachmentFile(current).catch(() => {});
     for (const s of saved) {
-      deleteAttachmentRow(s.id);
-      await removeAttachmentFile(s.relPath).catch(() => {});
+      await deleteAttachmentRow(s.id).catch(() => {});
     }
     throw e;
   }
-
+  await discardPending(pending);
   return saved;
 }
 
@@ -167,7 +186,7 @@ export async function createEntryWithMedia(
   try {
     if (added.length) await persistAttachments(entryId, added);
   } catch (e) {
-    deleteEntry(entryId); // don't leave an entry the user believes has media
+    await deleteEntry(entryId).catch(() => {});
     await removeEntryMedia(entryId).catch(() => {});
     throw e;
   }
@@ -183,7 +202,6 @@ export async function updateEntryWithMedia(
 ): Promise<void> {
   await updateEntry(entryId, title, entryDate, body);
 
-  // Add first: it can throw and rolls itself back, so removals never run on failure.
   if (media.added.length) await persistAttachments(entryId, media.added);
 
   if (media.removedIds.length) {
@@ -192,19 +210,19 @@ export async function updateEntryWithMedia(
     );
     for (const a of doomed) {
       await removeAttachmentFile(a.relPath);
-      deleteAttachmentRow(a.id);
+      await deleteAttachmentRow(a.id);
     }
   }
 }
 
 export async function deleteEntryWithMedia(entryId: number): Promise<void> {
   await removeEntryMedia(entryId);
-  deleteEntry(entryId);
+  await deleteEntry(entryId);
 }
 
 export async function deleteDiaryWithMedia(diaryId: number): Promise<void> {
   for (const e of await getEntriesByDiaryId(diaryId)) {
     await removeEntryMedia(e.id);
   }
-  deleteDiary(diaryId);
+  await deleteDiary(diaryId);
 }

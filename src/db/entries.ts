@@ -42,7 +42,7 @@ export const getEntryCount = async (diaryId: number): Promise<number> => {
   const result = await db
     .select({ count: count() })
     .from(entries)
-    .where(eq(entries.id, diaryId));
+    .where(eq(entries.diaryId, diaryId));
   return result[0].count ?? 0;
 };
 

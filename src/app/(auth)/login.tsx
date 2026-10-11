@@ -1,4 +1,5 @@
 import Button from "@/src/components/Button";
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import FormField from "@/src/components/FormField";
 import PasswordField from "@/src/components/PasswordField";
 import { radius } from "@/src/constants/radius";
@@ -9,36 +10,37 @@ import useTheme from "@/src/hooks/useTheme";
 import { saveDerivedKey } from "@/src/services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "@/src/services/storage/SupabaseStorageAdapter";
 import {
-    getUserProfileRecord,
-    sendPasswordResetEmail,
-    signIn,
-    signUp,
+  getUserProfileRecord,
+  sendPasswordResetEmail,
+  signIn,
+  signUp,
 } from "@/src/utils/auth";
 import {
-    bytesToHex,
-    decryptData,
-    decryptUserProfile,
-    deriveKeyFromPassword,
-    encryptData,
-    encryptUserProfile,
-    generateUserKeyPair,
-    hexToBytes,
+  bytesToHex,
+  decryptData,
+  decryptUserProfile,
+  deriveKeyFromPassword,
+  encryptData,
+  encryptUserProfile,
+  generateUserKeyPair,
+  hexToBytes,
 } from "@/src/utils/crypto";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
 import * as Crypto from "expo-crypto";
 import { useRef, useState } from "react";
 import {
-    Animated,
-    KeyboardAvoidingView,
-    LayoutAnimation,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    UIManager,
-    View
+  Animated,
+  KeyboardAvoidingView,
+  LayoutAnimation,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View
 } from "react-native";
+4
 
 if (
   Platform.OS === "android" &&

@@ -1,32 +1,25 @@
 import EmptyArt from "@/assets/images/empty.svg";
-import DiaryCard from "@/src/components/DiaryCard";
+import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import SettingsModal from "@/src/components/SettingsModal";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useDiaries from "@/src/hooks/useDiaries";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
 import type { DiaryFormData } from "@/src/types/diary";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useState } from "react";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const { colors } = useTheme();
   const { session } = useUserSession();
-
   const styles = getStyles(colors);
 
   const firstName = session?.name
@@ -38,68 +31,48 @@ export default function Home() {
 
   const email = useUserEmail();
   const { diaries, deleteDiary, addDiary } = useDiaries();
-  const router = useRouter();
+  const { open } = useDiaryTransition();
 
   const handleAddDiary = (data: DiaryFormData) => {
-    if (!data.name.trim()) return;
-    addDiary(data.name.trim(), "");
+    const name = data.name.trim();
+    if (!name) return;
+    addDiary(name, data.color).catch((e) =>
+      console.error("Failed to create diary: ", e),
+    );
     setShowDiaryForm(false);
   };
 
   const handleDeleteDiary = async (id: number) => {
-    await deleteDiary(id);
+    deleteDiary(id).catch((e) => console.error("Failed to delete diary: ", e));
   };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <Stack.Screen options={{ animation: "none" }} />
       <View style={styles.screen}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <View style={styles.headerTextGroup}>
-              <GreetingHeader name={firstName} />
-              {/*   <DatePill /> */}
+        <FlatList
+          data={diaries}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={<GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />}
+          ListEmptyComponent={
+            <View style={styles.emptyList}>
+              <EmptyArt width={220} height={220} />
+              <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
+              <Text style={{ color: colors.textMuted }}>
+                Join or create a new one.
+              </Text>
             </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => setIsSettingsOpen(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={styles.settingsIconColor.color}
-              />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={diaries}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={
-              diaries.length === 0 ? styles.emptyContainer : undefined
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyList}>
-                <EmptyArt width={220} height={220} />
-                <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
-                <Text style={{ color: colors.textMuted }}>
-                  Join or create a new one.
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => (
-              <DiaryCard
-                diary={item}
-                entryCount={item.entryCount}
-                latestEntryBody={item.latestEntryBody}
-                onPress={() => {
-                  router.push(`/(app)/diary/${item.id}`);
-                }}
-                onDelete={(id) => handleDeleteDiary(id)}
-              />
-            )}
-          />
-        </View>
-
+          }
+          renderItem={({ item, index }) => (
+            <DiaryCard
+              diary={item}
+              isFirst={index === 0}
+              onPress={(origin) => open(item, origin)}
+              onDelete={handleDeleteDiary}
+            />
+          )}
+        />
         <DiaryForm
           isOpen={showDiaryForm}
           onClose={() => setShowDiaryForm(false)}
@@ -120,36 +93,17 @@ export default function Home() {
   );
 }
 
-const getStyles = (colors: any) =>
+const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     screen: { flex: 1 },
-    content: { padding: spacing.lg, flex: 1 },
-    header: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      marginBottom: spacing.md,
-    },
-    headerTextGroup: {
-      flex: 1,
-    },
-    settingsButton: {
-      padding: 6,
-      borderRadius: 20,
-      marginTop: 4,
-    },
-    settingsIconColor: {
-      color: colors.textMuted,
+    listContent: {
+      paddingHorizontal: STACK_SIDE_PADDING,
+      paddingBottom: 96,
     },
     emptyList: {
-      justifyContent: "center",
       alignItems: "center",
       paddingHorizontal: 24,
-    },
-    emptyContainer: {
-      flexGrow: 1, // Crucial: lets the scroll surface expand to fill the full height
-      justifyContent: "center",
-      alignItems: "center",
+      paddingVertical: spacing.xl,
     },
     noDiaryText: {
       fontSize: fontSizes.xl,

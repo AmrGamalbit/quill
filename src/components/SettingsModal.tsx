@@ -12,11 +12,10 @@ import {
   View
 } from "react-native";
 import { useUserSession } from "../context/UserSessionContext";
-import { clearLocalDatabase } from "../db";
 import { saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
-import { removeAllMedia } from "../services/attachments";
 import { haptic } from "../services/haptics";
+import { wipeLocalData } from "../services/localWipe";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
@@ -29,7 +28,6 @@ import {
 } from "../utils/auth";
 import { encryptUserProfile } from "../utils/crypto";
 import {
-  clearLocalAvatarCache,
   encryptAndUploadPhoto,
   persistLocalAvatar,
 } from "../utils/photoCrypto";
@@ -79,9 +77,9 @@ export default function SettingsModal({
               await clearDerivedKey();
               clearSession();
 
-              clearLocalDatabase();
-              await removeAllMedia().catch(() => {});
-              await clearLocalAvatarCache().catch(() => {});
+              await wipeLocalData().catch((e) =>
+              console.error("Local wipe incomplete, will retry on next launch: ", e),
+            );
 
               await signOut().catch(() => {});
 
@@ -191,12 +189,12 @@ export default function SettingsModal({
         onPress: async () => {
           setIsLoggingOut(true);
           try {
-            await clearDerivedKey(); // Wipe OS hardware key
-            await signOut(); // Clear Supabase auth session
-            clearSession(); // Wipe in-memory private key & profile
-            clearLocalDatabase();
-            await removeAllMedia().catch(() => {});
-            await clearLocalAvatarCache().catch(() => {});
+            await clearDerivedKey();
+            await signOut();
+            clearSession(); 
+            await wipeLocalData().catch((e) => 
+            console.error("Local wipe incomplete, will retry on next launch:", e),
+          );
             onClose();
             if (onLogoutSuccess) onLogoutSuccess();
           } catch (err: any) {

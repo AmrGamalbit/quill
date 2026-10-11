@@ -1,8 +1,5 @@
-import { Merriweather_400Regular } from "@expo-google-fonts/merriweather";
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-} from "@expo-google-fonts/plus-jakarta-sans";
+import { Gabarito_400Regular, Gabarito_500Medium, Gabarito_700Bold } from "@expo-google-fonts/gabarito";
+import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import type { Session } from "@supabase/supabase-js";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import "expo-blob";
@@ -13,7 +10,13 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import "react-native-reanimated";
 import migrations from "../../drizzle/migrations";
-import { db, sqlite } from "../db";
+import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
+import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
+import { db, dbStatus, sqlite } from "../db";
+import { getResumeDiaryId } from "../db/appState";
+import { protectLocalStorage } from "../services/localProtection";
+import { finishPendingWipe } from "../services/localWipe";
+
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -41,9 +44,13 @@ import {
   downloadAndDecryptPhoto,
   getValidAvatarUrl,
 } from "../utils/photoCrypto";
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  if (dbStatus === "locked") {
+    return <LockedDatabaseScreen />;
+  }
   return (
     <UserSessionProvider>
       <GestureHandlerRootView>
@@ -62,9 +69,10 @@ function AppNavigator() {
     migrations,
   );
   const [isFontsLoaded, fontLoadingError] = useFonts({
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    Merriweather_400Regular,
+    Roboto_400Regular,
+    Gabarito_400Regular,
+    Gabarito_500Medium,
+    Gabarito_700Bold
   });
   const { session: userSession, setSession } = useUserSession();
   const router = useRouter();
@@ -72,17 +80,25 @@ function AppNavigator() {
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   let cachedPhotoUri: string | null = null;
-
+  
   useEffect(() => {
     if (fontLoadingError) {
       console.error("Fonts error:", fontLoadingError);
     }
   }, [fontLoadingError]);
-
+  
   useEffect(() => {
     if (isDbMigrated) {
       sqlite.execSync("PRAGMA foreign_keys = ON;");
     }
+  }, [isDbMigrated]);
+  
+  useEffect(() => {
+    if (!isDbMigrated) return;
+    (async () => {
+      await finishPendingWipe();
+      await protectLocalStorage();
+    })().catch((e) => console.error("Local storage hardening failed:", e));
   }, [isDbMigrated]);
 
   useEffect(() => {
@@ -178,15 +194,20 @@ function AppNavigator() {
 
     return () => unsubscribe();
   }, []);
-
+  
+  const isSignedIn = supabaseSession !== null;
+  const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
-    if (isAuthLoading) return;
-    if (supabaseSession) {
-      router.replace("/(app)");
-    } else {
+    if (!isNavReady) return;
+    if (!isSignedIn) {
       router.replace("/(auth)/login");
+      return;
     }
-  }, [supabaseSession, isAuthLoading]);
+    const resumeDiaryId = getResumeDiaryId();
+    router.replace(
+      resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
+    );
+  }, [isSignedIn, isNavReady]);
 
   useEffect(() => {
     if (isFontsLoaded && isDbMigrated) {
@@ -214,6 +235,7 @@ function AppNavigator() {
   return (
     <SafeAreaProvider>
       <DialogProvider>
+        <DiaryTransitionProvider>
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.background },
@@ -223,6 +245,7 @@ function AppNavigator() {
         <Stack.Screen name="(app)" />
         <Stack.Screen name="(auth)" />
       </Stack>
+      </DiaryTransitionProvider>
       </DialogProvider>
     </SafeAreaProvider>
   );

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "quill",
+    "name": "Quill",
     "slug": "quill",
-    "version": "1.0.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "quill",
@@ -15,7 +15,9 @@
       }
     },
     "android": {
+      "allowBackup": false,
       "softwareKeyboardLayoutMode": "resize",
+      "permissions": ["VIBRATE"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,7 +45,7 @@
       "expo-secure-store",
       "expo-font",
       "@react-native-vector-icons/ionicons",
-      "expo-sqlite",
+      ["expo-sqlite", { "useSQLCipher": true }],
       "expo-video",
       "expo-image",
       [
@@ -51,7 +53,8 @@
         {
           "microphonePermission": "Microphone permission to record voice notes."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

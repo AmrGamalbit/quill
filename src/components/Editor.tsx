@@ -8,7 +8,7 @@ import {
   useEditorBridge,
 } from "@10play/tentap-editor";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -30,8 +30,11 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { GabaritoFont } from "../constants/Gabarito";
+import { fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import {
+  discardPending,
   PendingAttachment,
   pickAudio,
   pickMedia,
@@ -82,6 +85,11 @@ export default function Editor({
   const { top } = useSafeAreaInsets();
   const keyboardVerticalOffset = top;
 
+  const saveScale = useSharedValue(1);
+  const saveStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: saveScale.value }],
+  }));
+
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
   const [entryDate, setEntryDate] = useState(
@@ -99,6 +107,16 @@ export default function Editor({
   );
   const [added, setAdded] = useState<PendingAttachment[]>([]);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
+
+  const addedRef = useRef(added);
+  addedRef.current = added;
+  const handedOffRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (!handedOffRef.current) void discardPending(addedRef.current);
+    },
+    [],
+  );
 
   const handleAddAudio = async () => {
     const picked = await pickAudio();
@@ -147,7 +165,10 @@ export default function Editor({
       width: a.width,
       height: a.height,
       durationMs: a.durationMs,
-      remove: () => setAdded((p) => p.filter((x) => x.uri !== a.uri)),
+      remove: () => {
+        void discardPending([a]);
+        setAdded((p) => p.filter((x) => x.uri !== a.uri));
+      },
     })),
   ];
 
@@ -155,12 +176,23 @@ export default function Editor({
   const audio = thumbs.filter((t) => t.kind === "audio");
 
   const dynamicEditorCss = `
+    ${GabaritoFont}
+    body, .ProseMirror {
+      font-family: 'Gabarito', sans-serif !important;
+    }
     body {
       background-color: ${colors.background};
       color: ${colors.text};
       padding: 0px;
       margin: 0px;
+      font-family: 'Gabarito', sans-serif;
     }
+      .ProseMirror p.is-editor-empty:first-child::before,
+  .ProseMirror p.is-empty::before,
+  .ProseMirror .is-empty::before {
+    color: ${colors.textMuted} !important;
+    opacity: 1;
+  }
   `;
 
   const editor = useEditorBridge({
@@ -189,6 +221,7 @@ export default function Editor({
     play(celebrate);
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
+    handedOffRef.current = true;
     onSave(title, entryDate, contentHtml, { added, removedIds });
   };
 
@@ -268,14 +301,14 @@ export default function Editor({
         <TextInput
           accessibilityLabel="Entry title"
           style={styles.titleInput}
-          placeholder="Entry Title..."
+          placeholder="Add Title..."
           placeholderTextColor={colors.textMuted}
           value={title}
           onChangeText={setTitle}
           editable={!isReadOnly}
         />
 
-        <Pressable onPress={handleDatePress}>
+        <Pressable onLongPress={handleDatePress}>
           <Text style={styles.dateSubtitle}>{displayDate}</Text>
         </Pressable>
         {visual.length > 0 && (
@@ -378,6 +411,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 6,
     },
     newJournalText: {
+      fontFamily: fonts.heading,
       fontSize: 18,
       fontWeight: "700",
       color: colors.text,
@@ -387,14 +421,17 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       backgroundColor: colors.background,
     },
     titleInput: {
+      fontFamily: fonts.heading,
       fontSize: 26,
       fontWeight: "700",
       paddingHorizontal: 20,
       paddingTop: 16,
       paddingBottom: 4,
       color: colors.text,
+      marginVertical: 0,
     },
     dateSubtitle: {
+      fontFamily: fonts.label,
       fontSize: 13,
       fontWeight: "600",
       color: colors.textMuted,
@@ -402,11 +439,13 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       letterSpacing: 0.5,
       paddingHorizontal: 20,
       paddingBottom: 14,
+      marginVertical: 0,
     },
     editor: {
       flex: 1,
       backgroundColor: colors.background,
       marginHorizontal: 20,
+      marginVertical: 0,
     },
     keyboardToolbarContainer: {
       position: "absolute",

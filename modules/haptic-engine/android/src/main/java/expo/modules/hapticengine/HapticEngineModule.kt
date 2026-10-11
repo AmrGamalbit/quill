@@ -73,16 +73,17 @@ class HapticEngineModule : Module() {
       }
     }
 
-    // merge equal neighbours into (duration, amplitude) runs
+    val levels = IntArray(buf.size) { if (hasAmp) buf[it] else if (buf[it] > 0) 255 else 0 }
     val timings = ArrayList<Long>()
     val amps = ArrayList<Int>()
+    if (!hasAmp && levels[0] > 0) { timings.add(0L); amps.add(0) }
     var i = 0
-    while (i < buf.size) {
+    while (i < levels.size) {
       var j = i
-      while (j < buf.size && buf[j] == buf[i]) j++
-      timings.add((j - i) * step)
-      amps.add(if (!hasAmp && buf[i] > 0) 255 else buf[i])
-      i = j
+      while (j < levels.size && levels[j] == levels[i]) j++
+        timings.add((j - i) * step)
+        amps.add(levels[i])
+        i = j
     }
     return timings.toLongArray() to amps.toIntArray()
   }

@@ -1,12 +1,12 @@
+import { spacing } from "@/src/constants/spacings";
+import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
 import {
   KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -45,17 +45,15 @@ export default function AppModal({
               ]}
             />
 
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {title}
-              </Text>
-              <TouchableOpacity
+            {/* <View style={styles.header}> */}
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            {/* <TouchableOpacity
                 onPress={onClose}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
-            </View>
+            </View> */}
             {children}
           </View>
         </View>
@@ -71,7 +69,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
@@ -79,25 +77,21 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   handleIndicator: {
     width: 36,
     height: 4,
     borderRadius: 2,
     alignSelf: "center",
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 20,
+    fontSize: fontSizes.lg,
+    fontFamily: fonts.heading,
     fontWeight: "700",
+    marginBottom: spacing.md,
   },
 });

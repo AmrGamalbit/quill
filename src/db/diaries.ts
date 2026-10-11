@@ -1,10 +1,23 @@
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { db } from ".";
-import type { DiaryRow, DiaryStats } from "../types/diary";
-import { diariesTable as diaries, entriesTable as entries } from "./schema";
+import type { DiaryColorKey } from "../constants/colors";
+import type { Diary, DiaryRow } from "../types/diary";
+import {
+  appStateTable as appState,
+  diariesTable as diaries,
+  entriesTable as entries,
+} from "./schema";
 
-export const getAllDiaries = async (): Promise<DiaryRow[]> => {
-  return await db.select().from(diaries);
+export const getAllDiaries = async (): Promise<Diary[]> => {
+  return await db
+    .select({ ...getTableColumns(diaries), entryCount: count(entries.id) })
+    .from(diaries)
+    .leftJoin(entries, eq(entries.diaryId, diaries.id))
+    .groupBy(diaries.id)
+    .orderBy(
+      desc(sql`coalesce(${diaries.lastOpenedAt}, ${diaries.createdAt} * 1000)`),
+      desc(diaries.id),
+    );
 };
 
 export const getDiaryById = async (id: number): Promise<DiaryRow> => {
@@ -14,9 +27,9 @@ export const getDiaryById = async (id: number): Promise<DiaryRow> => {
 
 export const saveDiary = async (
   name: string,
-  description: string,
+  color: DiaryColorKey,
 ): Promise<number> => {
-  const result = await db.insert(diaries).values({ name, description });
+  const result = await db.insert(diaries).values({ name, color });
   return result.lastInsertRowId;
 };
 
@@ -24,16 +37,17 @@ export const deleteDiary = async (id: number): Promise<void> => {
   await db.delete(diaries).where(eq(diaries.id, id));
 };
 
-export const getDiarySummary = async (diaryId: number): Promise<DiaryStats> => {
-  const entryCount = await db.$count(entries, eq(entries.diaryId, diaryId));
-  const latestEntryBody = await db
-    .select({ body: entries.body })
-    .from(entries)
-    .where(eq(entries.diaryId, diaryId))
-    .orderBy(desc(entries.createdAt))
-    .limit(1);
-  return {
-    entryCount,
-    latestEntryBody: latestEntryBody[0]?.body ?? undefined,
-  };
-};
+export const openDiary = (id: number): boolean =>
+  db.transaction((tx) => {
+    const { changes } = tx
+      .update(diaries)
+      .set({ lastOpenedAt: new Date() })
+      .where(eq(diaries.id, id))
+      .run();
+    if (changes === 0) return false;
+    tx.insert(appState)
+      .values({ id: 1, resumeDiaryId: id })
+      .onConflictDoUpdate({ target: appState.id, set: { resumeDiaryId: id } })
+      .run();
+    return true;
+  });

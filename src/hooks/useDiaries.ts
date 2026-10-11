@@ -1,29 +1,15 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  saveDiary as addDiaryToDb,
-  deleteDiary as deleteDiaryFromDb,
-  getAllDiaries,
-  getDiarySummary,
-} from "../db/diaries";
+import type { DiaryColorKey } from "../constants/colors";
+import { saveDiary as addDiaryToDb, getAllDiaries } from "../db/diaries";
+import { deleteDiaryWithMedia } from "../services/attachments";
 import type { Diary } from "../types/diary";
 
 export default function useDiaries() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
 
   const refresh = useCallback(async () => {
-    const rawDiaries = await getAllDiaries();
-    const diariesWithSummary = await Promise.all(
-      rawDiaries.map(async (diary) => {
-        const summary = await getDiarySummary(diary.id);
-        return {
-          ...diary,
-          entryCount: summary.entryCount,
-          latestEntryBody: summary.latestEntryBody,
-        };
-      }),
-    );
-    setDiaries(diariesWithSummary);
+    setDiaries(await getAllDiaries());
   }, []);
 
   useFocusEffect(
@@ -31,14 +17,15 @@ export default function useDiaries() {
       refresh();
     }, [refresh]),
   );
-
-  const addDiary = async (name: string, description: string): Promise<void> => {
-    await addDiaryToDb(name, description);
+  const addDiary = async (
+    name: string,
+    color: DiaryColorKey,
+  ): Promise<void> => {
+    await addDiaryToDb(name, color);
     await refresh();
   };
-
-  const deleteDiary = async (diaryId: number) => {
-    await deleteDiaryFromDb(diaryId);
+  const deleteDiary = async (diaryId: number): Promise<void> => {
+    await deleteDiaryWithMedia(diaryId);
     await refresh();
   };
 

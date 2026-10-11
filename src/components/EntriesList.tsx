@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { fonts } from "../constants/typography";
 import { haptic } from "../services/haptics";
 import type { Entry } from "../types/entry";
 import { fromDateKey } from "../utils/dates";
@@ -21,8 +22,9 @@ interface EntriesListProps {
   diaryName?: string;
   onNewEntry: (date?: Date) => void;
   onSelectEntry?: (entry: Entry) => void;
-  onBack?: () => void;
+  onClose?: () => void;
   onDeleteEntry?: (id: number) => void;
+  closing?: boolean;
 }
 
 export default function EntriesList({
@@ -30,8 +32,9 @@ export default function EntriesList({
   diaryName = "Diary",
   onNewEntry,
   onSelectEntry,
-  onBack,
+  onClose,
   onDeleteEntry,
+  closing,
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -107,17 +110,19 @@ export default function EntriesList({
     >
       <View style={styles.container}>
         <View style={styles.topBar}>
-          {onBack && (
+          {onClose && (
             <TouchableOpacity
-              style={styles.backBtn}
-              onPress={onBack}
+              style={[styles.backBtn, closing && styles.hidden]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close diary"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="arrow-back" size={22} color={colors.text} />
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
           <View style={styles.titleContainer}>
-            <Text style={styles.diaryHeading} numberOfLines={1}>
+            <Text style={[styles.diaryHeading, closing && styles.hidden]} numberOfLines={1}>
               {diaryName}
             </Text>
             <Text style={styles.entryCountSubtitle}>
@@ -183,10 +188,10 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       flex: 1,
     },
     diaryHeading: {
+      fontFamily: fonts.heading,
       fontSize: 20,
-      fontWeight: "700",
+      fontWeight: "600",
       color: colors.text,
-      letterSpacing: -0.3,
     },
     entryCountSubtitle: {
       fontSize: 12,
@@ -257,4 +262,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       textAlign: "center",
       lineHeight: 20,
     },
+    hidden: {
+      opacity: 100,
+    }
   });

@@ -4,6 +4,7 @@ import {
   RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync,
   useAudioRecorder, useAudioRecorderState,
 } from "expo-audio";
+import * as FileSystem from "expo-file-system/legacy";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
@@ -83,7 +84,9 @@ export default function VoiceRecorder({
     const discard = async () => {
         if (busy.current) return;
         busy.current = true;
-        try { await recorder.stop(); } catch{};
+        try { await recorder.stop(); } catch{}
+        const uri = recorder.uri;
+        if (uri) await FileSystem.deleteAsync(uri, {idempotent: true}).catch(() => {});
         onCancel();
     };
 

@@ -1,39 +1,44 @@
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
-import { radius } from "../constants/radius";
-import { spacing } from "../constants/spacings";
-import { fontSizes, fonts } from "../constants/typography";
+import { useRef } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { CardRect, useDiaryTransition } from "../context/DiaryTransitionContext";
 import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import { haptic } from "../services/haptics";
 import type { Diary } from "../types/diary";
 import { dialog } from "./Dialog/DialogProvider";
+import DiaryBook, { RIBBON_OVERHANG } from "./DiaryBook";
 
 type DiaryCardProps = {
   diary: Diary;
-  entryCount: number;
-  latestEntryBody?: string;
-  onPress: () => void;
+  isFirst?: boolean;
+  onPress: (origin: CardRect) => void;
   onDelete: (id: number) => void;
 };
 
-export default function DiaryCard({
-  diary,
-  entryCount,
-  latestEntryBody,
-  onPress,
-  onDelete,
-}: DiaryCardProps) {
+export const STACK_SIDE_PADDING = RIBBON_OVERHANG + 6;
+
+export default function DiaryCard({ diary, isFirst, onPress, onDelete }: DiaryCardProps) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
     colors.cardPressed,
   );
+  const { activeId, reportFirst } = useDiaryTransition();
+  const ref = useRef<View>(null);
+  const titleRef = useRef<Text>(null);
+
+  const entryLabel = `${diary.entryCount} ${diary.entryCount === 1 ? "entry" : "entries"}`;
+
+  const measure = (cb: (r: CardRect) => void) =>
+    ref.current?.measureInWindow((x, y, width, height) =>
+    titleRef.current?.measureInWindow((tx, ty, tw, th) =>
+    cb({ x, y, width, height, title: { x: tx, y: ty, width: tw, height: th }}),
+    ),
+  );
+  const handlePress = () => measure(onPress);
+  const handleLayout = () => {
+    if (isFirst) requestAnimationFrame(() => measure(reportFirst));
+  };
 
   const handleLongPress = () => {
     haptic.warning();
@@ -45,7 +50,10 @@ export default function DiaryCard({
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {haptic.thud(); onDelete(diary.id)},
+          onPress: () => {
+            haptic.thud();
+            onDelete(diary.id);
+          },
         },
       ],
     );
@@ -53,80 +61,22 @@ export default function DiaryCard({
 
   return (
     <Pressable
-      onPress={onPress}
+      ref={ref}
+      onLayout={handleLayout}
+      onPress={handlePress}
       onLongPress={handleLongPress}
       delayLongPress={500}
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
-      style={styles.pressableWrapper}
-    >
-      <Animated.View
-        style={[
-          styles.cardContainer,
-          {
-            borderColor: colors.border,
-            backgroundColor: animatedColor,
-          },
-        ]}
-      >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            {diary.name}
-          </Text>
-          <Text style={[styles.entryCount, { color: colors.textMuted }]}>
-            {entryCount || 0} {entryCount === 1 ? "entry" : "entries"}
-          </Text>
-        </View>
-
-        {entryCount > 0 && latestEntryBody ? (
-          <Text
-            style={[styles.preview, { color: colors.textMuted }]}
-            numberOfLines={2}
-          >
-            {latestEntryBody.replace(/<[^>]+>/g, "").trim()}
-          </Text>
-        ) : (
-          <Text style={[styles.emptyPreview, { color: colors.textMuted }]}>
-            No entries yet. Tap to open and start writing.
-          </Text>
-        )}
-      </Animated.View>
+      accessibilityRole="button"
+      accessibilityLabel={`${diary.name}, ${entryLabel}`}
+      style={[styles.wrapper, activeId === diary.id && styles.hidden]}
+    ><DiaryBook diary={diary} backgroundColor={animatedColor} titleRef={titleRef} />
     </Pressable>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  pressableWrapper: {
-    marginBottom: spacing.sm,
-  },
-  cardContainer: {
-    borderWidth: 1,
-    padding: spacing.md,
-    borderRadius: radius.md,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.xs,
-  },
-  title: {
-    fontSize: fontSizes.md,
-    fontFamily: fonts.heading,
-    fontWeight: "600",
-  },
-  entryCount: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.label,
-  },
-  preview: {
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    marginTop: spacing.xs,
-  },
-  emptyPreview: {
-    fontSize: fontSizes.xs,
-    fontStyle: "italic",
-    marginTop: spacing.xs,
-  },
+  wrapper: { marginBottom: -1 },
+  hidden: { opacity: 0 },
 });
