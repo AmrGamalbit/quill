@@ -7,10 +7,12 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import { DatePicker } from "@quidone/react-native-wheel-picker";
 import { useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,7 +39,7 @@ import {
 } from "../services/attachments";
 import { celebrate } from "../services/hapticPatterns";
 import type { Attachment } from "../types/attachment";
-import { fromDateKey } from "../utils/dates";
+import { fromDateKey, toDateKey } from "../utils/dates";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
 import Button from "./Button";
@@ -45,6 +47,7 @@ import MediaThumb from "./MediaThumb";
 import MediaViewer, { Rect, ViewerItem } from "./MediaViewer";
 import { IconButton } from "./PressableScale";
 import VoiceRecorder from "./VoiceRecorder";
+import AppModal from "./ui/AppModal";
 
 interface EditorProps {
   initialTitle?: string;
@@ -81,6 +84,10 @@ export default function Editor({
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
+  const [entryDate, setEntryDate] = useState(
+    initialDate ? fromDateKey(initialDate) : new Date(),
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [viewing, setViewing] = useState<{
     key: string;
     item: ViewerItem;
@@ -112,6 +119,10 @@ export default function Editor({
   const handleAddMedia = async () => {
     const picked = await pickMedia();
     if (picked.length) setAdded((prev) => [...prev, ...picked]);
+  };
+
+  const handleDatePress = () => {
+    if (!isReadOnly) setShowDatePicker(true);
   };
 
   const thumbs = [
@@ -163,8 +174,7 @@ export default function Editor({
     ],
     theme: isDark ? darkEditorTheme : undefined,
   });
-  const parsedDate = initialDate ? fromDateKey(initialDate) : new Date();
-  const displayDate = parsedDate.toLocaleDateString("en-US", {
+  const displayDate = entryDate.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -178,7 +188,7 @@ export default function Editor({
     );
     play(celebrate);
     const contentHtml = await editor.getHTML();
-    onSave(title, initialDate, contentHtml, { added, removedIds });
+    onSave(title, toDateKey(entryDate), contentHtml, { added, removedIds });
   };
 
   return (
@@ -259,7 +269,9 @@ export default function Editor({
           editable={!isReadOnly}
         />
 
-        <Text style={styles.dateSubtitle}>{displayDate}</Text>
+        <Pressable onPress={handleDatePress}>
+          <Text style={styles.dateSubtitle}>{displayDate}</Text>
+        </Pressable>
         {visual.length > 0 && (
           <ScrollView
             horizontal
@@ -322,6 +334,20 @@ export default function Editor({
           onCancel={() => setRecorderOpen(false)}
         />
       )}
+      <AppModal
+        title="Jump To"
+        isOpen={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+      >
+        <View style={{ alignItems: "center" }}>
+          <DatePicker
+            date={toDateKey(entryDate)}
+            onDateChanged={({ date }: { date: string }) =>
+              setEntryDate(new Date(date))
+            }
+          />
+        </View>
+      </AppModal>
     </SafeAreaView>
   );
 }
