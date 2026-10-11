@@ -24,11 +24,12 @@ export const saveEntry = async (
 export const updateEntry = async (
   id: number,
   title: string,
+  entryDate: string,
   body: string,
 ): Promise<void> => {
   await db
     .update(entries)
-    .set({ title: title, body: body })
+    .set({ title: title, entryDate: entryDate, body: body })
     .where(eq(entries.id, id));
 };
 

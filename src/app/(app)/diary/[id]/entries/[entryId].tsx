@@ -33,11 +33,12 @@ export default function EntryEditScreen() {
 
   const handleSave = async (
     title: string,
+    entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
   ) => {
     try {
-      await updateEntryWithMedia(Number(entryId), title, body, media);
+      await updateEntryWithMedia(Number(entryId), title, entryDate, body, media);
       router.back();
     } catch {
       dialog.alert(
@@ -57,7 +58,7 @@ export default function EntryEditScreen() {
         initialAttachments={attachments}
         initialTitle={entry?.title}
         initialBody={entry?.body ?? undefined}
-        initialDate={entry?.entryDate ?? undefined}
+        initialDate={entry?.entryDate}
         initialReadOnly={true}
         onSave={handleSave}
         onBack={() => {

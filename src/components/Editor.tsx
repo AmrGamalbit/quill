@@ -46,15 +46,10 @@ import MediaViewer, { Rect, ViewerItem } from "./MediaViewer";
 import { IconButton } from "./PressableScale";
 import VoiceRecorder from "./VoiceRecorder";
 
-const saveScale = useSharedValue(1);
-const saveStyle = useAnimatedStyle(() => ({
-  transform: [{ scale: saveScale.value }],
-}));
-
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;
-  initialDate: string;
+  initialDate?: string;
   initialReadOnly?: boolean;
   initialAttachments?: Attachment[];
   onSave: (
@@ -75,6 +70,10 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
+  const saveScale = useSharedValue(1);
+  const saveStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: saveScale.value }],
+  }));
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
   const { top } = useSafeAreaInsets();
@@ -204,7 +203,16 @@ export default function Editor({
               : "New Journal"}
           </Text>
         </View>
-        {!isReadOnly && (
+        {isReadOnly ? (
+          <Animated.View style={saveStyle}>
+            <Button
+              label="Edit"
+              onPress={() => setIsReadOnly((prev) => !prev)}
+              size="sm"
+              style={{ width: 72 }}
+            />
+          </Animated.View>
+        ) : (
           <>
             <AttachMenu
               actions={[
