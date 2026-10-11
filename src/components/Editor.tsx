@@ -7,10 +7,12 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import { DatePicker } from "@quidone/react-native-wheel-picker";
 import { useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,7 +39,7 @@ import {
 } from "../services/attachments";
 import { celebrate } from "../services/hapticPatterns";
 import type { Attachment } from "../types/attachment";
-import { fromDateKey } from "../utils/dates";
+import { fromDateKey, toDateKey } from "../utils/dates";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
 import Button from "./Button";
@@ -45,16 +47,12 @@ import MediaThumb from "./MediaThumb";
 import MediaViewer, { Rect, ViewerItem } from "./MediaViewer";
 import { IconButton } from "./PressableScale";
 import VoiceRecorder from "./VoiceRecorder";
-
-const saveScale = useSharedValue(1);
-const saveStyle = useAnimatedStyle(() => ({
-  transform: [{ scale: saveScale.value }],
-}));
+import AppModal from "./ui/AppModal";
 
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;
-  initialDate: string;
+  initialDate?: string;
   initialReadOnly?: boolean;
   initialAttachments?: Attachment[];
   onSave: (
@@ -75,6 +73,10 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
+  const saveScale = useSharedValue(1);
+  const saveStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: saveScale.value }],
+  }));
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
   const { top } = useSafeAreaInsets();
@@ -82,6 +84,10 @@ export default function Editor({
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
+  const [entryDate, setEntryDate] = useState(
+    initialDate ?? toDateKey(new Date()),
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [viewing, setViewing] = useState<{
     key: string;
     item: ViewerItem;
@@ -113,6 +119,10 @@ export default function Editor({
   const handleAddMedia = async () => {
     const picked = await pickMedia();
     if (picked.length) setAdded((prev) => [...prev, ...picked]);
+  };
+
+  const handleDatePress = () => {
+    if (!isReadOnly) setShowDatePicker(true);
   };
 
   const thumbs = [
@@ -164,8 +174,7 @@ export default function Editor({
     ],
     theme: isDark ? darkEditorTheme : undefined,
   });
-  const parsedDate = initialDate ? fromDateKey(initialDate) : new Date();
-  const displayDate = parsedDate.toLocaleDateString("en-US", {
+  const displayDate = fromDateKey(entryDate).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -179,7 +188,13 @@ export default function Editor({
     );
     play(celebrate);
     const contentHtml = await editor.getHTML();
-    onSave(title, initialDate, contentHtml, { added, removedIds });
+    setIsReadOnly(true);
+    onSave(title, entryDate, contentHtml, { added, removedIds });
+  };
+
+  const handleStartEditing = () => {
+    setIsReadOnly(false);
+    play(celebrate);
   };
 
   return (
@@ -204,7 +219,16 @@ export default function Editor({
               : "New Journal"}
           </Text>
         </View>
-        {!isReadOnly && (
+        {isReadOnly ? (
+          <Animated.View style={saveStyle}>
+            <Button
+              label="Edit"
+              onPress={handleStartEditing}
+              size="sm"
+              style={{ width: 72 }}
+            />
+          </Animated.View>
+        ) : (
           <>
             <AttachMenu
               actions={[
@@ -251,7 +275,9 @@ export default function Editor({
           editable={!isReadOnly}
         />
 
-        <Text style={styles.dateSubtitle}>{displayDate}</Text>
+        <Pressable onPress={handleDatePress}>
+          <Text style={styles.dateSubtitle}>{displayDate}</Text>
+        </Pressable>
         {visual.length > 0 && (
           <ScrollView
             horizontal
@@ -314,6 +340,18 @@ export default function Editor({
           onCancel={() => setRecorderOpen(false)}
         />
       )}
+      <AppModal
+        title="Jump To"
+        isOpen={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+      >
+        <View style={{ alignItems: "center" }}>
+          <DatePicker
+            date={entryDate}
+            onDateChanged={({ date }: { date: string }) => setEntryDate(date)}
+          />
+        </View>
+      </AppModal>
     </SafeAreaView>
   );
 }

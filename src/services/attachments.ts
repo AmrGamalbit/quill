@@ -177,10 +177,11 @@ export async function createEntryWithMedia(
 export async function updateEntryWithMedia(
   entryId: number,
   title: string,
+  entryDate: string,
   body: string,
   media: { added: PendingAttachment[]; removedIds: number[] },
 ): Promise<void> {
-  updateEntry(entryId, title, body);
+  await updateEntry(entryId, title, entryDate, body);
 
   // Add first: it can throw and rolls itself back, so removals never run on failure.
   if (media.added.length) await persistAttachments(entryId, media.added);

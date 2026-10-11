@@ -33,12 +33,18 @@ export default function EntryEditScreen() {
 
   const handleSave = async (
     title: string,
+    entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
   ) => {
     try {
-      await updateEntryWithMedia(Number(entryId), title, body, media);
-      router.back();
+      await updateEntryWithMedia(
+        Number(entryId),
+        title,
+        entryDate,
+        body,
+        media,
+      );
     } catch {
       dialog.alert(
         "Couldn't save",
@@ -57,7 +63,7 @@ export default function EntryEditScreen() {
         initialAttachments={attachments}
         initialTitle={entry?.title}
         initialBody={entry?.body ?? undefined}
-        initialDate={entry?.entryDate ?? undefined}
+        initialDate={entry?.entryDate}
         initialReadOnly={true}
         onSave={handleSave}
         onBack={() => {

@@ -23,7 +23,6 @@ export default function NewEntryScreen() {
   ) => {
     try {
       await createEntryWithMedia(diaryId, title, entryDate, body, media.added);
-      router.back();
     } catch (e) {
       console.error("Save failed:", e);
       dialog.alert(
