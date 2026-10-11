@@ -76,7 +76,7 @@ class HapticEngineModule : Module() {
     val levels = IntArray(buf.size) { if (hasAmp) buf[it] else if (buf[it] > 0) 255 else 0 }
     val timings = ArrayList<Long>()
     val amps = ArrayList<Int>()
-    if (!hasAmp && levels[0] > 0) { timing.add(0L); amps.add(0) }
+    if (!hasAmp && levels[0] > 0) { timings.add(0L); amps.add(0) }
     var i = 0
     while (i < levels.size) {
       var j = i
