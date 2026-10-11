@@ -85,11 +85,6 @@ export default function Editor({
   const { top } = useSafeAreaInsets();
   const keyboardVerticalOffset = top;
 
-  const saveScale = useSharedValue(1);
-  const saveStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: saveScale.value }],
-  }));
-
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
   const [entryDate, setEntryDate] = useState(
