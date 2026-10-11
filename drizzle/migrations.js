@@ -6,7 +6,8 @@ import m0001 from './0001_noisy_red_hulk.sql';
 import m0002 from './0002_milky_manta.sql';
 import m0003 from './0003_glossy_skrulls.sql';
 import m0004 from './0004_powerful_greymalkin.sql';
-import m0005 from './0005_powerful_lucky_pierre.sql';
+import m0005 from './0005_big_korvac.sql';
+import m0006 from './0006_magenta_namora.sql';
 
   export default {
     journal,
@@ -16,7 +17,8 @@ m0001,
 m0002,
 m0003,
 m0004,
-m0005
+m0005,
+m0006
     }
   }
   

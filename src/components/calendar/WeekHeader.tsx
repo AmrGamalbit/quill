@@ -9,6 +9,7 @@ export default function WeekHeader({ weekStartOn }: WeekHeaderProp) {
   const headers = getWeekHeaders(weekStartOn);
   return (
     <View style={styles.container}>
+      {/* <View style={{}}></View> */}
       {headers.map((header) => {
         return (
           <Text
@@ -30,10 +31,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     justifyContent: "space-around",
-    margin: 5,
+    marginHorizontal: 5,
   },
   text: {
     textTransform: "uppercase",
     overflow: "visible",
+    fontSize: 14,
   },
 });

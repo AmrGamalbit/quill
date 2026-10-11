@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "0791c239-6ca8-4a75-b224-e38c45baf989",
+  "id": "eda1c620-6236-447a-b1fe-d96865d4be70",
   "prevId": "2ef3920b-b53d-450b-b891-95a087eca152",
   "tables": {
     "attachments": {
@@ -14,8 +14,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "entryId": {
-          "name": "entryId",
+        "entry_id": {
+          "name": "entry_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -90,18 +90,18 @@
         "idx_attachments_entry": {
           "name": "idx_attachments_entry",
           "columns": [
-            "entryId"
+            "entry_id"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "attachments_entryId_entries_id_fk": {
-          "name": "attachments_entryId_entries_id_fk",
+        "attachments_entry_id_entries_id_fk": {
+          "name": "attachments_entry_id_entries_id_fk",
           "tableFrom": "attachments",
           "tableTo": "entries",
           "columnsFrom": [
-            "entryId"
+            "entry_id"
           ],
           "columnsTo": [
             "id"
@@ -113,49 +113,6 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
-    },
-    "app_state": {
-      "name": "app_state",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "resume_diary_id": {
-          "name": "resume_diary_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "app_state_resume_diary_id_diaries_id_fk": {
-          "name": "app_state_resume_diary_id_diaries_id_fk",
-          "tableFrom": "app_state",
-          "tableTo": "diaries",
-          "columnsFrom": [
-            "resume_diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {
-        "app_state_singleton": {
-          "name": "app_state_singleton",
-          "value": "\"app_state\".\"id\" = 1"
-        }
-      }
     },
     "diaries": {
       "name": "diaries",
@@ -177,21 +134,6 @@
         "description": {
           "name": "description",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'cobalt'"
-        },
-        "last_opened_at": {
-          "name": "last_opened_at",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -221,8 +163,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "diaryId": {
-          "name": "diaryId",
+        "diary_id": {
+          "name": "diary_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -242,6 +184,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "entry_date": {
+          "name": "entry_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -259,14 +208,23 @@
           "default": "(unixepoch())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_entries_diary_date": {
+          "name": "idx_entries_diary_date",
+          "columns": [
+            "diary_id",
+            "entry_date"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
-        "entries_diaryId_diaries_id_fk": {
-          "name": "entries_diaryId_diaries_id_fk",
+        "entries_diary_id_diaries_id_fk": {
+          "name": "entries_diary_id_diaries_id_fk",
           "tableFrom": "entries",
           "tableTo": "diaries",
           "columnsFrom": [
-            "diaryId"
+            "diary_id"
           ],
           "columnsTo": [
             "id"
@@ -282,8 +240,8 @@
     "local_profile": {
       "name": "local_profile",
       "columns": {
-        "userId": {
-          "name": "userId",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": true,
           "notNull": true,
@@ -331,7 +289,11 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {}
+    "columns": {
+      "\"attachments\".\"entryId\"": "\"attachments\".\"entry_id\"",
+      "\"entries\".\"diaryId\"": "\"entries\".\"diary_id\"",
+      "\"local_profile\".\"userId\"": "\"local_profile\".\"user_id\""
+    }
   },
   "internal": {
     "indexes": {}

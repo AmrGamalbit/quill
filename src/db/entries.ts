@@ -12,20 +12,24 @@ export const getEntriesByDiaryId = async (
 export const saveEntry = async (
   diaryId: number,
   title: string,
+  entryDate: string,
   body: string,
 ): Promise<number> => {
-  const result = await db.insert(entries).values({ diaryId, title, body });
+  const result = await db
+    .insert(entries)
+    .values({ diaryId, title, entryDate, body });
   return result.lastInsertRowId;
 };
 
 export const updateEntry = async (
   id: number,
   title: string,
+  entryDate: string,
   body: string,
 ): Promise<void> => {
   await db
     .update(entries)
-    .set({ title: title, body: body })
+    .set({ title: title, entryDate: entryDate, body: body })
     .where(eq(entries.id, id));
 };
 

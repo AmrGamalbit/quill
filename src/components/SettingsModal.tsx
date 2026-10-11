@@ -6,8 +6,6 @@ import {
   ActivityIndicator,
   Image,
   LayoutAnimation,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -34,6 +32,7 @@ import {
   persistLocalAvatar,
 } from "../utils/photoCrypto";
 import Button from "./Button";
+import AppModal from "./ui/AppModal";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -212,235 +211,173 @@ export default function SettingsModal({
   };
 
   return (
-    <Modal
-      visible={isOpen}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-          <View
-            style={[styles.handleIndicator, { backgroundColor: colors.border }]}
-          />
+    <AppModal isOpen={isOpen} title="Settings" onClose={onClose}>
+      {/* User Profile Card */}
+      <View>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          {!session ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+                Loading Profile...
+              </Text>
+            </View>
+          ) : (
+            <View>
+              <View style={styles.profileRow}>
+                {/* Tapping the thumbnail toggles the smooth accordion animation */}
+                <TouchableOpacity
+                  onPress={togglePhotoExpanded}
+                  activeOpacity={0.8}
+                >
+                  {session.photoUri ? (
+                    <Image
+                      source={{ uri: session.photoUri }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatarFallback,
+                        { backgroundColor: colors.cardPressed },
+                      ]}
+                    >
+                      <Ionicons
+                        name="person"
+                        size={24}
+                        color={colors.textMuted}
+                      />
+                    </View>
+                  )}
+                </TouchableOpacity>
 
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
-            <TouchableOpacity
-              onPress={onClose}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={22} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* User Profile Card */}
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            {!session ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={colors.accent} />
-                <Text style={[styles.loadingText, { color: colors.textMuted }]}>
-                  Loading Profile...
-                </Text>
+                <View style={styles.profileDetails}>
+                  <Text
+                    style={[styles.nameText, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {session.name || "Anonymous Journaler"}
+                  </Text>
+                  <View style={styles.emailContainer}>
+                    <Ionicons
+                      name="mail-outline"
+                      size={14}
+                      color={colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.emailText, { color: colors.textMuted }]}
+                      numberOfLines={1}
+                    >
+                      {session.email || userEmail || "No active session"}
+                    </Text>
+                  </View>
+                </View>
               </View>
-            ) : (
-              <View>
-                <View style={styles.profileRow}>
-                  {/* Tapping the thumbnail toggles the smooth accordion animation */}
-                  <TouchableOpacity
-                    onPress={togglePhotoExpanded}
-                    activeOpacity={0.8}
+
+              {/* Smoothly expanded view */}
+              {isPhotoExpanded && (
+                <View style={styles.expandedSection}>
+                  <View
+                    style={[
+                      styles.expandedImageWrapper,
+                      { borderColor: colors.border },
+                    ]}
                   >
                     {session.photoUri ? (
                       <Image
                         source={{ uri: session.photoUri }}
-                        style={styles.avatarImage}
+                        style={styles.expandedImage}
                       />
                     ) : (
                       <View
                         style={[
-                          styles.avatarFallback,
+                          styles.expandedFallback,
                           { backgroundColor: colors.cardPressed },
                         ]}
                       >
                         <Ionicons
                           name="person"
-                          size={24}
+                          size={64}
                           color={colors.textMuted}
                         />
                       </View>
                     )}
-                  </TouchableOpacity>
 
-                  <View style={styles.profileDetails}>
-                    <Text
-                      style={[styles.nameText, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {session.name || "Anonymous Journaler"}
-                    </Text>
-                    <View style={styles.emailContainer}>
-                      <Ionicons
-                        name="mail-outline"
-                        size={14}
-                        color={colors.textMuted}
-                      />
-                      <Text
-                        style={[styles.emailText, { color: colors.textMuted }]}
-                        numberOfLines={1}
-                      >
-                        {session.email || userEmail || "No active session"}
-                      </Text>
-                    </View>
+                    {isPickingOrUploading && (
+                      <View style={styles.uploadingOverlay}>
+                        <ActivityIndicator size="large" color="#FFFFFF" />
+                        <Text style={styles.uploadingText}>Processing...</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.buttonWrapper}>
+                    <Button
+                      label="Change Photo"
+                      onPress={handleChangePhoto}
+                      loading={isPickingOrUploading}
+                      variant="primary"
+                      size="sm"
+                    />
                   </View>
                 </View>
-
-                {/* Smoothly expanded view */}
-                {isPhotoExpanded && (
-                  <View style={styles.expandedSection}>
-                    <View
-                      style={[
-                        styles.expandedImageWrapper,
-                        { borderColor: colors.border },
-                      ]}
-                    >
-                      {session.photoUri ? (
-                        <Image
-                          source={{ uri: session.photoUri }}
-                          style={styles.expandedImage}
-                        />
-                      ) : (
-                        <View
-                          style={[
-                            styles.expandedFallback,
-                            { backgroundColor: colors.cardPressed },
-                          ]}
-                        >
-                          <Ionicons
-                            name="person"
-                            size={64}
-                            color={colors.textMuted}
-                          />
-                        </View>
-                      )}
-
-                      {isPickingOrUploading && (
-                        <View style={styles.uploadingOverlay}>
-                          <ActivityIndicator size="large" color="#FFFFFF" />
-                          <Text style={styles.uploadingText}>
-                            Processing...
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.buttonWrapper}>
-                      <Button
-                        label="Change Photo"
-                        onPress={handleChangePhoto}
-                        loading={isPickingOrUploading}
-                        variant="primary"
-                        size="sm"
-                      />
-                    </View>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* Sign Out Button */}
-          <TouchableOpacity
-            style={[styles.logoutButton, { backgroundColor: colors.danger }]}
-            onPress={handleLogout}
-            disabled={isLoggingOut || isDeletingAccount}
-            activeOpacity={0.8}
-          >
-            {isLoggingOut ? (
-              <ActivityIndicator size="small" color={colors.textOnAccent} />
-            ) : (
-              <>
-                <Ionicons
-                  name="log-out-outline"
-                  size={20}
-                  color={colors.textOnAccent}
-                />
-                <Text
-                  style={[styles.logoutText, { color: colors.textOnAccent }]}
-                >
-                  Sign Out
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Delete Account Button */}
-          <TouchableOpacity
-            style={[styles.deleteButton, { borderColor: colors.danger }]}
-            onPress={handleDeleteAccount}
-            disabled={isLoggingOut || isDeletingAccount}
-            activeOpacity={0.7}
-          >
-            {isDeletingAccount ? (
-              <ActivityIndicator size="small" color={colors.danger} />
-            ) : (
-              <>
-                <Ionicons
-                  name="trash-outline"
-                  size={18}
-                  color={colors.danger}
-                />
-                <Text style={[styles.deleteText, { color: colors.danger }]}>
-                  Delete Account
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
+
+        {/* Sign Out Button */}
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: colors.danger }]}
+          onPress={handleLogout}
+          disabled={isLoggingOut || isDeletingAccount}
+          activeOpacity={0.8}
+        >
+          {isLoggingOut ? (
+            <ActivityIndicator size="small" color={colors.textOnAccent} />
+          ) : (
+            <>
+              <Ionicons
+                name="log-out-outline"
+                size={20}
+                color={colors.textOnAccent}
+              />
+              <Text style={[styles.logoutText, { color: colors.textOnAccent }]}>
+                Sign Out
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Delete Account Button */}
+        <TouchableOpacity
+          style={[styles.deleteButton, { borderColor: colors.danger }]}
+          onPress={handleDeleteAccount}
+          disabled={isLoggingOut || isDeletingAccount}
+          activeOpacity={0.7}
+        >
+          {isDeletingAccount ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <>
+              <Ionicons name="trash-outline" size={18} color={colors.danger} />
+              <Text style={[styles.deleteText, { color: colors.danger }]}>
+                Delete Account
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-  },
-  sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 40,
-  },
-  handleIndicator: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
   section: {
     marginBottom: 24,
     padding: 14,

@@ -6,7 +6,13 @@ import useEntries from "@/src/hooks/useEntries";
 import useTheme from "@/src/hooks/useTheme";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
 import type { DiaryRow } from "@/src/types/diary";
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { toDateKey } from "@/src/utils/dates";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -54,19 +60,28 @@ export default function DiaryScreen() {
   return (
     <View
       style={{ flex: 1, backgroundColor: colors.background }}
-      onLayout={() => requestAnimationFrame(() => requestAnimationFrame(reportReady))}
+      onLayout={() =>
+        requestAnimationFrame(() => requestAnimationFrame(reportReady))
+      }
     >
       <Stack.Screen options={{ animation: "none" }} />
       <EntriesList
-        closing={closing}
         entries={entries}
-        diaryName={diaryRow?.name}
+        closing={closing}
         onClose={handleClose}
-        onNewEntry={() => router.push(`/(app)/diary/${diaryId}/new-entry`)}
-        onSelectEntry={(entry) =>
-          router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`)
+        diaryName={diaryRow?.name}
+        onNewEntry={(date) =>
+          router.push({
+            pathname: `/(app)/diary/[id]/new-entry`,
+            params: date
+              ? { id: diaryId, date: toDateKey(date) }
+              : { id: diaryId },
+          })
         }
-        onDeleteEntry={handleDeleteEntry}
+        onSelectEntry={(entry) => {
+          router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
+        }}
+        onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
       />
     </View>
   );

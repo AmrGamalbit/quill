@@ -23,23 +23,29 @@ export const appStateTable = sqliteTable(
   (t) => [check("app_state_singleton", sql`${t.id} = 1`)],
 );
 
-export const entriesTable = sqliteTable("entries", {
-  id: int().primaryKey({ autoIncrement: true }).notNull(),
-  diaryId: int()
-    .references(() => diariesTable.id, { onDelete: "cascade" })
-    .notNull(),
-  title: text().notNull(),
-  body: text(),
-  createdAt: int("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: int("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+
+export const entriesTable = sqliteTable(
+  "entries",
+  {
+    id: int().primaryKey({ autoIncrement: true }).notNull(),
+    diaryId: int("diary_id")
+      .references(() => diariesTable.id, { onDelete: "cascade" })
+      .notNull(),
+    title: text().notNull(),
+    body: text(),
+    entryDate: text("entry_date").notNull(),
+    createdAt: int("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: int("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (e) => [index("idx_entries_diary_date").on(e.diaryId, e.entryDate)],
+);
 
 export const localProfileTable = sqliteTable("local_profile", {
-  userId: text().primaryKey().notNull(),
+  userId: text("user_id").primaryKey().notNull(),
   name: text().notNull(),
   photoUri: text("photo_uri"),
   publicKey: text("public_key"),
@@ -52,7 +58,7 @@ export const AttachmentsTable = sqliteTable(
   "attachments",
   {
     id: int().primaryKey({ autoIncrement: true }).notNull(),
-    entryId: int()
+    entryId: int("entry_id")
       .references(() => entriesTable.id, { onDelete: "cascade" })
       .notNull(),
     kind: text().notNull(),
