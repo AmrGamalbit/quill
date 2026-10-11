@@ -3,6 +3,7 @@ import { spacing } from "@/src/constants/spacings";
 import { getDiaryById } from "@/src/db/diaries";
 import useEntries from "@/src/hooks/useEntries";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
+import { toDateKey } from "@/src/utils/dates";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, useColorScheme } from "react-native";
@@ -74,7 +75,14 @@ export default function DiaryScreen() {
           entries={entries}
           onBack={() => router.back()}
           diaryName={diaryName}
-          onNewEntry={() => router.push(`/(app)/diary/${diaryId}/new-entry`)}
+          onNewEntry={(date) =>
+            router.push({
+              pathname: `/(app)/diary/[id]/new-entry`,
+              params: date
+                ? { id: diaryId, date: toDateKey(date) }
+                : { id: diaryId },
+            })
+          }
           onSelectEntry={(entry) => {
             router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
           }}

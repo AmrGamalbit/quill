@@ -37,6 +37,7 @@ import {
 } from "../services/attachments";
 import { celebrate } from "../services/hapticPatterns";
 import type { Attachment } from "../types/attachment";
+import { fromDateKey } from "../utils/dates";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
 import Button from "./Button";
@@ -53,11 +54,12 @@ const saveStyle = useAnimatedStyle(() => ({
 interface EditorProps {
   initialTitle?: string;
   initialBody?: string;
-  initialDate?: Date;
+  initialDate: string;
   initialReadOnly?: boolean;
   initialAttachments?: Attachment[];
   onSave: (
     title: string,
+    entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
   ) => void;
@@ -162,16 +164,13 @@ export default function Editor({
     ],
     theme: isDark ? darkEditorTheme : undefined,
   });
-
-  const displayDate = new Date(initialDate ?? Date.now()).toLocaleDateString(
-    "en-US",
-    {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    },
-  );
+  const parsedDate = initialDate ? fromDateKey(initialDate) : new Date();
+  const displayDate = parsedDate.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   const handleSave = async () => {
     saveScale.value = withSequence(
@@ -180,7 +179,7 @@ export default function Editor({
     );
     play(celebrate);
     const contentHtml = await editor.getHTML();
-    onSave(title, contentHtml, { added, removedIds });
+    onSave(title, initialDate, contentHtml, { added, removedIds });
   };
 
   return (

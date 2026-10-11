@@ -1,7 +1,6 @@
 import { radius } from "@/src/constants/radius";
 import useTheme from "@/src/hooks/useTheme";
 import { isSameDay } from "@/src/utils/dates";
-import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type DayCellProps = {
@@ -9,21 +8,24 @@ type DayCellProps = {
   hasEntries: boolean;
   isCurrentMonth: boolean;
   isSelected: boolean;
-  onSelect: (day: Date) => void;
+  onPress: (day: Date) => void;
+  onLongPress: (day: Date) => void;
 };
 export default function DayCell({
   day,
   hasEntries,
   isCurrentMonth,
   isSelected,
-  onSelect,
+  onPress,
+  onLongPress,
 }: DayCellProps) {
   const { colors } = useTheme();
   const isToday = isSameDay(day, new Date());
   return (
     <Pressable
       style={[styles.cellContainer, !isCurrentMonth && { opacity: 0.4 }]}
-      onPress={() => onSelect(day)}
+      onPress={() => onPress(day)}
+      onLongPress={() => onLongPress(day)}
     >
       <View
         style={[
@@ -47,10 +49,24 @@ export default function DayCell({
           {day.getDate()}
         </Text>
         {hasEntries && !isSelected && (
-          <Ionicons name="ellipse" color={colors.accent} />
+          <View
+            style={[
+              styles.dot,
+              {
+                backgroundColor: colors.accent,
+              },
+            ]}
+          ></View>
         )}
         {hasEntries && isSelected && (
-          <Ionicons name="ellipse" color={colors.textOnAccent} />
+          <View
+            style={{
+              backgroundColor: colors.textOnAccent,
+              width: 5,
+              height: 5,
+              borderRadius: 999,
+            }}
+          ></View>
         )}
       </View>
     </Pressable>
@@ -72,5 +88,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: radius.md,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    position: "absolute",
+    bottom: 0,
   },
 });

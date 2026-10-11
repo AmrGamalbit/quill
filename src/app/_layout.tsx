@@ -20,6 +20,7 @@ export {
   ErrorBoundary
 } from "expo-router";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
@@ -45,7 +46,9 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <UserSessionProvider>
-      <AppNavigator />
+      <GestureHandlerRootView>
+        <AppNavigator />
+      </GestureHandlerRootView>
     </UserSessionProvider>
   );
 }

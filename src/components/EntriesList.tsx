@@ -13,12 +13,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { haptic } from "../services/haptics";
 import type { Entry } from "../types/entry";
+import { fromDateKey } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
 
 interface EntriesListProps {
   entries: Entry[];
   diaryName?: string;
-  onNewEntry: () => void;
+  onNewEntry: (date?: Date) => void;
   onSelectEntry?: (entry: Entry) => void;
   onBack?: () => void;
   onDeleteEntry?: (id: number) => void;
@@ -35,8 +36,14 @@ export default function EntriesList({
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const handleSelectDate = (date: Date) => {
+
+  const handleDayPress = (date: Date) => {
+    haptic.press();
     setSelectedDate(date);
+  };
+
+  const handleDayLongPress = (date: Date) => {
+    onNewEntry(date);
   };
 
   const handleLongPress = (entry: Entry) => {
@@ -62,11 +69,14 @@ export default function EntriesList({
   const renderItem = ({ item }: { item: Entry }) => {
     const cleanPreview =
       item.body?.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
-    const formattedDate = new Date(item.createdAt).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    const formattedDate = fromDateKey(item.entryDate).toLocaleDateString(
+      "en-US",
+      {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      },
+    );
 
     return (
       <TouchableOpacity
@@ -119,7 +129,8 @@ export default function EntriesList({
           <Calendar
             entries={entries}
             selectedDate={selectedDate}
-            onSelectDate={handleSelectDate}
+            onDayPress={handleDayPress}
+            onDayLongPress={handleDayLongPress}
           />
         </View>
         <FlatList
