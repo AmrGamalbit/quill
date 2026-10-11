@@ -57,7 +57,7 @@ export default function EntryEditScreen() {
         initialAttachments={attachments}
         initialTitle={entry?.title}
         initialBody={entry?.body ?? undefined}
-        initialDate={entry?.createdAt ?? undefined}
+        initialDate={entry?.entryDate ?? undefined}
         initialReadOnly={true}
         onSave={handleSave}
         onBack={() => {

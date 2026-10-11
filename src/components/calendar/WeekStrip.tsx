@@ -1,5 +1,5 @@
 import type { Entry } from "@/src/types/entry";
-import { isSameDay } from "@/src/utils/dates";
+import { isSameDay, toDateKey } from "@/src/utils/dates";
 import { useWindowDimensions, View } from "react-native";
 import DayCell from "./DayCell";
 
@@ -8,7 +8,8 @@ type WeekStripProps = {
   month: Date;
   entries: Entry[];
   selectedDate: Date;
-  onSelectDate: (date: Date) => void;
+  onDayPress: (date: Date) => void;
+  onDayLongPress: (date: Date) => void;
 };
 
 export default function WeekStrip({
@@ -16,7 +17,8 @@ export default function WeekStrip({
   month,
   entries,
   selectedDate,
-  onSelectDate,
+  onDayPress,
+  onDayLongPress,
 }: WeekStripProps) {
   const isCurrentMonth = (day: Date) => {
     return (
@@ -25,9 +27,7 @@ export default function WeekStrip({
     );
   };
   const hasEntries = (day: Date): boolean => {
-    return entries.some(
-      (e) => e.createdAt.toDateString() === day.toDateString(),
-    );
+    return entries.some((e) => e.entryDate === toDateKey(day));
   };
   const { width } = useWindowDimensions();
   const height = width / 7;
@@ -46,7 +46,8 @@ export default function WeekStrip({
           hasEntries={hasEntries(day)}
           isCurrentMonth={isCurrentMonth(day)}
           isSelected={isSameDay(day, selectedDate)}
-          onSelect={onSelectDate}
+          onPress={onDayPress}
+          onLongPress={onDayLongPress}
         />
       ))}
     </View>

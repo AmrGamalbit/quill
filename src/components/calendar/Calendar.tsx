@@ -5,6 +5,7 @@ import {
   getMonthWeeks,
   isSameDay,
   startOfMonth,
+  toDateKey,
 } from "@/src/utils/dates";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import { useEffect, useState } from "react";
@@ -16,17 +17,18 @@ import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
 import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
-
 type CalendarProps = {
   entries: Entry[];
   selectedDate: Date;
-  onSelectDate: (date: Date) => void;
+  onDayPress: (date: Date) => void;
+  onDayLongPress: (date: Date) => void;
 };
 
 export default function Calendar({
   entries,
   selectedDate,
-  onSelectDate,
+  onDayPress,
+  onDayLongPress,
 }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState<Date>(
     startOfMonth(selectedDate),
@@ -57,7 +59,7 @@ export default function Calendar({
   useEffect(() => {
     setCurrentMonth(startOfMonth(selectedDate));
   }, [selectedDate, isExapnded]);
-
+  console.log(toDateKey(selectedDate));
   return (
     <View>
       <Animated.View style={headerStyle}>
@@ -78,7 +80,8 @@ export default function Calendar({
                 month={currentMonth}
                 weeks={weeks}
                 selectedDate={selectedDate}
-                onSelectDate={onSelectDate}
+                onDayPress={onDayPress}
+                onDayLongPress={onDayLongPress}
               />
             </Animated.View>
           </Animated.View>
@@ -99,9 +102,9 @@ export default function Calendar({
       >
         <View style={{ alignItems: "center" }}>
           <DatePicker
-            date={selectedDate.toISOString().split("T")[0]}
+            date={toDateKey(selectedDate)}
             onDateChanged={({ date }: { date: string }) =>
-              onSelectDate(new Date(date))
+              onDayPress(new Date(date))
             }
           />
         </View>

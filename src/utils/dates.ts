@@ -32,3 +32,13 @@ export const startOfMonth = (date: Date): Date => {
 export const addMonths = (date: Date, months: number): Date => {
   return dayjs(date).add(months, "M").toDate();
 };
+
+export const toDateKey = (date: Date): string => {
+  return dayjs(date).format("YYYY-MM-DD");
+};
+
+export const fromDateKey = (key: string): Date => {
+  const parsed = dayjs(key, "YYYY-MM-DD", true);
+  if (!parsed) throw new Error(`Invalid date key: ${key}`);
+  return parsed.toDate();
+};

@@ -7,7 +7,8 @@ type MonthGridProps = {
   weeks: Date[][];
   month: Date;
   selectedDate: Date;
-  onSelectDate: (date: Date) => void;
+  onDayPress: (date: Date) => void;
+  onDayLongPress: (date: Date) => void;
 };
 
 export default function MonthGrid({
@@ -15,7 +16,8 @@ export default function MonthGrid({
   weeks,
   month,
   selectedDate,
-  onSelectDate,
+  onDayPress,
+  onDayLongPress,
 }: MonthGridProps) {
   return (
     <View>
@@ -28,7 +30,8 @@ export default function MonthGrid({
             week={week}
             month={month}
             selectedDate={selectedDate}
-            onSelectDate={onSelectDate}
+            onDayPress={onDayPress}
+            onDayLongPress={onDayLongPress}
           />
         );
       })}
