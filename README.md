@@ -6,13 +6,9 @@ An offline-first, privacy-focused social journaling app. Create a diary, invite 
 
 ## Screenshots
 
-<p align="center">
-  <img src="assets/images/screenshots/01-diaries.jpg" width="220" alt="Diary list" />
-  <img src="assets/images/screenshots/02-entry.jpg" width="220" alt="Entry with photo" />
-  <img src="assets/images/screenshots/03-dark-mode.jpg" width="220" alt="Dark mode" />
-  <img src="assets/images/screenshots/04-calendar.jpg" width="220" alt="Calendar" />
-  <img src="assets/images/screenshots/05-entry-list.jpg" width="220" alt="Entry List" />
-</p>
+| Diaries | Calendar | Entry List | Entry | Dark Mode |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="assets/images/screenshots/01-diaries.jpg" width="150" alt="Diary list" /> | <img src="assets/images/screenshots/04-calendar.jpg" width="150" alt="Calendar" /> | <img src="assets/images/screenshots/05-entry-list.jpg" width="150" alt="Entry list" /> | <img src="assets/images/screenshots/02-entry.jpg" width="150" alt="Entry with photo" /> | <img src="assets/images/screenshots/03-dark-mode.jpg" width="150" alt="Dark mode" /> |
 
 ## Features
 
