@@ -26,7 +26,7 @@ public class FileGuardModule: Module {
 
         var rootURL = root
         var values = URLResourceValues()
-        values.excludedFromBackup = true  // Changed: isExcludedFromBackups → excludedFromBackup
+        values.isExcludedFromBackup = true
         try rootURL.setResourceValues(values)
         if protect {
             try fm.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: root.path)
@@ -48,7 +48,7 @@ public class FileGuardModule: Module {
 
     private static func inspect(path: String) -> [String: Any] {
         let url = fileURL(path)
-        let excluded = (try? url.resourceValues(forKeys: [.excludedFromBackup]))?.excludedFromBackup ?? false  // Fixed: isExcludedFromBackups → excludedFromBackup
+        let excluded = (try? url.resourceValues(forKeys: [.isExcludedFromBackupKey]))?.isExcludedFromBackup ?? false
         let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
         let protection = (attributes?[.protectionKey] as? FileProtectionType)?.rawValue ?? "unknown"
         return ["excludedFromBackup": excluded, "protection": protection]
