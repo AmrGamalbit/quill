@@ -1,0 +1,100 @@
+name: Build iOS (Debug & Release)
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  ios:
+    name: Build iOS (Debug & Release)
+    runs-on: macos-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo prebuild (iOS)
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+
+      # By default, Debug configurations skip bundling JavaScript (they assume Metro is running).
+      # FORCE_BUNDLING=1 forces Xcode to bundle main.jsbundle so the Debug IPA runs offline on device.
+      - name: Build Debug IPA
+        run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -n 1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            FORCE_BUNDLING=1 \
+            clean build
+
+          mkdir -p Payload
+          cp -r build/Build/Products/Debug-iphoneos/*.app Payload/
+          zip -qr "${SCHEME}-Debug.ipa" Payload
+          rm -rf Payload build
+
+      - name: Build Release IPA
+        run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -n 1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -qr "${SCHEME}-Release.ipa" Payload
+          rm -rf Payload build
+
+      - name: Upload Debug IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-debug-ipa
+          path: ./*-Debug.ipa
+          if-no-files-found: error
+
+      - name: Upload Release IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          path: ./*-Release.ipa
+          if-no-files-found: error
