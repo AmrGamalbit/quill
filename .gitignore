@@ -41,3 +41,4 @@ yarn-error.*
 /android
 .env.local
 /modules/haptic-engine/android/build
+.gradle/

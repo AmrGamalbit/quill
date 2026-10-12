@@ -80,19 +80,19 @@ function AppNavigator() {
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   let cachedPhotoUri: string | null = null;
-  
+
   useEffect(() => {
     if (fontLoadingError) {
       console.error("Fonts error:", fontLoadingError);
     }
   }, [fontLoadingError]);
-  
+
   useEffect(() => {
     if (isDbMigrated) {
       sqlite.execSync("PRAGMA foreign_keys = ON;");
     }
   }, [isDbMigrated]);
-  
+
   useEffect(() => {
     if (!isDbMigrated) return;
     (async () => {
@@ -103,7 +103,12 @@ function AppNavigator() {
 
   useEffect(() => {
     if (dbMigrationError) {
-      console.error("Migration error:", dbMigrationError);
+      console.error(
+        "Migration error:",
+        dbMigrationError,
+        "cause: ",
+        (dbMigrationError as { cause?: unknown }).cause,
+      );
     }
   }, [dbMigrationError]);
 
@@ -194,7 +199,7 @@ function AppNavigator() {
 
     return () => unsubscribe();
   }, []);
-  
+
   const isSignedIn = supabaseSession !== null;
   const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
@@ -236,16 +241,16 @@ function AppNavigator() {
     <SafeAreaProvider>
       <DialogProvider>
         <DiaryTransitionProvider>
-      <Stack
-        screenOptions={{
-          contentStyle: { backgroundColor: colors.background },
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="(app)" />
-        <Stack.Screen name="(auth)" />
-      </Stack>
-      </DiaryTransitionProvider>
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: colors.background },
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(auth)" />
+          </Stack>
+        </DiaryTransitionProvider>
       </DialogProvider>
     </SafeAreaProvider>
   );
