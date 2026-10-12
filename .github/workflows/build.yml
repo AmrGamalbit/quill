@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      EXPO_PUBLIC_SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       # Allocate adequate JVM heap to prevent aggressive GC cycles on the 2-core runner
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dorg.gradle.parallel=true -Dorg.gradle.vfs.watch=false"
     steps:
