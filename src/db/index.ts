@@ -63,6 +63,9 @@ export const resetLockedDatabase = async () => {
 export const clearLocalDatabase = async () => {
   await db.transaction(async (tx) => {
     await tx.delete(schema.entriesTable);
+    await tx.delete(schema.diaryMembersTable);
+    await tx.delete(schema.diaryInvitesTable);
+    await tx.delete(schema.diaryKeysTable);
     await tx.delete(schema.diariesTable);
     await tx.delete(schema.appStateTable);
     await tx.delete(schema.localProfileTable);

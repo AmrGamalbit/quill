@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quill",
     "slug": "quill",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "quill",
@@ -42,6 +42,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      "react-native-libsodium",
       "expo-secure-store",
       "expo-font",
       "@react-native-vector-icons/ionicons",

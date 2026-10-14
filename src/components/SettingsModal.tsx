@@ -153,16 +153,12 @@ export default function SettingsModal({
         session.userId,
         session.name,
         persistedUri,
-        session.publicKeyHex,
+        session.kemKeys?.publicKeyHex ?? '',
       );
 
       setSession({
-        userId: session.userId,
-        email: session.email,
-        name: session.name,
+        ...session,
         photoUri: persistedUri,
-        rawPrivateKey: session.rawPrivateKey,
-        publicKeyHex: session.publicKeyHex,
       });
 
       haptic.success();

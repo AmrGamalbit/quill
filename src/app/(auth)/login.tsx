@@ -4,29 +4,37 @@ import FormField from "@/src/components/FormField";
 import PasswordField from "@/src/components/PasswordField";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
-import { fontSizes, fonts } from "@/src/constants/typography";
+import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { saveDerivedKey } from "@/src/services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "@/src/services/storage/SupabaseStorageAdapter";
 import {
+  checkUsernameAvailable,
   getUserProfileRecord,
+  initKeysRpc,
+  rewrapKeysRpc,
   sendPasswordResetEmail,
   signIn,
   signUp,
 } from "@/src/utils/auth";
 import {
   bytesToHex,
-  decryptData,
+  decryptKeyBundle,
   decryptUserProfile,
-  deriveKeyFromPassword,
-  encryptData,
+  deriveAuthAndEncKeys,
+  encryptKeyBundle,
   encryptUserProfile,
-  generateUserKeyPair,
+  generateDualSignKeyPair,
+  generateHybridKemKeyPair,
+  generateRecoveryKey,
   hexToBytes,
+  parseRecoveryKey,
+  signPublicBundle,
+  UserSecretKeyBundle
 } from "@/src/utils/crypto";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
-import * as Crypto from "expo-crypto";
+import { supabase } from "@/src/utils/supabase";
 import { useRef, useState } from "react";
 import {
   Animated,
@@ -54,9 +62,12 @@ export default function Auth() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [username, setUsername] = useState("");
   const [name, setName] = useState("");
+  const [recoveryKeyInput, setRecoveryKeyInput] = useState("");
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const { setSession } = useUserSession();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -76,90 +87,143 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const { authSecret, localEncKey } = await deriveAuthAndEncKeys(password, cleanEmail);
+
       if (isSignUp) {
-        // 1. Generate client-side cryptographic keys
-        const keyPair = generateUserKeyPair();
-        const passwordSalt = Crypto.getRandomValues(new Uint8Array(16));
-        const derivedKey = await deriveKeyFromPassword(password, passwordSalt);
-        await saveDerivedKey(derivedKey);
+        const cleanUsername = username.trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
+          dialog.alert("Invalid Username", "Username must be 3-20 lowercase alphanumeric characters or underscores.");
+          return;
+        }
 
-        const encPrivateKey = encryptData(keyPair.rawPrivateKey, derivedKey);
+        const available = await checkUsernameAvailable(cleanUsername);
+        if (!available) {
+          dialog.alert("Unavailable", "That username is already taken. Please choose another.");
+          return;
+        }
 
-        // 2. Encrypt profile metadata with derived key BEFORE calling signUp
-        // Note: Photo upload is deferred until post-confirmation/login when the user has authenticated RLS rights
+        await saveDerivedKey(localEncKey);
         const encProfile = encryptUserProfile(
-          {
-            name: name.trim(),
-            photoPath: null,
-            photoNonce: null,
-          },
-          derivedKey,
+          { name: name.trim(), photoPath: null, photoNonce: null },
+          localEncKey
         );
 
-        // 3. Atomically pass encrypted ciphertext to Supabase Auth metadata
-        const { session } = await signUp(email.trim(), password, {
-          publicKey: keyPair.publicKeyHex,
-          encryptedPrivateKey: encPrivateKey.cipherHex,
-          privateKeyNonce: encPrivateKey.nonceHex,
-          passwordSalt: bytesToHex(passwordSalt),
+        const { session } = await signUp(cleanEmail, authSecret, {
+          username: cleanUsername,
           encryptedProfile: encProfile.encryptedProfileHex,
           profileNonce: encProfile.profileNonceHex,
         });
 
         if (!session) {
-          dialog.alert(
-            "Check your inbox",
-            "We sent a confirmation link to your email.",
-          );
+          dialog.alert("Check your inbox", "We sent a verification link to your email.");
         }
       } else {
-        const authData = await signIn(email.trim(), password);
+        const authData = await signIn(cleanEmail, authSecret);
         const user = authData?.user;
-        if (!user) throw new Error("Could not retrieve user session.");
+        if (!user) throw new Error("Could not retreive user session.");
 
-        const profileRecord = await getUserProfileRecord(user.id);
-        const saltBytes = hexToBytes(profileRecord.password_salt);
-        const derivedKey = await deriveKeyFromPassword(password, saltBytes);
-        await saveDerivedKey(derivedKey);
-
-        const rawPrivateKey = decryptData(
-          profileRecord.encrypted_private_key,
-          profileRecord.private_key_nonce,
-          derivedKey,
-        );
-
+        await saveDerivedKey(localEncKey);
+        const profile = await getUserProfileRecord(user.id);
         const decryptedProfile = decryptUserProfile(
-          profileRecord.encrypted_profile,
-          profileRecord.profile_nonce,
-          derivedKey,
+          profile.encrypted_profile,
+          profile.profile_nonce,
+          localEncKey,
         );
+
+        let kemKeys: { x25519Priv: Uint8Array; mlkem768Priv: Uint8Array; publicKeyHex: string };
+        let signKeys: { ed25519Priv: Uint8Array; mldsa65Priv: Uint8Array; publicKeyHex: string };
+
+        if (!profile.keys_initialized_at) {
+          const kemPair = generateHybridKemKeyPair();
+          const signPair = generateDualSignKeyPair();
+          const { rawKey: recKeyBytes, formattedKey: recKeyDisplay } = generateRecoveryKey();
+
+          const kemPubHex = bytesToHex(kemPair.publicKeyBytes);
+          const signPubHex = bytesToHex(signPair.publicKeyBytes);
+
+          const bundleSigHex = signPublicBundle(
+            user.id,
+            kemPubHex,
+            signPubHex,
+            signPair.ed25519Priv,
+            signPair.mldsa65Priv
+          );
+
+          const secretBundle: UserSecretKeyBundle = {
+            kemX25519Priv: bytesToHex(kemPair.x25519Priv),
+            kemMlkem768Priv: bytesToHex(kemPair.mlkem768Priv),
+            signEd25519Priv: bytesToHex(signPair.ed25519Priv),
+            signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
+          };
+
+          const encKeyBundleHex = encryptKeyBundle(secretBundle, localEncKey);
+          const recKeyBundleHex = encryptKeyBundle(secretBundle, recKeyBytes);
+
+          await initKeysRpc({
+            kemPublicKey: kemPubHex,
+            signPublicKey: signPubHex,
+            bundleSignature: bundleSigHex,
+            encryptedKeyBundle: encKeyBundleHex,
+            recoveryKeyBundle: recKeyBundleHex,
+          });
+
+          dialog.alert(
+            "Save your recovery key.",
+            `Please, write this down and store it safely. It will NEVER be shown again:\n\n${recKeyDisplay}`
+          );
+
+          kemKeys = {
+            x25519Priv: kemPair.x25519Priv,
+            mlkem768Priv: kemPair.mlkem768Priv,
+            publicKeyHex: kemPubHex,
+          };
+          signKeys = {
+            ed25519Priv: signPair.ed25519Priv,
+            mldsa65Priv: signPair.mldsa65Priv,
+            publicKeyHex: signPubHex,
+          };
+        } else {
+          if (!profile.encrypted_key_bundle || !profile.kem_public_key || !profile.sign_public_key) {
+            throw new Error("Corrupted cryptographics profile bundle.");
+          }
+
+          const bundle = decryptKeyBundle(profile.encrypted_key_bundle, localEncKey);
+          kemKeys = {
+            x25519Priv: hexToBytes(bundle.kemX25519Priv),
+            mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
+            publicKeyHex: profile.kem_public_key,
+          };
+          signKeys = {
+            ed25519Priv: hexToBytes(bundle.signEd25519Priv),
+            mldsa65Priv: hexToBytes(bundle.signMldsa65Priv),
+            publicKeyHex: profile.sign_public_key,
+          };
+        }
 
         let decryptedPhotoUri: string | null = null;
-        const storage = new SupabaseStorageAdapter("avatars");
-
         if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
           try {
             decryptedPhotoUri = await downloadAndDecryptPhoto(
               decryptedProfile.photoPath,
               decryptedProfile.photoNonce,
-              derivedKey,
-              new SupabaseStorageAdapter("avatars"),
+              localEncKey,
+              new SupabaseStorageAdapter("avatars")
             );
-          } catch (downloadErr) {
-            console.warn(
-              "Avatar download/decryption failed on login:",
-              downloadErr,
-            );
+          } catch (e) {
+            console.warn("Avatar decryption failed: ", e);
           }
         }
 
         setSession({
           userId: user.id,
-          email: user.email ?? email.trim(),
+          username: profile.username,
+          email: user.email ?? cleanEmail,
           name: decryptedProfile.name,
           photoUri: decryptedPhotoUri,
-          rawPrivateKey,
-          publicKeyHex: profileRecord.public_key,
+          localEncKey,
+          kemKeys,
+          signKeys,
         });
       }
     } catch (err: any) {
@@ -191,6 +255,42 @@ export default function Auth() {
       );
     } catch (err: any) {
       dialog.alert("Reset Error", err.message || "Failed to send reset email.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function handleCompleteRecovery() {
+    if (!email.trim() || !password.trim() || !recoveryKeyInput.trim()) {
+      dialog.alert("Missing details", "Please enter your email, new password, and recovery key.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const recKeyBytes = parseRecoveryKey(recoveryKeyInput.trim());
+
+      const { authSecret: newAuthSecret, localEncKey: newLocalEncKey} =
+      await deriveAuthAndEncKeys(password, cleanEmail);
+
+      const profileRecord = await getUserProfileRecord(await supabase.auth.getUser() ? (await supabase.auth.getUser()).data.user!.id : "");
+      if (!profileRecord.recovery_key_bundle) {
+        throw new Error("No recovery bundle registered for this account.");
+      }
+
+      const keyBundle = decryptKeyBundle(profileRecord.recovery_key_bundle, recKeyBytes);
+
+      const newEncKeyBundleHex = encryptKeyBundle(keyBundle, newLocalEncKey);
+
+      const { error: authErr } = await supabase.auth.updateUser({ password: newAuthSecret });
+      if (authErr) throw authErr;
+
+      await rewrapKeysRpc({ encryptedKeyBundle: newEncKeyBundleHex });
+      await saveDerivedKey(newLocalEncKey);
+
+      dialog.alert("Success", "Password updated successfully! You can now sign in :)");
+      setIsRecovering(false);
+    } catch (err: any) {
+      dialog.alert("Recovery Failed", err.message || "Failed to recover account.");
     } finally {
       setLoading(false);
     }
@@ -258,12 +358,20 @@ export default function Auth() {
 
         <View style={styles.form}>
           {isSignUp && (
+            <>
             <FormField
               label="NAME"
               value={name}
               onChangeText={setName}
               placeholder="Your display name"
             />
+            <FormField
+            label="USERNAME"
+            value={username}
+            onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+            placeholder="lowercase letters, numbers, _"
+            />
+            </>
           )}
 
           <FormField

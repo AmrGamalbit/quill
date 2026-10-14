@@ -17,30 +17,42 @@ export async function signIn(
 }
 
 export interface SignUpMetadata {
-  publicKey: string;
-  encryptedPrivateKey: string;
-  privateKeyNonce: string;
-  passwordSalt: string;
+  username: string;
   encryptedProfile: string;
   profileNonce: string;
 }
 
+export async function checkUsernameAvailable(
+  username: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("username_available", {
+    p_username: username.toLowerCase().trim(),
+  });
+  if (error) throw error;
+  return Boolean(data);
+}
+
 export async function signUp(
   email: string,
-  password: string,
-  metadata?: SignUpMetadata,
+  authSecret: string,
+  metadata: SignUpMetadata,
 ): Promise<{ session: Session | null; user: User | null }> {
   const { data, error } = await supabase.auth.signUp({
     email,
-    password,
+    password: authSecret,
     options: {
-      data: metadata,
+      data: {
+        username: metadata.username.toLowerCase().trim(),
+        encryptedProfile: metadata.encryptedProfile,
+        profileNonce: metadata.profileNonce,
+      },
       emailRedirectTo: redirectAuthUrl,
     },
   });
   if (error) throw error;
   return { session: data.session, user: data.user };
 }
+
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
@@ -88,14 +100,18 @@ export async function sendPasswordResetEmail(email: string): Promise<void> {
 
   if (error) throw error;
 }
+
 export interface UserProfileRecord {
   id: string;
-  public_key: string;
-  encrypted_private_key: string;
-  private_key_nonce: string;
-  password_salt: string;
+  username: string;
   encrypted_profile: string;
   profile_nonce: string;
+  kem_public_key: string | null;
+  sign_public_key: string | null;
+  bundle_signature: string | null;
+  encrypted_key_bundle: string | null;
+  recovery_key_bundle: string | null;
+  keys_initialized_at: string | null;
 }
 export async function getUserProfileRecord(
   userId: string,
@@ -103,17 +119,46 @@ export async function getUserProfileRecord(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, public_key, encrypted_private_key, private_key_nonce, password_salt, encrypted_profile, profile_nonce",
+      "id, username, encrypted_profile, profile_nonce, kem_public_key, sign_public_key, bundle_signature, encrypted_key_bundle, recovery_key_bundle, keys_initialized_at",
     )
     .eq("id", userId)
     .single();
 
   if (error || !data) {
-    throw error || new Error("Profile record not found in database.");
+    throw error || new Error("Profile not found in the database.");
   }
 
   return data as UserProfileRecord;
 }
+
+export async function initKeysRpc(params: {
+  kemPublicKey: string;
+  signPublicKey: string;
+  bundleSignature: string;
+  encryptedKeyBundle: string;
+  recoveryKeyBundle: string;
+}): Promise<void> {
+  const { error } = await supabase.rpc("init_keys", {
+    p_kem_public_key: params.kemPublicKey,
+    p_sign_public_key: params.signPublicKey,
+    p_bundle_signature: params.bundleSignature,
+    p_encrypted_key_bundle: params.encryptedKeyBundle,
+    p_recovery_key_bundle: params.recoveryKeyBundle,
+  });
+  if (error) throw error;
+}
+
+export async function rewrapKeysRpc(params: {
+  encryptedKeyBundle: string;
+  recoveryKeyBundle?: string | null;
+}): Promise<void> {
+  const { error } = await supabase.rpc("rewrap_keys", {
+    p_encrypted_key_bundle: params.encryptedKeyBundle,
+    p_recovery_key_bundle: params.recoveryKeyBundle ?? null,
+  });
+  if (error) throw error;
+}
+
 export async function updateUserEncryptedProfile(
   userId: string,
   encryptedProfile: string,

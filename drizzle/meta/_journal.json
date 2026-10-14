@@ -50,6 +50,13 @@
       "when": 1791750340840,
       "tag": "0006_magenta_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792002782594,
+      "tag": "0007_glossy_eddie_brock",
+      "breakpoints": true
     }
   ]
 }
