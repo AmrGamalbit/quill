@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -28,20 +28,10 @@ jobs:
       - name: Expo prebuild (iOS)
         run: npx expo prebuild --platform ios --no-install
 
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
-
       - name: Install CocoaPods
         working-directory: ios
-        run: pod install
+        run: pod install --repo-update
 
-      # By default, Debug configurations skip bundling JavaScript (they assume Metro is running).
-      # FORCE_BUNDLING=1 forces Xcode to bundle main.jsbundle so the Debug IPA runs offline on device.
       - name: Build Debug IPA
         run: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -n 1)
@@ -56,8 +46,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            FORCE_BUNDLING=1 \
-            clean build
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
 
           mkdir -p Payload
           cp -r build/Build/Products/Debug-iphoneos/*.app Payload/
@@ -78,7 +68,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            clean build
+            build
 
           mkdir -p Payload
           cp -r build/Build/Products/Release-iphoneos/*.app Payload/
@@ -86,14 +76,14 @@ jobs:
           rm -rf Payload build
 
       - name: Upload Debug IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-debug-ipa
           path: ./*-Debug.ipa
           if-no-files-found: error
 
       - name: Upload Release IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-release-ipa
           path: ./*-Release.ipa

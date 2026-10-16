@@ -35,6 +35,7 @@ import {
 } from "@/src/utils/crypto";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
 import { supabase } from "@/src/utils/supabase";
+// import * as Clipboard from 'expo-clipboard';
 import { useRef, useState } from "react";
 import {
   Animated,
@@ -170,7 +171,20 @@ export default function Auth() {
 
           dialog.alert(
             "Save your recovery key.",
-            `Please, write this down and store it safely. It will NEVER be shown again:\n\n${recKeyDisplay}`
+            `Please, write this down and store it safely. It will NEVER be shown again:\n\n${recKeyDisplay}`,
+            [
+              {
+                text: 'Copy to clipboard',
+                style: 'default',
+                onPress: async () => {
+                //  Clipboard.setStringAsync(`${recKeyDisplay}`);
+                }
+              },
+              {
+                text: 'Close',
+                style: 'cancel'
+              }
+            ]
           );
 
           kemKeys = {

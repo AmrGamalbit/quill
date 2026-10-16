@@ -1,20 +1,38 @@
 import { eq, or } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
+import { useEffect, useState } from "react";
 import { db } from "../db";
 import { getDiaryKey, saveDiaryKey } from "../db/diaries";
 import { diariesTable, diaryInvitesTable, entriesTable } from "../db/schema";
 import {
-    bytesToHex,
-    decryptBlob,
-    encryptBlob,
-    hexToBytes,
-    signWrappedKey,
-    unwrapDiaryKey,
-    wrapDiaryKey,
+  bytesToHex,
+  decryptBlob,
+  encryptBlob,
+  hexToBytes,
+  signWrappedKey,
+  unwrapDiaryKey,
+  wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
 
 let isSyncRunning = false;
+const syncListeners = new Set<(syncing: boolean) => void>();
+
+function setSyncing(val: boolean) {
+  isSyncRunning = val;
+  syncListeners.forEach((fn) => fn(val));
+}
+
+export function useSyncStatus(): boolean {
+  const [syncing, setState] = useState(isSyncRunning);
+  useEffect(() => {
+    syncListeners.add(setState);
+    return () => {
+      syncListeners.delete(setState);
+    };
+  }, []);
+  return syncing;
+}
 
 export async function runSync(session: {
   userId: string;
@@ -30,7 +48,7 @@ export async function runSync(session: {
   };
 }): Promise<void> {
   if (isSyncRunning) return;
-  isSyncRunning = true;
+  setSyncing(true);
 
   try {
     // push local unsynced diaries first
@@ -46,7 +64,7 @@ export async function runSync(session: {
   } catch (err) {
     console.warn("[NiceSapien Tech SyncEngine :nerd:] Sync error: ", err);
   } finally {
-    isSyncRunning = false;
+    setSyncing(false);
   }
 }
 
@@ -95,6 +113,12 @@ async function pushPendingDiaries(session: {
       session.userId,
       session.signKeys.ed25519Priv,
       session.signKeys.mldsa65Priv,
+    );
+
+    const ownerMemberBlob = encryptBlob(
+      { name: diary.ownerId || "Owner", photo: null },
+      diaryKey,
+      { diaryId: remoteId, keyEpoch: diary.keyEpoch },
     );
 
     const { error } = await supabase.rpc("create_diary", {

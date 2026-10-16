@@ -1,3 +1,4 @@
+import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import EntriesList from "@/src/components/EntriesList";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
 import { setResumeDiaryId } from "@/src/db/appState";
@@ -23,6 +24,7 @@ export default function DiaryScreen() {
   const router = useRouter();
   const { entries, refresh } = useEntries(diaryId);
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
+  const [showMembers, setShowMembers] = useState(false);
   const { close, closing, reportReady } = useDiaryTransition();
 
   const closeDiary = useCallback(() => {
@@ -70,6 +72,8 @@ export default function DiaryScreen() {
         closing={closing}
         onClose={handleClose}
         diaryName={diaryRow?.name}
+        diaryColor={diaryRow?.color}
+        onOpenMembers={() => setShowMembers(true)}
         onNewEntry={(date) =>
           router.push({
             pathname: `/(app)/diary/[id]/new-entry`,
@@ -82,6 +86,11 @@ export default function DiaryScreen() {
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+      />
+      <DiaryMembersModal
+        visible={showMembers}
+        onClose={() => setShowMembers(false)}
+        diary={diaryRow}
       />
     </View>
   );

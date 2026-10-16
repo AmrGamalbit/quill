@@ -1,7 +1,6 @@
 import { Gabarito_400Regular, Gabarito_500Medium, Gabarito_700Bold } from "@expo-google-fonts/gabarito";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import type { Session } from "@supabase/supabase-js";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
@@ -9,11 +8,10 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import "react-native-reanimated";
-import migrations from "../../drizzle/migrations";
 import { dialog } from "../components/Dialog/DialogProvider";
 import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
 import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
-import { db, dbStatus, sqlite } from "../db";
+import { dbStatus } from "../db";
 import { getResumeDiaryId } from "../db/appState";
 import { protectLocalStorage } from "../services/localProtection";
 import { finishPendingWipe } from "../services/localWipe";
@@ -42,6 +40,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
 import {
   UserSessionProvider,
+  useSyncLifecycle,
   useUserSession,
 } from "../context/UserSessionContext";
 import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
@@ -77,10 +76,7 @@ function AppNavigator() {
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { success: isDbMigrated, error: dbMigrationError } = useMigrations(
-    db,
-    migrations,
-  );
+  const isDbMigrated = dbStatus === "ready";
   const [isFontsLoaded, fontLoadingError] = useFonts({
     Roboto_400Regular,
     Gabarito_400Regular,
@@ -88,6 +84,7 @@ function AppNavigator() {
     Gabarito_700Bold
   });
   const { session: userSession, setSession } = useUserSession();
+  useSyncLifecycle();
   const router = useRouter();
 
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
@@ -101,29 +98,12 @@ function AppNavigator() {
   }, [fontLoadingError]);
 
   useEffect(() => {
-    if (isDbMigrated) {
-      sqlite.execSync("PRAGMA foreign_keys = ON;");
-    }
-  }, [isDbMigrated]);
-
-  useEffect(() => {
     if (!isDbMigrated) return;
     (async () => {
       await finishPendingWipe();
       await protectLocalStorage();
     })().catch((e) => console.error("Local storage hardening failed:", e));
   }, [isDbMigrated]);
-
-  useEffect(() => {
-    if (dbMigrationError) {
-      console.error(
-        "Migration error:",
-        dbMigrationError,
-        "cause: ",
-        (dbMigrationError as { cause?: unknown }).cause,
-      );
-    }
-  }, [dbMigrationError]);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
@@ -239,6 +219,11 @@ function AppNavigator() {
                 mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
                 publicKeyHex: profileRecord.sign_public_key,
               };
+              signKeys = {
+                ed25519Priv: hexToBytes(bundle.signEd25519Priv),
+                mldsa65Priv: hexToBytes(bundle.signMldsa65Priv),
+                publicKeyHex: profileRecord.sign_public_key,
+              }
             }
 
             let decryptedPhotoUri: string | null = null;
