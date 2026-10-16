@@ -34,6 +34,7 @@ export const colors = {
     shadow: primitives.navyDark,
     danger: primitives.crimson,
     dangerPressed: primitives.crimsonDark,
+    SegmentedControl: primitives.borderLight,
   },
   dark: {
     background: "#0E112A",
@@ -49,6 +50,7 @@ export const colors = {
     shadow: "#000000",
     danger: primitives.crimsonLight,
     dangerPressed: "#E54E67",
+    SegmentedControl: primitives.borderDark,
   },
 };
 

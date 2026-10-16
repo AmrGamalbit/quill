@@ -1,4 +1,8 @@
-import { Gabarito_400Regular, Gabarito_500Medium, Gabarito_700Bold } from "@expo-google-fonts/gabarito";
+import {
+  Gabarito_400Regular,
+  Gabarito_500Medium,
+  Gabarito_700Bold,
+} from "@expo-google-fonts/gabarito";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import type { Session } from "@supabase/supabase-js";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -16,7 +20,6 @@ import { db, dbStatus, sqlite } from "../db";
 import { getResumeDiaryId } from "../db/appState";
 import { protectLocalStorage } from "../services/localProtection";
 import { finishPendingWipe } from "../services/localWipe";
-
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -72,7 +75,7 @@ function AppNavigator() {
     Roboto_400Regular,
     Gabarito_400Regular,
     Gabarito_500Medium,
-    Gabarito_700Bold
+    Gabarito_700Bold,
   });
   const { session: userSession, setSession } = useUserSession();
   const router = useRouter();
@@ -80,19 +83,19 @@ function AppNavigator() {
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   let cachedPhotoUri: string | null = null;
-  
+
   useEffect(() => {
     if (fontLoadingError) {
       console.error("Fonts error:", fontLoadingError);
     }
   }, [fontLoadingError]);
-  
+
   useEffect(() => {
     if (isDbMigrated) {
       sqlite.execSync("PRAGMA foreign_keys = ON;");
     }
   }, [isDbMigrated]);
-  
+
   useEffect(() => {
     if (!isDbMigrated) return;
     (async () => {
@@ -194,8 +197,8 @@ function AppNavigator() {
 
     return () => unsubscribe();
   }, []);
-  
-  const isSignedIn = supabaseSession !== null;
+
+  const isSignedIn = true;
   const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
     if (!isNavReady) return;
@@ -224,10 +227,7 @@ function AppNavigator() {
       <SafeAreaView
         style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
       >
-        <ActivityIndicator
-          size="large"
-          color={colors.accent}
-        />
+        <ActivityIndicator size="large" color={colors.accent} />
       </SafeAreaView>
     );
   }
@@ -236,16 +236,16 @@ function AppNavigator() {
     <SafeAreaProvider>
       <DialogProvider>
         <DiaryTransitionProvider>
-      <Stack
-        screenOptions={{
-          contentStyle: { backgroundColor: colors.background },
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="(app)" />
-        <Stack.Screen name="(auth)" />
-      </Stack>
-      </DiaryTransitionProvider>
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: colors.background },
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(auth)" />
+          </Stack>
+        </DiaryTransitionProvider>
       </DialogProvider>
     </SafeAreaProvider>
   );

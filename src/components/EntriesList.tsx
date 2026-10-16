@@ -16,6 +16,7 @@ import { haptic } from "../services/haptics";
 import type { Entry } from "../types/entry";
 import { fromDateKey } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
+import SegmentedControl from "./SegmentedControl";
 
 interface EntriesListProps {
   entries: Entry[];
@@ -39,6 +40,7 @@ export default function EntriesList({
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedView, setSelectedView] = useState("list");
 
   const handleDayPress = (date: Date) => {
     haptic.press();
@@ -122,7 +124,10 @@ export default function EntriesList({
             </TouchableOpacity>
           )}
           <View style={styles.titleContainer}>
-            <Text style={[styles.diaryHeading, closing && styles.hidden]} numberOfLines={1}>
+            <Text
+              style={[styles.diaryHeading, closing && styles.hidden]}
+              numberOfLines={1}
+            >
               {diaryName}
             </Text>
             <Text style={styles.entryCountSubtitle}>
@@ -130,6 +135,15 @@ export default function EntriesList({
             </Text>
           </View>
         </View>
+        <SegmentedControl
+          options={[
+            { label: "Feed", value: "feed" },
+            { label: "Timeline", value: "timeline" },
+            { label: "List", value: "list" },
+          ]}
+          selectedValue={selectedView}
+          onSelect={setSelectedView}
+        />
         <View style={{ marginVertical: 10 }}>
           <Calendar
             entries={entries}
@@ -138,6 +152,7 @@ export default function EntriesList({
             onDayLongPress={handleDayLongPress}
           />
         </View>
+
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id.toString()}
@@ -264,5 +279,5 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     hidden: {
       opacity: 100,
-    }
+    },
   });
