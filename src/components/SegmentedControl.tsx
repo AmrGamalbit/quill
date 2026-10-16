@@ -17,16 +17,22 @@ export default function SegmentedControl({
   const { colors } = useTheme();
   return (
     <View
-      style={[styles.container, { backgroundColor: colors.SegmentedControl }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.SegmentedControl,
+          borderColor: colors.border,
+        },
+      ]}
     >
       {options.map((o) => {
         const backgroundColor =
-          o.value == selectedValue ? colors.accent : "transparent";
-        const color =
-          o.value == selectedValue ? colors.textOnAccent : colors.textMuted;
+          o.value == selectedValue ? colors.card : "transparent";
+        const color = o.value == selectedValue ? colors.text : colors.textMuted;
 
         return (
           <Pressable
+            key={o.value}
             onPress={() => onSelect(o.value)}
             style={[
               styles.segment,
@@ -50,6 +56,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginVertical: spacing.sm,
     padding: spacing.xs,
+    borderWidth: 1,
   },
   segment: {
     flex: 1,

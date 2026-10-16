@@ -78,6 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     aspectRatio: 1,
+    flex: 1,
   },
   dayText: {
     fontSize: 14,
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 32,
     height: 32,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
   },
   dot: {
     width: 6,

@@ -1,3 +1,4 @@
+import { spacing } from "@/src/constants/spacings";
 import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import useTheme from "@/src/hooks/useTheme";
 import { Entry } from "@/src/types/entry";
@@ -63,7 +64,7 @@ export default function Calendar({
   }, [selectedDate, isExapnded]);
   console.log(toDateKey(selectedDate));
   return (
-    <View>
+    <View style={{ marginHorizontal: spacing.md }}>
       <Animated.View style={headerStyle}>
         <CalendarHeader
           month={currentMonth}

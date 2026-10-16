@@ -35,7 +35,7 @@ export default function WeekStrip({
     <View
       style={{
         flexDirection: "row",
-        justifyContent: "center",
+        justifyContent: "space-around",
         height: height,
       }}
     >
