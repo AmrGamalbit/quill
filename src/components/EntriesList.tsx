@@ -3,19 +3,14 @@ import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fonts } from "../constants/typography";
 import { haptic } from "../services/haptics";
 import type { Entry } from "../types/entry";
-import { fromDateKey } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
+import EmptyState from "./entries/EmptyState";
+import ListView from "./entries/ListView";
 import SegmentedControl from "./SegmentedControl";
 
 interface EntriesListProps {
@@ -71,110 +66,61 @@ export default function EntriesList({
     );
   };
 
-  const renderItem = ({ item }: { item: Entry }) => {
-    const cleanPreview =
-      item.body?.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
-    const formattedDate = fromDateKey(item.entryDate).toLocaleDateString(
-      "en-US",
-      {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      },
-    );
-
-    return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => onSelectEntry && onSelectEntry(item)}
-        activeOpacity={0.7}
-        delayLongPress={400}
-        onLongPress={() => handleLongPress(item)}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {item.title || "Untitled Entry"}
-          </Text>
-          <Text style={styles.cardDate}>{formattedDate}</Text>
-        </View>
-
-        <Text style={styles.cardPreview} numberOfLines={2}>
-          {cleanPreview}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <SafeAreaView
       style={styles.container}
       edges={["top", "bottom", "left", "right"]}
     >
-      <View style={styles.container}>
-        <View style={styles.topBar}>
-          {onClose && (
-            <TouchableOpacity
-              style={[styles.backBtn, closing && styles.hidden]}
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Close diary"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="close" size={24} color={colors.text} />
-            </TouchableOpacity>
-          )}
-          <View style={styles.titleContainer}>
-            <Text
-              style={[styles.diaryHeading, closing && styles.hidden]}
-              numberOfLines={1}
-            >
-              {diaryName}
-            </Text>
-            <Text style={styles.entryCountSubtitle}>
-              {entries.length} {entries.length === 1 ? "entry" : "entries"}
-            </Text>
-          </View>
+      <View style={styles.topBar}>
+        {onClose && (
+          <TouchableOpacity
+            style={[styles.backBtn, closing && styles.hidden]}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close diary"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={24} color={colors.text} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.titleContainer}>
+          <Text
+            style={[styles.diaryHeading, closing && styles.hidden]}
+            numberOfLines={1}
+          >
+            {diaryName}
+          </Text>
+          <Text style={styles.entryCountSubtitle}>
+            {entries.length} {entries.length === 1 ? "entry" : "entries"}
+          </Text>
         </View>
-        <SegmentedControl
-          options={[
-            { label: "Feed", value: "feed" },
-            { label: "Timeline", value: "timeline" },
-            { label: "List", value: "list" },
-          ]}
-          selectedValue={selectedView}
-          onSelect={setSelectedView}
-        />
-        <View style={{ marginVertical: 10 }}>
-          <Calendar
-            entries={entries}
-            selectedDate={selectedDate}
-            onDayPress={handleDayPress}
-            onDayLongPress={handleDayLongPress}
-          />
-        </View>
-
-        <FlatList
-          data={entries}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={
-            entries.length === 0 ? styles.emptyContainer : styles.listContent
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons
-                name="book-outline"
-                size={44}
-                color={colors.textMuted}
-              />
-              <Text style={styles.emptyTitle}>No Entries Yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Tap the pencil below to write your first entry.
-              </Text>
-            </View>
-          }
+      </View>
+      <SegmentedControl
+        options={[
+          { label: "Feed", value: "feed" },
+          { label: "Timeline", value: "timeline" },
+          { label: "List", value: "list" },
+        ]}
+        selectedValue={selectedView}
+        onSelect={setSelectedView}
+      />
+      <View style={{ marginVertical: 10 }}>
+        <Calendar
+          entries={entries}
+          selectedDate={selectedDate}
+          onDayPress={handleDayPress}
+          onDayLongPress={handleDayLongPress}
         />
       </View>
+      {entries.length > 0 ? (
+        <ListView
+          entries={entries}
+          onDeleteEntry={onDeleteEntry}
+          onSelectEntry={onSelectEntry}
+        />
+      ) : (
+        <EmptyState />
+      )}
       <FloatingActionButton onPress={() => onNewEntry()} />
     </SafeAreaView>
   );
@@ -213,69 +159,6 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.textMuted,
       fontWeight: "500",
       marginTop: 1,
-    },
-    listContent: {
-      paddingHorizontal: 16,
-      paddingTop: 14,
-      paddingBottom: 110,
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    cardHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-      marginBottom: 8,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.text,
-      flex: 1,
-      marginRight: 12,
-    },
-    cardDate: {
-      fontSize: 12,
-      fontWeight: "500",
-      color: colors.textMuted,
-    },
-    cardPreview: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.textMuted,
-    },
-    emptyContainer: {
-      flexGrow: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: 32,
-    },
-    emptyWrap: {
-      alignItems: "center",
-      gap: 8,
-    },
-    emptyTitle: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: colors.text,
-      marginTop: 8,
-    },
-    emptySubtitle: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: "center",
-      lineHeight: 20,
     },
     hidden: {
       opacity: 100,
