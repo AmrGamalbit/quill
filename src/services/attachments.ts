@@ -16,6 +16,7 @@ import {
   updateEntry,
 } from "../db/entries";
 import type { Attachment } from "../types/attachment";
+import { db } from "../db";
 
 export const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 

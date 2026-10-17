@@ -21,9 +21,7 @@ export default function useEntries(diaryId: number) {
   );
 
   const addEntry = async (title: string, body: string): Promise<void> => {
-    console.log("add entry");
     const a = await saveEntryToDb(diaryId, title, body);
-    console.log(a);
     console.log(diaryId);
     console.log(title);
     await refresh();

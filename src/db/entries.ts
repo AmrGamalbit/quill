@@ -1,12 +1,21 @@
 import { count, eq } from "drizzle-orm";
 import { db } from ".";
 import type { Entry } from "../types/entry";
+import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
 import { entriesTable as entries } from "./schema";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,
 ): Promise<Entry[]> => {
-  return await db.select().from(entries).where(eq(entries.diaryId, diaryId));
+  const rows = await db
+    .select()
+    .from(entries)
+    .where(eq(entries.diaryId, diaryId));
+  const countByEntry = await getAttachmentCountsByDiaryId(diaryId);
+  return rows.map((r) => ({
+    ...r,
+    counts: countByEntry.get(r.id) ?? { ...EMPTY_COUNTS },
+  }));
 };
 
 export const saveEntry = async (
@@ -53,3 +62,5 @@ export const getAllEntries = async (): Promise<Entry[]> => {
 export const deleteEntry = async (id: number): Promise<void> => {
   await db.delete(entries).where(eq(entries.id, id));
 };
+
+export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};

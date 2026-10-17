@@ -61,7 +61,7 @@ export const AttachmentsTable = sqliteTable(
     entryId: int("entry_id")
       .references(() => entriesTable.id, { onDelete: "cascade" })
       .notNull(),
-    kind: text().notNull(),
+    kind: text('kind', {enum: ['image', 'video', 'audio']}).notNull(),
     relPath: text("rel_path").notNull(),
     mimeType: text("mimeType").notNull(),
     width: int(),
