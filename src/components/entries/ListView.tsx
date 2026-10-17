@@ -1,12 +1,12 @@
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
-import { Entry } from "@/src/types/entry";
+import { Entry, EntryWithCounts } from "@/src/types/entry";
 import { FlatList, StyleSheet } from "react-native";
 import { dialog } from "../Dialog/DialogProvider";
 import EntryCard from "./EntryCard";
 
 type ListViewProps = {
-  entries: Entry[];
+  entries: EntryWithCounts[];
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;
 };
@@ -17,7 +17,6 @@ export default function ListView({
 }: ListViewProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  console.log(entries);
 
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;

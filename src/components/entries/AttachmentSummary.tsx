@@ -18,7 +18,7 @@ export default function AttachmentSummary({ counts }: AttachmentSummaryProps) {
     <View style={styles.row}>
       {ATTACHMENT_KIND_ICONS.map(({ kind, icon, label }) => {
         return counts[kind] > 0 ? (
-          <View style={styles.item}>
+          <View style={styles.item} key={kind}>
             <Ionicons
               name={icon}
               color={colors.textMuted}

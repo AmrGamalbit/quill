@@ -1,12 +1,12 @@
 import { count, eq } from "drizzle-orm";
 import { db } from ".";
-import type { Entry } from "../types/entry";
+import type { Entry, EntryWithCounts } from "../types/entry";
 import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
 import { entriesTable as entries } from "./schema";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,
-): Promise<Entry[]> => {
+): Promise<EntryWithCounts[]> => {
   const rows = await db
     .select()
     .from(entries)

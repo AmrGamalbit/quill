@@ -7,14 +7,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fonts } from "../constants/typography";
 import { haptic } from "../services/haptics";
-import type { Entry } from "../types/entry";
+import type { Entry, EntryWithCounts } from "../types/entry";
 import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
 import ListView from "./entries/ListView";
 import SegmentedControl from "./SegmentedControl";
 
 interface EntriesListProps {
-  entries: Entry[];
+  entries: EntryWithCounts[];
   diaryName?: string;
   onNewEntry: (date?: Date) => void;
   onSelectEntry?: (entry: Entry) => void;

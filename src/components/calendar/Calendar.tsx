@@ -94,7 +94,10 @@ export default function Calendar({
               alignItems: "center",
             }}
           >
-            <NavButton icon={"reorder-three-outline"} onPress={toggle} />
+            <NavButton
+              icon={isExapnded ? "chevron-up-outline" : "chevron-down-outline"}
+              onPress={toggle}
+            />
           </View>
         </View>
       </GestureDetector>
