@@ -16,7 +16,12 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
     colors.cardPressed,
   );
   const cleanPreview =
-    entry.body?.replace(/<[^>]+>/g, "").trim() || "Empty entry.";
+    entry.body
+      ?.replace(/<br\s*\/?>/gi, "\n")
+      ?.replace(/<\/p>|<\/div>/gi, "\n")
+      ?.replace(/<[^>]+>/g, "")
+      ?.replace(/\n\s*\n/g, "\n\n")
+      .trim() || "Empty entry.";
   const formattedDate = fromDateKey(entry.entryDate).toLocaleDateString(
     "en-US",
     {
@@ -40,7 +45,7 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
           <Text style={styles.cardDate}>{formattedDate}</Text>
         </View>
 
-        <Text style={styles.cardPreview} numberOfLines={5}>
+        <Text style={styles.cardPreview} numberOfLines={3}>
           {cleanPreview}
         </Text>
         <View style={styles.hr}></View>
