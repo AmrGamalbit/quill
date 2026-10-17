@@ -67,7 +67,7 @@ export default function ListView({
           </Text>
         </View>
         <Text style={styles.entryCount}>
-          {`${selectedDateEntries.length} entries`}
+          {`${selectedDateEntries.length} ${entries.length === 1 ? "entry" : "entries"}`}
         </Text>
       </View>
       <FlatList
@@ -83,7 +83,7 @@ export default function ListView({
   ) : null;
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       <FlatList
         data={otherEntries}
         keyExtractor={(item) => item.id.toString()}
@@ -101,8 +101,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     listContent: {
       paddingHorizontal: 16,
-      paddingTop: 14,
-      paddingBottom: 110,
+      paddingBottom: 50,
     },
     header: { marginBottom: 10 },
     selectedDayRow: {

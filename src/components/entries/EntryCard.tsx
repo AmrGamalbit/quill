@@ -6,6 +6,7 @@ import {
   formatEntryDate,
   fromDateKey,
 } from "@/src/utils/dates";
+import { Ionicons } from "@expo/vector-icons";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import AttachmentSummary from "./AttachmentSummary";
 
@@ -48,9 +49,16 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
         <View style={styles.hr}></View>
         <View style={styles.cardFooter}>
           <AttachmentSummary counts={entry.counts} />
-          <Text style={styles.cardDate}>
-            {formatCreatedMeta(entry.createdAt, entryDate)}
-          </Text>
+          <View style={styles.cardFooterRight}>
+            <Text style={styles.cardDate}>
+              {formatCreatedMeta(entry.createdAt, entryDate)}
+            </Text>
+            <Ionicons
+              size={16}
+              color={colors.textMuted}
+              name="chevron-forward-outline"
+            />
+          </View>
         </View>
       </Animated.View>
     </Pressable>
@@ -96,6 +104,12 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.textMuted,
     },
     cardFooter: { flexDirection: "row", justifyContent: "space-between" },
+    cardFooterRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+    },
     hr: {
       width: "100%",
       borderBottomColor: colors.border,
