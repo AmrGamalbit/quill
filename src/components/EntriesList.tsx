@@ -34,7 +34,7 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedView, setSelectedView] = useState("list");
 
   const handleDayPress = (date: Date) => {
@@ -115,6 +115,7 @@ export default function EntriesList({
       {entries.length > 0 ? (
         <ListView
           entries={entries}
+          selectedDate={selectedDate}
           onDeleteEntry={onDeleteEntry}
           onSelectEntry={onSelectEntry}
         />

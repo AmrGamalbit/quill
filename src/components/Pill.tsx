@@ -1,13 +1,15 @@
 import { Text, View } from "react-native";
+import { radius } from "../constants/radius";
+import { spacing } from "../constants/spacings";
 import useTheme from "../hooks/useTheme";
 
 export default function Pill({ text }: { text: string }) {
-  const { colors, spacing, radius, fonts } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <View
       style={{
-        backgroundColor: colors.pillBackground,
+        backgroundColor: colors.SegmentedControl,
         borderRadius: radius.md,
         paddingVertical: spacing.xs,
         paddingHorizontal: spacing.sm,
@@ -15,11 +17,7 @@ export default function Pill({ text }: { text: string }) {
         alignItems: "center",
       }}
     >
-      <Text
-        style={{ color: colors.pillText, fontFamily: fonts.label }}
-      >
-        {text}
-      </Text>
+      <Text style={{ color: colors.accent, fontWeight: 600 }}>{text}</Text>
     </View>
   );
 }

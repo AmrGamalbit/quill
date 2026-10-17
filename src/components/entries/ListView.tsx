@@ -1,22 +1,41 @@
+import { fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { Entry, EntryWithCounts } from "@/src/types/entry";
-import { FlatList, StyleSheet } from "react-native";
+import { formatEntryDate, toDateKey } from "@/src/utils/dates";
+import { useMemo } from "react";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { dialog } from "../Dialog/DialogProvider";
+import Pill from "../Pill";
 import EntryCard from "./EntryCard";
 
 type ListViewProps = {
   entries: EntryWithCounts[];
+  selectedDate: Date;
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;
 };
 export default function ListView({
   entries,
+  selectedDate,
   onSelectEntry,
   onDeleteEntry,
 }: ListViewProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
+
+  const selectedDateEntries = useMemo(() => {
+    return selectedDate
+      ? entries.filter((e) => e.entryDate === selectedKey)
+      : [];
+  }, [selectedDate, entries]);
+
+  const otherEntries = useMemo(() => {
+    return selectedDate
+      ? entries.filter((e) => e.entryDate !== selectedKey)
+      : entries;
+  }, [selectedDate, entries]);
 
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
@@ -38,18 +57,43 @@ export default function ListView({
     );
   };
 
+  const header = selectedDate ? (
+    <View style={styles.header}>
+      <View style={styles.selectedDayRow}>
+        <View style={styles.selectedDayTitle}>
+          <Pill text="Selected Day" />
+          <Text style={styles.selectedDayDate}>
+            {formatEntryDate(selectedDate)}
+          </Text>
+        </View>
+        <Text style={styles.entryCount}>
+          {`${selectedDateEntries.length} entries`}
+        </Text>
+      </View>
+      <FlatList
+        data={selectedDateEntries}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <EntryCard entry={item} onPress={() => onSelectEntry?.(item)} />
+        )}
+        contentContainerStyle={styles.listContent}
+      />
+      <Pill text="Other entries" />
+    </View>
+  ) : null;
+
   return (
-    <FlatList
-      data={entries}
-      keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
-        <EntryCard entry={item} onPress={() => onSelectEntry(item)} />
-      )}
-      //   contentContainerStyle={
-      //     entries.length === 0 ? styles.emptyContainer : styles.listContent
-      //   }
-      contentContainerStyle={styles.listContent}
-    />
+    <View>
+      <FlatList
+        data={otherEntries}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <EntryCard entry={item} onPress={() => onSelectEntry?.(item)} />
+        )}
+        ListHeaderComponent={header}
+        contentContainerStyle={styles.listContent}
+      />
+    </View>
   );
 }
 
@@ -59,5 +103,24 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 16,
       paddingTop: 14,
       paddingBottom: 110,
+    },
+    header: { marginBottom: 10 },
+    selectedDayRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 10,
+    },
+    selectedDayTitle: { flexDirection: "row", alignItems: "center", gap: 10 },
+    selectedDayDate: {
+      color: colors.textMuted,
+      fontWeight: 500,
+      fontSize: fontSizes.xs,
+    },
+    entryCount: {
+      color: colors.textMuted,
+      fontWeight: 500,
+      fontSize: fontSizes.xs,
     },
   });
