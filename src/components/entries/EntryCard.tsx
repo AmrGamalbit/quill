@@ -1,7 +1,11 @@
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import type { EntryWithCounts } from "@/src/types/entry";
-import { fromDateKey } from "@/src/utils/dates";
+import {
+  formatCreatedMeta,
+  formatEntryDate,
+  fromDateKey,
+} from "@/src/utils/dates";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import AttachmentSummary from "./AttachmentSummary";
 
@@ -10,6 +14,7 @@ type EntryCardProps = { entry: EntryWithCounts; onPress: () => void };
 export default function EntryCard({ entry, onPress }: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const entryDate = fromDateKey(entry.entryDate);
 
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
@@ -22,14 +27,6 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
       ?.replace(/<[^>]+>/g, "")
       ?.replace(/\n\s*\n/g, "\n\n")
       .trim() || "Empty entry.";
-  const formattedDate = fromDateKey(entry.entryDate).toLocaleDateString(
-    "en-US",
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    },
-  );
 
   return (
     <Pressable
@@ -42,14 +39,19 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
           <Text style={styles.cardTitle} numberOfLines={1}>
             {entry.title || "Untitled Entry"}
           </Text>
-          <Text style={styles.cardDate}>{formattedDate}</Text>
+          <Text style={styles.cardDate}>{formatEntryDate(entryDate)}</Text>
         </View>
 
         <Text style={styles.cardPreview} numberOfLines={3}>
           {cleanPreview}
         </Text>
         <View style={styles.hr}></View>
-        <AttachmentSummary counts={entry.counts} />
+        <View style={styles.cardFooter}>
+          <AttachmentSummary counts={entry.counts} />
+          <Text style={styles.cardDate}>
+            {formatCreatedMeta(entry.createdAt, entryDate)}
+          </Text>
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -93,6 +95,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       lineHeight: 20,
       color: colors.textMuted,
     },
+    cardFooter: { flexDirection: "row", justifyContent: "space-between" },
     hr: {
       width: "100%",
       borderBottomColor: colors.border,
