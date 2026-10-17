@@ -42,7 +42,6 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "react-native-libsodium",
       "expo-secure-store",
       "expo-font",
       "@react-native-vector-icons/ionicons",

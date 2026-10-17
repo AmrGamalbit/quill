@@ -1,5 +1,6 @@
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { ed25519, x25519 } from "@noble/curves/ed25519.js";
+import { argon2id } from "@noble/hashes/argon2.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
@@ -70,19 +71,33 @@ export async function deriveAuthAndEncKeys(
   email: string,
 ): Promise<{ authSecret: string; localEncKey: Uint8Array }> {
   const normalizedEmail = email.trim().toLowerCase();
-  const salt = sha256(
+  const fullHash = sha256(
     new TextEncoder().encode(`quill-v1${normalizedEmail}`),
-  ).slice(0, 16);
-  await sodium.ready;
-
-  const masterKey = sodium.crypto_pwhash(
-    64,
-    new TextEncoder().encode(password),
-    salt,
-    3,
-    64 * 1024 * 1024,
-    sodium.crypto_pwhash_ALG_ARGON2ID13,
   );
+  const salt = new Uint8Array(16);
+  salt.set(fullHash.subarray(0, 16));
+
+  const passwordBytes = new TextEncoder().encode(password);
+  let masterKey: Uint8Array;
+
+  try {
+    await sodium.ready;
+    masterKey = sodium.crypto_pwhash(
+      64,
+      password,
+      salt,
+      3,
+      64 * 1024 * 1024,
+      sodium.crypto_pwhash_ALG_ARGON2ID13 ?? 2,
+    );
+  } catch {
+    masterKey = argon2id(passwordBytes, salt, {
+      t: 3,
+      m: 65536,
+      p: 1,
+      dkLen: 64,
+    });
+  }
 
   const localEncKey = hkdf(
     sha256,
