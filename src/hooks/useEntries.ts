@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 import {
   deleteEntry as deleteEntryFromDb,
   getEntriesByDiaryId,
-  saveEntry as saveEntryToDb,
 } from "../db/entries";
 import type { EntryWithCounts } from "../types/entry";
 
@@ -20,15 +19,10 @@ export default function useEntries(diaryId: number) {
     }, [refresh]),
   );
 
-  const addEntry = async (title: string, body: string): Promise<void> => {
-    const a = await saveEntryToDb(diaryId, title, body);
-    await refresh();
-  };
-
   const deleteEntry = async (entryId: number) => {
     await deleteEntryFromDb(entryId);
     await refresh();
   };
 
-  return { entries, refresh, addEntry, deleteEntry };
+  return { entries, refresh, deleteEntry };
 }
