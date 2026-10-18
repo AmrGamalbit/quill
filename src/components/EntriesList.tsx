@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fonts } from "../constants/typography";
 import { haptic } from "../services/haptics";
 import type { Entry, EntryWithCounts } from "../types/entry";
+import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
 import ListView from "./entries/ListView";
@@ -34,12 +35,15 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedView, setSelectedView] = useState("list");
 
   const handleDayPress = (date: Date) => {
     haptic.press();
-    setSelectedDate(date);
+    setSelectedDate((prev) => {
+      if (prev && isSameDay(prev, date)) return null;
+      return date;
+    });
   };
 
   const handleDayLongPress = (date: Date) => {

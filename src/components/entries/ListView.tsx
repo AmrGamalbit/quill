@@ -11,7 +11,7 @@ import EntryCard from "./EntryCard";
 
 type ListViewProps = {
   entries: EntryWithCounts[];
-  selectedDate: Date;
+  selectedDate: Date | null;
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;
 };

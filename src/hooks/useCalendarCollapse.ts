@@ -11,7 +11,7 @@ import {
 } from "react-native-reanimated";
 
 export default function useCalendarCollapse(selectedRow: number) {
-  const [isExapnded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const progress = useSharedValue(0);
   const startProgress = useSharedValue(0);
   const { width } = useWindowDimensions();
@@ -82,7 +82,7 @@ export default function useCalendarCollapse(selectedRow: number) {
     gridContainerStyle,
     gridStyle,
     panGesture,
-    isExapnded,
+    isExpanded,
     chevronRotation,
   };
 }
