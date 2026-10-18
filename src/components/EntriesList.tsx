@@ -1,5 +1,4 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
-import FloatingActionButton from "@/src/components/FloatingActionButton";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
@@ -126,7 +125,6 @@ export default function EntriesList({
       ) : (
         <EmptyState />
       )}
-      <FloatingActionButton onPress={() => onNewEntry()} />
     </SafeAreaView>
   );
 }
@@ -141,7 +139,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 20,
-      paddingVertical: 12,
+      paddingBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: 12,

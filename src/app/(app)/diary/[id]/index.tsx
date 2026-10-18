@@ -1,4 +1,5 @@
 import EntriesList from "@/src/components/EntriesList";
+import FloatingActionButton from "@/src/components/FloatingActionButton";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
 import { setResumeDiaryId } from "@/src/db/appState";
 import { getDiaryById, openDiary } from "@/src/db/diaries";
@@ -14,12 +15,14 @@ import {
   useRouter,
 } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
   const { colors } = useTheme();
+  const styles = getStyles(colors);
   const router = useRouter();
   const { entries, refresh } = useEntries(diaryId);
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
@@ -52,37 +55,45 @@ export default function DiaryScreen() {
     }, [diaryId]),
   );
 
+  const handleAddEntry = (date?: Date) => {
+    router.push({
+      pathname: `/(app)/diary/[id]/new-entry`,
+      params: date ? { id: diaryId, date: toDateKey(date) } : { id: diaryId },
+    });
+  };
+
   const handleDeleteEntry = async (entryId: number) => {
     await deleteEntryWithMedia(entryId);
     refresh();
   };
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: colors.background }}
-      onLayout={() =>
-        requestAnimationFrame(() => requestAnimationFrame(reportReady))
-      }
-    >
-      <Stack.Screen options={{ animation: "none" }} />
-      <EntriesList
-        entries={entries}
-        closing={closing}
-        onClose={handleClose}
-        diaryName={diaryRow?.name}
-        onNewEntry={(date) =>
-          router.push({
-            pathname: `/(app)/diary/[id]/new-entry`,
-            params: date
-              ? { id: diaryId, date: toDateKey(date) }
-              : { id: diaryId },
-          })
+    <SafeAreaView style={{ flex: 1 }}>
+      <View
+        style={styles.screen}
+        onLayout={() =>
+          requestAnimationFrame(() => requestAnimationFrame(reportReady))
         }
-        onSelectEntry={(entry) => {
-          router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
-        }}
-        onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
-      />
-    </View>
+      >
+        <Stack.Screen options={{ animation: "none" }} />
+        <EntriesList
+          entries={entries}
+          closing={closing}
+          onClose={handleClose}
+          diaryName={diaryRow?.name}
+          onNewEntry={(date) => handleAddEntry(date)}
+          onSelectEntry={(entry) => {
+            router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
+          }}
+          onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+        />
+        <FloatingActionButton onPress={() => handleAddEntry()} />
+      </View>
+    </SafeAreaView>
   );
 }
+
+const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.background },
+  });

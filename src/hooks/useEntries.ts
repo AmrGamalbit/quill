@@ -5,10 +5,10 @@ import {
   getEntriesByDiaryId,
   saveEntry as saveEntryToDb,
 } from "../db/entries";
-import type { Entry } from "../types/entry";
+import type { EntryWithCounts } from "../types/entry";
 
 export default function useEntries(diaryId: number) {
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [entries, setEntries] = useState<EntryWithCounts[]>([]);
 
   const refresh = useCallback(async () => {
     setEntries(await getEntriesByDiaryId(diaryId));
@@ -22,8 +22,6 @@ export default function useEntries(diaryId: number) {
 
   const addEntry = async (title: string, body: string): Promise<void> => {
     const a = await saveEntryToDb(diaryId, title, body);
-    console.log(diaryId);
-    console.log(title);
     await refresh();
   };
 
