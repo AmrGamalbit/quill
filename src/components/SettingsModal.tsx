@@ -177,6 +177,7 @@ export default function SettingsModal({
   };
 
   const handleLogout = () => {
+    haptic.thud();
     dialog.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {

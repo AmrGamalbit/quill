@@ -219,7 +219,8 @@ export default function DiaryMembersModal({
               value={sharePhoto}
               onValueChange={handleToggleSharePhoto}
               trackColor={{ false: colors.border, true: diaryAccent }}
-              thumbColor={diaryAccent}
+              thumbColor={sharePhoto ? colors.background || '#FFFFFF' : '#F4F3F4'}
+              ios_backgroundColor={colors.border}
             />
           </View>
 
