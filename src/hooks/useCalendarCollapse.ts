@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import {
+  Extrapolation,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -31,6 +32,18 @@ export default function useCalendarCollapse(selectedRow: number) {
   const gridContainerStyle = useAnimatedStyle(() => ({
     height: interpolate(progress.value, [0, 1], [rowH, rowH * 6]),
   }));
+
+  const chevronRotation = useAnimatedStyle(() => {
+    const rotate = interpolate(
+      progress.value,
+      [0, 1],
+      [0, 180],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [{ rotate: `${rotate}deg` }],
+    };
+  });
 
   const gridStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
@@ -70,5 +83,6 @@ export default function useCalendarCollapse(selectedRow: number) {
     gridStyle,
     panGesture,
     isExapnded,
+    chevronRotation,
   };
 }

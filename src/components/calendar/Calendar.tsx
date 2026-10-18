@@ -19,6 +19,7 @@ import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
 import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
+
 type CalendarProps = {
   entries: Entry[];
   selectedDate: Date;
@@ -57,12 +58,19 @@ export default function Calendar({
     gridStyle,
     panGesture,
     isExapnded,
+    chevronRotation,
   } = useCalendarCollapse(selectedRow);
 
   useEffect(() => {
     setCurrentMonth(startOfMonth(selectedDate));
   }, [selectedDate, isExapnded]);
-  console.log(toDateKey(selectedDate));
+
+  const navButton = (
+    <Animated.View style={chevronRotation}>
+      <NavButton icon={"chevron-up-outline"} onPress={toggle} />
+    </Animated.View>
+  );
+
   return (
     <View style={{ marginHorizontal: spacing.md }}>
       <Animated.View style={headerStyle}>
@@ -94,10 +102,7 @@ export default function Calendar({
               alignItems: "center",
             }}
           >
-            <NavButton
-              icon={isExapnded ? "chevron-up-outline" : "chevron-down-outline"}
-              onPress={toggle}
-            />
+            {navButton}
           </View>
         </View>
       </GestureDetector>
