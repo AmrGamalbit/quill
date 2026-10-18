@@ -1,12 +1,24 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
+import { resolveDiaryColor } from "@/src/constants/colors";
+import { fonts, fontSizes } from "@/src/constants/typography";
+import { useUserSession } from "@/src/context/UserSessionContext";
+import { db } from "@/src/db";
+import { diaryMembersTable } from "@/src/db/schema";
 import useTheme from "@/src/hooks/useTheme";
+import { haptic } from "@/src/services/haptics";
+import { useSyncStatus } from "@/src/services/syncEngine";
+import type { Entry } from "@/src/types/entry";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { fonts } from "../constants/typography";
-import { haptic } from "../services/haptics";
-import type { Entry, EntryWithCounts } from "../types/entry";
+import type { EntryWithCounts } from "../types/entry";
 import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
@@ -16,26 +28,48 @@ import SegmentedControl from "./SegmentedControl";
 interface EntriesListProps {
   entries: EntryWithCounts[];
   diaryName?: string;
+  diaryColor?: string;
   onNewEntry: (date?: Date) => void;
   onSelectEntry?: (entry: Entry) => void;
   onClose?: () => void;
   onDeleteEntry?: (id: number) => void;
+  onOpenMembers?: () => void;
   closing?: boolean;
 }
 
 export default function EntriesList({
   entries,
   diaryName = "Diary",
+  diaryColor = "cobalt",
   onNewEntry,
   onSelectEntry,
   onClose,
   onDeleteEntry,
+  onOpenMembers,
   closing,
 }: EntriesListProps) {
   const { colors } = useTheme();
-  const styles = getStyles(colors);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedView, setSelectedView] = useState("list");
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const diaryAccent = resolveDiaryColor(diaryColor, scheme);
+  const { session } = useUserSession();
+  const isSyncing = useSyncStatus();
+  const styles = getStyles(colors, diaryAccent);
+  const [authorMap, setAuthorMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    db.select()
+      .from(diaryMembersTable)
+      .then((rows) => {
+        const map: Record<string, string> = {};
+        for (const r of rows) {
+          map[r.userId] = r.name || (r.username ? `@${r.username}` : "Member");
+        }
+        setAuthorMap(map);
+      })
+      .catch(() => {});
+  }, [entries, isSyncing]);
 
   const handleDayPress = (date: Date) => {
     haptic.press();
@@ -51,6 +85,17 @@ export default function EntriesList({
 
   const handleLongPress = (entry: Entry) => {
     if (!onDeleteEntry) return;
+    if (
+      entry.authorId &&
+      session?.userId &&
+      entry.authorId !== session.userId
+    ) {
+      dialog.alert(
+        "Read Only",
+        "You can only delete entries that you created.",
+      );
+      return;
+    }
     haptic.press();
     dialog.alert(
       "Delete Entry",
@@ -77,13 +122,13 @@ export default function EntriesList({
       <View style={styles.topBar}>
         {onClose && (
           <TouchableOpacity
-            style={[styles.backBtn, closing && styles.hidden]}
+            style={[styles.iconButton, closing && styles.hidden]}
             onPress={onClose}
             accessibilityRole="button"
             accessibilityLabel="Close diary"
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={12}
           >
-            <Ionicons name="close" size={24} color={colors.text} />
+            <Ionicons name="close" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
         <View style={styles.titleContainer}>
@@ -121,6 +166,8 @@ export default function EntriesList({
           selectedDate={selectedDate}
           onDeleteEntry={onDeleteEntry}
           onSelectEntry={onSelectEntry}
+          onOpenMembers={onOpenMembers}
+          diaryAccent={diaryAccent}
         />
       ) : (
         <EmptyState />
@@ -129,7 +176,10 @@ export default function EntriesList({
   );
 }
 
-const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const getStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  diaryAccent: string,
+) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -140,28 +190,67 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       alignItems: "center",
       paddingHorizontal: 20,
       paddingBottom: 12,
+      backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: 12,
     },
-    backBtn: {
-      paddingVertical: 4,
-      paddingRight: 6,
+    iconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
     },
     titleContainer: {
       flex: 1,
     },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    diaryDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: diaryAccent,
+    },
     diaryHeading: {
       fontFamily: fonts.heading,
-      fontSize: 20,
-      fontWeight: "600",
+      fontSize: fontSizes.lg,
+      fontWeight: "700",
       color: colors.text,
+      flexShrink: 1,
+    },
+    subtitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 2,
     },
     entryCountSubtitle: {
-      fontSize: 12,
+      fontSize: fontSizes.xs,
+      fontFamily: fonts.body,
       color: colors.textMuted,
-      fontWeight: "500",
-      marginTop: 1,
+    },
+    syncInline: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    syncInlineText: {
+      fontSize: 11,
+      fontFamily: fonts.label,
+      fontWeight: "700",
+      color: diaryAccent,
+    },
+
+    calendarWrap: {
+      marginVertical: 8,
     },
     hidden: {
       opacity: 100,

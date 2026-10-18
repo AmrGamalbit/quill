@@ -2,15 +2,16 @@ import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function EmptyState() {
+type EmptyStateProps = { accentColor: string };
+export default function EmptyState({ accentColor }: EmptyStateProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   return (
     <View style={styles.emptyWrap}>
       <Ionicons name="book-outline" size={44} color={colors.textMuted} />
-      <Text style={styles.emptyTitle}>No Entries Yet</Text>
+      <Text style={styles.emptyTitle}>No Memories Yet</Text>
       <Text style={styles.emptySubtitle}>
-        Tap the pencil below to write your first entry.
+        Tap the button below or long-press any calendar day to capture a moment.
       </Text>
     </View>
   );

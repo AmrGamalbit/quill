@@ -52,7 +52,7 @@ export default function Button({
     : colors.card;
 
   const pressedBg = isPrimary
-    ? colors.dangerPressed
+    ? colors.accentPressed
     : isPrimary
     ? colors.accentPressed
     : isOutline

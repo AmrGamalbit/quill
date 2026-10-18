@@ -5,7 +5,6 @@ import {
 } from "@expo-google-fonts/gabarito";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import type { Session } from "@supabase/supabase-js";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
@@ -13,13 +12,25 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import "react-native-reanimated";
-import migrations from "../../drizzle/migrations";
+import { dialog } from "../components/Dialog/DialogProvider";
 import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
 import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
-import { db, dbStatus, sqlite } from "../db";
+import { dbStatus } from "../db";
 import { getResumeDiaryId } from "../db/appState";
 import { protectLocalStorage } from "../services/localProtection";
 import { finishPendingWipe } from "../services/localWipe";
+import { initKeysRpc } from "../utils/auth";
+import {
+  bytesToHex,
+  decryptKeyBundle,
+  encryptKeyBundle,
+  generateDualSignKeyPair,
+  generateHybridKemKeyPair,
+  generateRecoveryKey,
+  hexToBytes,
+  signPublicBundle,
+  type UserSecretKeyBundle,
+} from "../utils/crypto";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -32,6 +43,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
 import {
   UserSessionProvider,
+  useSyncLifecycle,
   useUserSession,
 } from "../context/UserSessionContext";
 import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
@@ -42,7 +54,7 @@ import {
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
-import { decryptData, decryptUserProfile } from "../utils/crypto";
+import { decryptUserProfile } from "../utils/crypto";
 import {
   downloadAndDecryptPhoto,
   getValidAvatarUrl,
@@ -67,10 +79,7 @@ function AppNavigator() {
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { success: isDbMigrated, error: dbMigrationError } = useMigrations(
-    db,
-    migrations,
-  );
+  const isDbMigrated = dbStatus === "ready";
   const [isFontsLoaded, fontLoadingError] = useFonts({
     Roboto_400Regular,
     Gabarito_400Regular,
@@ -78,6 +87,7 @@ function AppNavigator() {
     Gabarito_700Bold,
   });
   const { session: userSession, setSession } = useUserSession();
+  useSyncLifecycle();
   const router = useRouter();
 
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
@@ -91,24 +101,12 @@ function AppNavigator() {
   }, [fontLoadingError]);
 
   useEffect(() => {
-    if (isDbMigrated) {
-      sqlite.execSync("PRAGMA foreign_keys = ON;");
-    }
-  }, [isDbMigrated]);
-
-  useEffect(() => {
     if (!isDbMigrated) return;
     (async () => {
       await finishPendingWipe();
       await protectLocalStorage();
     })().catch((e) => console.error("Local storage hardening failed:", e));
   }, [isDbMigrated]);
-
-  useEffect(() => {
-    if (dbMigrationError) {
-      console.error("Migration error:", dbMigrationError);
-    }
-  }, [dbMigrationError]);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
@@ -119,41 +117,118 @@ function AppNavigator() {
         return;
       }
 
+      const derivedKey = await getStoredDerivedKey();
+
       try {
         const cached = await getLocalProfile(newSession.user.id);
-        if (cached?.name) {
+        if (cached?.name && derivedKey) {
           cachedPhotoUri = await getValidAvatarUrl(cached.photoUri);
           setSession({
             userId: newSession.user.id,
+            username: "",
             email: newSession.user.email ?? "",
             name: cached.name,
             photoUri: cached.photoUri ?? null,
-            rawPrivateKey: null,
-            publicKeyHex: cached.publicKey ?? userSession?.publicKeyHex ?? "",
+            localEncKey: derivedKey,
+            kemKeys: null,
+            signKeys: null,
           });
-          // Unblock rendering immediately so the UI doesn't freeze on "Friend"
           setIsAuthLoading(false);
         }
       } catch (err) {
-        console.warn("Failed reading cached local profile:", err);
+        console.warn("Failed reading cached local profile: ", err);
         await clearDerivedKey();
       }
 
-      // Background sync: Fetch cryptographic keys and latest cloud profile
       try {
-        const derivedKey = await getStoredDerivedKey();
         if (derivedKey) {
           const profileRecord = await getUserProfileRecord(newSession.user.id);
-          const rawPrivateKey = decryptData(
-            profileRecord.encrypted_private_key,
-            profileRecord.private_key_nonce,
-            derivedKey,
-          );
           const decryptedProfile = decryptUserProfile(
             profileRecord.encrypted_profile,
             profileRecord.profile_nonce,
             derivedKey,
           );
+
+          let kemKeys: {
+            x25519Priv: Uint8Array;
+            mlkem768Priv: Uint8Array;
+            publicKeyHex: string;
+          } | null = null;
+          let signKeys: {
+            ed25519Priv: Uint8Array;
+            mldsa65Priv: Uint8Array;
+            publicKeyHex: string;
+          } | null = null;
+
+          if (!profileRecord.keys_initialized_at) {
+            const kemPair = generateHybridKemKeyPair();
+            const signPair = generateDualSignKeyPair();
+            const { rawKey: recKeyBytes, formattedKey: recKeyDisplay } =
+              generateRecoveryKey();
+
+            const kemPubHex = bytesToHex(kemPair.publicKeyBytes);
+            const signPubHex = bytesToHex(signPair.publicKeyBytes);
+            const bundleSigHex = signPublicBundle(
+              newSession.user.id,
+              kemPubHex,
+              signPubHex,
+              signPair.ed25519Priv,
+              signPair.mldsa65Priv,
+            );
+            const secretBundle: UserSecretKeyBundle = {
+              kemX25519Priv: bytesToHex(kemPair.x25519Priv),
+              kemMlkem768Priv: bytesToHex(kemPair.mlkem768Priv),
+              signEd25519Priv: bytesToHex(signPair.ed25519Priv),
+              signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
+            };
+            await initKeysRpc({
+              kemPublicKey: kemPubHex,
+              signPublicKey: signPubHex,
+              bundleSignature: bundleSigHex,
+              encryptedKeyBundle: encryptKeyBundle(secretBundle, derivedKey),
+              recoveryKeyBundle: encryptKeyBundle(secretBundle, recKeyBytes),
+            });
+
+            setTimeout(() => {
+              dialog.alert(
+                "Save your recovery key",
+                `Please write this down and store it safely. It will NEVER be shown again and your diaries and entries will be gone if you lose it:\n\n${recKeyDisplay}`,
+              );
+            }, 500);
+
+            kemKeys = {
+              x25519Priv: kemPair.x25519Priv,
+              mlkem768Priv: kemPair.mlkem768Priv,
+              publicKeyHex: kemPubHex,
+            };
+            signKeys = {
+              ed25519Priv: signPair.ed25519Priv,
+              mldsa65Priv: signPair.mldsa65Priv,
+              publicKeyHex: signPubHex,
+            };
+          } else {
+            if (
+              !profileRecord.encrypted_key_bundle ||
+              !profileRecord.kem_public_key ||
+              !profileRecord.sign_public_key
+            ) {
+              throw new Error("Missing key bundle on initialized profile.");
+            }
+            const bundle = decryptKeyBundle(
+              profileRecord.encrypted_key_bundle,
+              derivedKey,
+            );
+            kemKeys = {
+              x25519Priv: hexToBytes(bundle.kemX25519Priv),
+              mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
+              publicKeyHex: profileRecord.sign_public_key,
+            };
+            signKeys = {
+              ed25519Priv: hexToBytes(bundle.signEd25519Priv),
+              mldsa65Priv: hexToBytes(bundle.signMldsa65Priv),
+              publicKeyHex: profileRecord.sign_public_key,
+            };
+          }
 
           let decryptedPhotoUri: string | null = null;
           if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
@@ -170,35 +245,33 @@ function AppNavigator() {
               decryptedPhotoUri = cachedPhotoUri;
             }
           }
-
-          // Persist the freshly decrypted metadata to local SQLite cache
           await saveLocalProfile(
             newSession.user.id,
             decryptedProfile.name,
             decryptedPhotoUri,
-            profileRecord.public_key,
+            kemKeys?.publicKeyHex ?? "",
           );
 
           setSession({
             userId: newSession.user.id,
+            username: profileRecord.username,
             email: newSession.user.email ?? "",
             name: decryptedProfile.name,
             photoUri: decryptedPhotoUri,
-            rawPrivateKey,
-            publicKeyHex: profileRecord.public_key,
+            localEncKey: derivedKey,
+            kemKeys,
+            signKeys,
           });
         }
       } catch (e) {
-        console.error("Fast restore failed:", e);
+        console.error("Fast restore failed: ", e);
       } finally {
         setIsAuthLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
-
-  const isSignedIn = true;
+  const isSignedIn = supabaseSession !== null;
   const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
     if (!isNavReady) return;

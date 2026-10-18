@@ -1,67 +1,95 @@
 const primitives = {
   snow: "#FFFFFF",
-  paper: "#FDFCFE",
-  cardBg: "#FFFFFF",
-  borderLight: "#E0E4F5",
-  borderDark: "#363C78",
+  cream: "#FFF9F0",
+  cardLight: "#FFFFFF",
+  borderLight: "#F1E5D5",
+  borderDark: "#3A3358",
 
-  navyDark: "#252958",
-  periwinkle: "#BDC2F7",
-  periwinkleSoft: "#EEF0FD",
-  cobalt: "#2D62A4",
-  cobaltDark: "#20487B",
+  plumDeep: "#17132A",
+  plumSurface: "#1F1A38",
+  plumCard: "#282142",
+  plumPressed: "#342B55",
 
-  mutedNavy: "#5E6692",
-  mutedLavender: "#9DA5D4",
+  inkDark: "#2A2140",
+  inkMuted: "#7A6F94",
+  frostText: "#FBF7FF",
+  frostMuted: "#A99FC6",
 
-  crimson: "#D62845",
-  crimsonDark: "#A81B34",
-  crimsonLight: "#FF6B82",
+  // Playful accents
+  grapeDark: "#A78BFF",
+  grapeLight: "#6C4DF6",
+
+  bubblegumDark: "#FF7AB6",
+  bubblegumLight: "#E8408A",
+
+  tangerineDark: "#FFA14A",
+  tangerineLight: "#E8650A",
+
+  sunshineDark: "#FFD84D",
+  sunshineLight: "#C98A00",
+
+  mintDark: "#5EEAC0",
+  mintLight: "#12957A",
+
+  skyDark: "#6CC8FF",
+  skyLight: "#1E8FE0",
+
+  crimson: "#E5384F",
+  crimsonDark: "#C42A40",
+  crimsonLight: "#FF6B7F",
 } as const;
 
 export const colors = {
   light: {
-    background: primitives.paper,
+    background: primitives.cream,
     surface: primitives.snow,
-    card: primitives.cardBg,
-    cardPressed: primitives.periwinkleSoft,
-    text: primitives.navyDark,
-    textMuted: primitives.mutedNavy,
+    card: primitives.cardLight,
+    cardPressed: "#FFF1DE",
+    text: primitives.inkDark,
+    textMuted: primitives.inkMuted,
     textOnAccent: primitives.snow,
-    accent: primitives.cobalt,
-    accentPressed: primitives.cobaltDark,
+    accent: primitives.grapeLight,
+    accentPressed: "#5538D6",
+    secondaryAccent: primitives.bubblegumLight,
+    success: primitives.mintLight,
+    warning: primitives.sunshineLight,
     border: primitives.borderLight,
-    shadow: primitives.navyDark,
+    shadow: "#2A2140",
     danger: primitives.crimson,
     dangerPressed: primitives.crimsonDark,
     SegmentedControl: "#EEF2F6",
   },
   dark: {
-    background: "#0E112A",
-    surface: "#161A3D",
-    card: primitives.navyDark,
-    cardPressed: "#30356E",
-    text: primitives.paper,
-    textMuted: primitives.mutedLavender,
-    textOnAccent: primitives.navyDark,
-    accent: primitives.periwinkle,
-    accentPressed: "#A4ACF2",
+    background: primitives.plumDeep,
+    surface: primitives.plumSurface,
+    card: primitives.plumCard,
+    cardPressed: primitives.plumPressed,
+    text: primitives.frostText,
+    textMuted: primitives.frostMuted,
+    textOnAccent: primitives.plumDeep,
+    accent: primitives.grapeDark,
+    accentPressed: "#8C6CF2",
+    secondaryAccent: primitives.bubblegumDark,
+    success: primitives.mintDark,
+    warning: primitives.sunshineDark,
     border: primitives.borderDark,
     shadow: "#000000",
     danger: primitives.crimsonLight,
-    dangerPressed: "#E54E67",
     SegmentedControl: "#1E293B",
+    dangerPressed: primitives.crimson,
   },
 };
 
+// Keys are unchanged on purpose: they're what's stored on each diary,
+// so existing diaries keep working. Only the values (and names in comments) changed.
 export const diaryColors = {
-  cobalt: { light: "#2D62A4", dark: "#BDC2F7" },
-  rose: { light: "#D62845", dark: "#FF6B82" },
-  amber: { light: "#B7791F", dark: "#F6C453" },
-  forest: { light: "#2F7D5B", dark: "#6FD3A5" },
-  teal: { light: "#1F7A8C", dark: "#6CC6D6" },
-  violet: { light: "#7B4FB8", dark: "#C2A3F2" },
-  slate: { light: "#5E6692", dark: "#9DA5D4" },
+  cobalt: { light: "#6C4DF6", dark: "#A78BFF" }, // Grape
+  rose: { light: "#E8408A", dark: "#FF7AB6" }, // Bubblegum
+  amber: { light: "#E8650A", dark: "#FFA14A" }, // Tangerine
+  forest: { light: "#12957A", dark: "#5EEAC0" }, // Mint
+  teal: { light: "#1E8FE0", dark: "#6CC8FF" }, // Sky
+  violet: { light: "#C98A00", dark: "#FFD84D" }, // Sunshine
+  slate: { light: "#E5384F", dark: "#FF6B7F" }, // Strawberry
 } as const;
 
 export type DiaryColorKey = keyof typeof diaryColors;

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import useTheme from "../hooks/useTheme";
+import { haptic } from "../services/haptics";
 import type { Rect } from "./MediaViewer";
 import PressableScale, { IconButton } from "./PressableScale";
 
@@ -20,8 +21,10 @@ export default function AttachMenu({ actions }: { actions: MenuAction[] }) {
     const ref = useRef<View>(null);
     const [anchor, setAnchor] = useState<Rect | null>(null);
 
-    const open = () =>
+    const open = () => {
+        haptic.press();
         ref.current?.measureInWindow((x, y, width, height) => setAnchor({ x, y, width, height }));
+        }
     const close = () => setAnchor(null);
     const run = (a: MenuAction) => { close(); setTimeout(a.onPress, 320); };
 

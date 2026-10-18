@@ -153,16 +153,12 @@ export default function SettingsModal({
         session.userId,
         session.name,
         persistedUri,
-        session.publicKeyHex,
+        session.kemKeys?.publicKeyHex ?? '',
       );
 
       setSession({
-        userId: session.userId,
-        email: session.email,
-        name: session.name,
+        ...session,
         photoUri: persistedUri,
-        rawPrivateKey: session.rawPrivateKey,
-        publicKeyHex: session.publicKeyHex,
       });
 
       haptic.success();
@@ -181,6 +177,7 @@ export default function SettingsModal({
   };
 
   const handleLogout = () => {
+    haptic.thud();
     dialog.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {

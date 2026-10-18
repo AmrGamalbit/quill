@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { dialog } from "../Dialog/DialogProvider";
 import Pill from "../Pill";
+import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
 
 type ListViewProps = {
@@ -14,12 +15,16 @@ type ListViewProps = {
   selectedDate: Date | null;
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;
+  onOpenMembers?: () => void;
+  diaryAccent: string;
 };
 export default function ListView({
   entries,
   selectedDate,
   onSelectEntry,
   onDeleteEntry,
+  onOpenMembers,
+  diaryAccent,
 }: ListViewProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -78,6 +83,8 @@ export default function ListView({
             entry={item}
             onPress={() => onSelectEntry?.(item)}
             onLongPress={(entry) => handleLongPress(entry)}
+            onOpenMembers={onOpenMembers}
+            diaryAccent={diaryAccent}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -96,10 +103,13 @@ export default function ListView({
             entry={item}
             onPress={() => onSelectEntry?.(item)}
             onLongPress={(entry) => handleLongPress(entry)}
+            onOpenMembers={onOpenMembers}
+            diaryAccent={diaryAccent}
           />
         )}
         ListHeaderComponent={header}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={EmptyState}
       />
     </View>
   );

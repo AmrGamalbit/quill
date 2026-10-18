@@ -1,3 +1,4 @@
+import { fonts } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import type { EntryWithCounts } from "@/src/types/entry";
@@ -7,22 +8,35 @@ import {
   fromDateKey,
 } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import AttachmentSummary from "./AttachmentSummary";
 
 type EntryCardProps = {
   entry: EntryWithCounts;
   onPress: () => void;
   onLongPress: (entry: EntryWithCounts) => void;
+  onOpenMembers?: () => void;
+  diaryAccent: string;
+  isMe: boolean;
 };
 
 export default function EntryCard({
   entry,
   onPress,
   onLongPress,
+  onOpenMembers,
+  diaryAccent,
+  isMe,
 }: EntryCardProps) {
   const { colors } = useTheme();
-  const styles = getStyles(colors);
+  const styles = getStyles(colors, diaryAccent);
   const entryDate = fromDateKey(entry.entryDate);
 
   const { animatePress, animatedColor } = usePressAnimation(
@@ -51,7 +65,6 @@ export default function EntryCard({
           </Text>
           <Text style={styles.cardDate}>{formatEntryDate(entryDate)}</Text>
         </View>
-
         <Text style={styles.cardPreview} numberOfLines={3}>
           {cleanPreview}
         </Text>
@@ -67,14 +80,53 @@ export default function EntryCard({
               color={colors.textMuted}
               name="chevron-forward-outline"
             />
+            <View
+              style={[
+                styles.authorPill,
+                isMe ? styles.authorPillMe : styles.authorPillOther,
+              ]}
+            >
+              <View
+                style={[
+                  styles.authorDot,
+                  {
+                    backgroundColor: isMe ? diaryAccent : colors.textMuted,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.authorText,
+                  { color: isMe ? diaryAccent : colors.textMuted },
+                  { color: isMe ? diaryAccent : colors.textMuted },
+                ]}
+                numberOfLines={1}
+              >
+                {isMe ? `${entry.authorName} • YOU` : entry.authorName}
+              </Text>
+            </View>
           </View>
         </View>
+        {onOpenMembers && (
+          <TouchableOpacity
+            onPress={onOpenMembers}
+            hitSlop={10}
+            style={styles.membersButton}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="people" size={16} color="#000" />
+            {/*   <Text style={styles.membersButtonText}>Members</Text> */}
+          </TouchableOpacity>
+        )}
       </Animated.View>
     </Pressable>
   );
 }
 
-const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const getStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  diaryAccent: string,
+) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.card,
@@ -124,5 +176,50 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       borderBottomColor: colors.border,
       borderBottomWidth: 1,
       marginVertical: 15,
+    },
+    membersButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: diaryAccent,
+    },
+    membersButtonText: {
+      fontSize: 12,
+      fontFamily: fonts.label,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    authorPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    authorPillMe: {
+      backgroundColor: colors.surface,
+      borderColor: diaryAccent,
+      borderColor: diaryAccent,
+    },
+    authorPillOther: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+    },
+    authorDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    authorText: {
+      fontSize: 11,
+      fontFamily: fonts.label,
+      fontWeight: "700",
     },
   });
