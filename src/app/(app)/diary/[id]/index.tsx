@@ -1,5 +1,6 @@
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import EntriesList from "@/src/components/EntriesList";
+import FloatingActionButton from "@/src/components/FloatingActionButton";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import { db } from "@/src/db";
@@ -20,13 +21,14 @@ import {
 } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { entries, refresh } = useEntries(diaryId);
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
@@ -100,35 +102,41 @@ export default function DiaryScreen() {
     refresh();
   };
 
+  // No SafeAreaView here: EntriesList handles the top inset itself and the
+  // list scrolls to the bottom edge. Wrapping both caused doubled insets.
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View
+      style={styles.screen}
+      onLayout={() =>
+        requestAnimationFrame(() => requestAnimationFrame(reportReady))
+      }
+    >
+      <Stack.Screen options={{ animation: "none" }} />
+      <EntriesList
+        entries={listItems}
+        closing={closing}
+        onClose={handleClose}
+        diaryName={diaryRow?.name}
+        diaryColor={diaryRow?.color}
+        onOpenMembers={() => setShowMembers(true)}
+        onNewEntry={handleAddEntry}
+        onSelectEntry={(entry) => {
+          router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
+        }}
+        onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+      />
       <View
-        style={styles.screen}
-        onLayout={() =>
-          requestAnimationFrame(() => requestAnimationFrame(reportReady))
-        }
+        pointerEvents="box-none"
+        style={[StyleSheet.absoluteFill, { bottom: insets.bottom }]}
       >
-        <Stack.Screen options={{ animation: "none" }} />
-        <EntriesList
-          entries={listItems}
-          closing={closing}
-          onClose={handleClose}
-          diaryName={diaryRow?.name}
-          diaryColor={diaryRow?.color}
-          onOpenMembers={() => setShowMembers(true)}
-          onNewEntry={handleAddEntry}
-          onSelectEntry={(entry) => {
-            router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
-          }}
-          onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
-        />
-        <DiaryMembersModal
-          visible={showMembers}
-          onClose={() => setShowMembers(false)}
-          diary={diaryRow}
-        />
+        <FloatingActionButton onPress={() => handleAddEntry()} />
       </View>
-    </SafeAreaView>
+      <DiaryMembersModal
+        visible={showMembers}
+        onClose={() => setShowMembers(false)}
+        diary={diaryRow}
+      />
+    </View>
   );
 }
 

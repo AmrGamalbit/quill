@@ -1,21 +1,22 @@
 import { fontSizes } from "@/src/constants/typography";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
-import { Entry, EntryWithCounts } from "@/src/types/entry";
+import type { Entry, EntryWithAuthor } from "@/src/types/entry";
 import { formatEntryDate, toDateKey } from "@/src/utils/dates";
 import { useMemo } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
 import Pill from "../Pill";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
 
 type ListViewProps = {
-  entries: EntryWithCounts[];
+  entries: EntryWithAuthor[];
   selectedDate: Date | null;
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;
-  onOpenMembers?: () => void;
   diaryAccent: string;
 };
 export default function ListView({
@@ -23,27 +24,38 @@ export default function ListView({
   selectedDate,
   onSelectEntry,
   onDeleteEntry,
-  onOpenMembers,
   diaryAccent,
 }: ListViewProps) {
   const { colors } = useTheme();
+  const { session } = useUserSession();
+  const insets = useSafeAreaInsets();
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
+
+  const isMine = (entry: Entry) =>
+    !entry.authorId || entry.authorId === session?.userId;
 
   const selectedDateEntries = useMemo(() => {
     return selectedDate
       ? entries.filter((e) => e.entryDate === selectedKey)
       : [];
-  }, [selectedDate, entries]);
+  }, [selectedDate, selectedKey, entries]);
 
   const otherEntries = useMemo(() => {
     return selectedDate
       ? entries.filter((e) => e.entryDate !== selectedKey)
       : entries;
-  }, [selectedDate, entries]);
+  }, [selectedDate, selectedKey, entries]);
 
-  const handleLongPress = (entry: EntryWithCounts) => {
+  const handleLongPress = (entry: EntryWithAuthor) => {
     if (!onDeleteEntry) return;
+    if (!isMine(entry)) {
+      dialog.alert(
+        "Read Only",
+        "You can only delete entries that you created.",
+      );
+      return;
+    }
     haptic.press();
     dialog.alert(
       "Delete Entry",
@@ -62,6 +74,16 @@ export default function ListView({
     );
   };
 
+  const renderCard = (entry: EntryWithAuthor) => (
+    <EntryCard
+      entry={entry}
+      onPress={() => onSelectEntry?.(entry)}
+      onLongPress={handleLongPress}
+      diaryAccent={diaryAccent}
+      isMe={isMine(entry)}
+    />
+  );
+
   const header = selectedDate ? (
     <View style={styles.header}>
       <View style={styles.selectedDayRow}>
@@ -72,24 +94,13 @@ export default function ListView({
           </Text>
         </View>
         <Text style={styles.entryCount}>
-          {`${selectedDateEntries.length} ${entries.length === 1 ? "entry" : "entries"}`}
+          {`${selectedDateEntries.length} ${selectedDateEntries.length === 1 ? "entry" : "entries"}`}
         </Text>
       </View>
-      <FlatList
-        data={selectedDateEntries}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <EntryCard
-            entry={item}
-            onPress={() => onSelectEntry?.(item)}
-            onLongPress={(entry) => handleLongPress(entry)}
-            onOpenMembers={onOpenMembers}
-            diaryAccent={diaryAccent}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-      />
-      <Pill text="Other entries" />
+      {selectedDateEntries.map((entry) => (
+        <View key={entry.id}>{renderCard(entry)}</View>
+      ))}
+      {otherEntries.length > 0 && <Pill text="Other entries" />}
     </View>
   ) : null;
 
@@ -98,17 +109,13 @@ export default function ListView({
       <FlatList
         data={otherEntries}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <EntryCard
-            entry={item}
-            onPress={() => onSelectEntry?.(item)}
-            onLongPress={(entry) => handleLongPress(entry)}
-            onOpenMembers={onOpenMembers}
-            diaryAccent={diaryAccent}
-          />
-        )}
+        renderItem={({ item }) => renderCard(item)}
         ListHeaderComponent={header}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          // room for the FAB + home indicator
+          { paddingBottom: 110 + insets.bottom },
+        ]}
         ListEmptyComponent={EmptyState}
       />
     </View>
@@ -132,12 +139,12 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     selectedDayTitle: { flexDirection: "row", alignItems: "center", gap: 10 },
     selectedDayDate: {
       color: colors.textMuted,
-      fontWeight: 500,
+      fontWeight: "500",
       fontSize: fontSizes.xs,
     },
     entryCount: {
       color: colors.textMuted,
-      fontWeight: 500,
+      fontWeight: "500",
       fontSize: fontSizes.xs,
     },
   });

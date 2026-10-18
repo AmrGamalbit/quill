@@ -1,24 +1,20 @@
-import { dialog } from "@/src/components/Dialog/DialogProvider";
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
-import { useUserSession } from "@/src/context/UserSessionContext";
-import { db } from "@/src/db";
-import { diaryMembersTable } from "@/src/db/schema";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
-import type { Entry } from "@/src/types/entry";
+import type { Entry, EntryWithAuthor } from "@/src/types/entry";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import type { EntryWithCounts } from "../types/entry";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
@@ -26,7 +22,7 @@ import ListView from "./entries/ListView";
 import SegmentedControl from "./SegmentedControl";
 
 interface EntriesListProps {
-  entries: EntryWithCounts[];
+  entries: EntryWithAuthor[];
   diaryName?: string;
   diaryColor?: string;
   onNewEntry: (date?: Date) => void;
@@ -53,23 +49,9 @@ export default function EntriesList({
   const [selectedView, setSelectedView] = useState("list");
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const diaryAccent = resolveDiaryColor(diaryColor, scheme);
-  const { session } = useUserSession();
   const isSyncing = useSyncStatus();
-  const styles = getStyles(colors, diaryAccent);
-  const [authorMap, setAuthorMap] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    db.select()
-      .from(diaryMembersTable)
-      .then((rows) => {
-        const map: Record<string, string> = {};
-        for (const r of rows) {
-          map[r.userId] = r.name || (r.username ? `@${r.username}` : "Member");
-        }
-        setAuthorMap(map);
-      })
-      .catch(() => {});
-  }, [entries, isSyncing]);
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(colors, diaryAccent, insets.top);
 
   const handleDayPress = (date: Date) => {
     haptic.press();
@@ -83,42 +65,8 @@ export default function EntriesList({
     onNewEntry(date);
   };
 
-  const handleLongPress = (entry: Entry) => {
-    if (!onDeleteEntry) return;
-    if (
-      entry.authorId &&
-      session?.userId &&
-      entry.authorId !== session.userId
-    ) {
-      dialog.alert(
-        "Read Only",
-        "You can only delete entries that you created.",
-      );
-      return;
-    }
-    haptic.press();
-    dialog.alert(
-      "Delete Entry",
-      `Are you sure you want to delete "${entry.title}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            haptic.warning();
-            onDeleteEntry(entry.id);
-          },
-        },
-      ],
-    );
-  };
-
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={["top", "bottom", "left", "right"]}
-    >
+    <View style={styles.container}>
       <View style={styles.topBar}>
         {onClose && (
           <TouchableOpacity
@@ -132,16 +80,35 @@ export default function EntriesList({
           </TouchableOpacity>
         )}
         <View style={styles.titleContainer}>
-          <Text
-            style={[styles.diaryHeading, closing && styles.hidden]}
-            numberOfLines={1}
-          >
-            {diaryName}
-          </Text>
-          <Text style={styles.entryCountSubtitle}>
-            {entries.length} {entries.length === 1 ? "entry" : "entries"}
-          </Text>
+          <View style={[styles.titleRow, closing && styles.hidden]}>
+            <View style={styles.diaryDot} />
+            <Text style={styles.diaryHeading} numberOfLines={1}>
+              {diaryName}
+            </Text>
+          </View>
+          <View style={styles.subtitleRow}>
+            <Text style={styles.entryCountSubtitle}>
+              {entries.length} {entries.length === 1 ? "entry" : "entries"}
+            </Text>
+            {isSyncing && (
+              <View style={styles.syncInline}>
+                <ActivityIndicator size="small" color={diaryAccent} />
+                <Text style={styles.syncInlineText}>Syncing</Text>
+              </View>
+            )}
+          </View>
         </View>
+        {onOpenMembers && (
+          <TouchableOpacity
+            style={[styles.iconButton, styles.membersButton]}
+            onPress={onOpenMembers}
+            accessibilityRole="button"
+            accessibilityLabel="Diary members"
+            hitSlop={12}
+          >
+            <Ionicons name="people" size={18} color={diaryAccent} />
+          </TouchableOpacity>
+        )}
       </View>
       <SegmentedControl
         options={[
@@ -152,7 +119,7 @@ export default function EntriesList({
         selectedValue={selectedView}
         onSelect={setSelectedView}
       />
-      <View style={{ marginVertical: 10 }}>
+      <View style={styles.calendarWrap}>
         <Calendar
           entries={entries}
           selectedDate={selectedDate}
@@ -166,19 +133,19 @@ export default function EntriesList({
           selectedDate={selectedDate}
           onDeleteEntry={onDeleteEntry}
           onSelectEntry={onSelectEntry}
-          onOpenMembers={onOpenMembers}
           diaryAccent={diaryAccent}
         />
       ) : (
-        <EmptyState />
+        <EmptyState accentColor={diaryAccent} />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const getStyles = (
   colors: ReturnType<typeof useTheme>["colors"],
   diaryAccent: string,
+  topInset: number,
 ) =>
   StyleSheet.create({
     container: {
@@ -189,6 +156,7 @@ const getStyles = (
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 20,
+      paddingTop: topInset + 10,
       paddingBottom: 12,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
@@ -204,6 +172,9 @@ const getStyles = (
       borderColor: colors.border,
       alignItems: "center",
       justifyContent: "center",
+    },
+    membersButton: {
+      borderColor: diaryAccent,
     },
     titleContainer: {
       flex: 1,
@@ -248,11 +219,10 @@ const getStyles = (
       fontWeight: "700",
       color: diaryAccent,
     },
-
     calendarWrap: {
-      marginVertical: 8,
+      marginVertical: 10,
     },
     hidden: {
-      opacity: 100,
+      opacity: 0,
     },
   });
