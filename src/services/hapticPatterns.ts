@@ -38,6 +38,8 @@ export const celebrate: HapticEvent[] = [
 
 export const confirm: HapticEvent[] = [t(0, 0.9, 0.9), t(0.075, 0.6, 0.6)];
 
+export const select: HapticEvent[] = [t(0, 0.6, 0.7), t(0.06, 0.3, 0.4)];
+
 export const collapse = (ms: number): HapticEvent[] => [
   {
     type: "continuous",
