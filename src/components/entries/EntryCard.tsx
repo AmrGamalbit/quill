@@ -10,9 +10,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import AttachmentSummary from "./AttachmentSummary";
 
-type EntryCardProps = { entry: EntryWithCounts; onPress: () => void };
+type EntryCardProps = {
+  entry: EntryWithCounts;
+  onPress: () => void;
+  onLongPress: (entry: EntryWithCounts) => void;
+};
 
-export default function EntryCard({ entry, onPress }: EntryCardProps) {
+export default function EntryCard({
+  entry,
+  onPress,
+  onLongPress,
+}: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const entryDate = fromDateKey(entry.entryDate);
@@ -32,6 +40,7 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={() => onLongPress(entry)}
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
     >

@@ -37,7 +37,7 @@ export default function ListView({
       : entries;
   }, [selectedDate, entries]);
 
-  const handleLongPress = (entry: Entry) => {
+  const handleLongPress = (entry: EntryWithCounts) => {
     if (!onDeleteEntry) return;
     haptic.press();
     dialog.alert(
@@ -74,7 +74,11 @@ export default function ListView({
         data={selectedDateEntries}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <EntryCard entry={item} onPress={() => onSelectEntry?.(item)} />
+          <EntryCard
+            entry={item}
+            onPress={() => onSelectEntry?.(item)}
+            onLongPress={(entry) => handleLongPress(entry)}
+          />
         )}
         contentContainerStyle={styles.listContent}
       />
@@ -88,7 +92,11 @@ export default function ListView({
         data={otherEntries}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <EntryCard entry={item} onPress={() => onSelectEntry?.(item)} />
+          <EntryCard
+            entry={item}
+            onPress={() => onSelectEntry?.(item)}
+            onLongPress={(entry) => handleLongPress(entry)}
+          />
         )}
         ListHeaderComponent={header}
         contentContainerStyle={styles.listContent}
