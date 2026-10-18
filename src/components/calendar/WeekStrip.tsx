@@ -7,7 +7,7 @@ type WeekStripProps = {
   week: Date[];
   month: Date;
   entries: Entry[];
-  selectedDate: Date;
+  selectedDate: Date | null;
   onDayPress: (date: Date) => void;
   onDayLongPress: (date: Date) => void;
 };
@@ -35,7 +35,7 @@ export default function WeekStrip({
     <View
       style={{
         flexDirection: "row",
-        justifyContent: "center",
+        justifyContent: "space-around",
         height: height,
       }}
     >
@@ -45,7 +45,7 @@ export default function WeekStrip({
           day={day}
           hasEntries={hasEntries(day)}
           isCurrentMonth={isCurrentMonth(day)}
-          isSelected={isSameDay(day, selectedDate)}
+          isSelected={selectedDate ? isSameDay(day, selectedDate) : false}
           onPress={onDayPress}
           onLongPress={onDayLongPress}
         />

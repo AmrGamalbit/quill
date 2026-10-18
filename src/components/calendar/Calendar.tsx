@@ -1,15 +1,17 @@
+import { spacing } from "@/src/constants/spacings";
 import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import useTheme from "@/src/hooks/useTheme";
 import { Entry } from "@/src/types/entry";
 import {
   addMonths,
+  fromDateKey,
   getMonthWeeks,
   isSameDay,
   startOfMonth,
   toDateKey,
 } from "@/src/utils/dates";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
@@ -18,9 +20,10 @@ import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
 import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
+
 type CalendarProps = {
   entries: Entry[];
-  selectedDate: Date;
+  selectedDate: Date | null;
   onDayPress: (date: Date) => void;
   onDayLongPress: (date: Date) => void;
 };
@@ -31,23 +34,21 @@ export default function Calendar({
   onDayPress,
   onDayLongPress,
 }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState<Date>(
-    startOfMonth(selectedDate),
-  );
   const { colors } = useTheme();
-  const weeks = getMonthWeeks(currentMonth, 0);
   const [showPicker, setShowPicker] = useState(false);
-  const selectedRow = weeks.findIndex((w) =>
-    w.some((d) => isSameDay(d, selectedDate)),
+
+  const today = useMemo(() => new Date(), []);
+  const anchorDate = selectedDate ?? today;
+  const anchorKey = toDateKey(anchorDate);
+
+  const [currentMonth, setCurrentMonth] = useState(() =>
+    startOfMonth(anchorDate),
   );
 
-  const handlePrevMonth = () => {
-    setCurrentMonth((prev) => addMonths(prev, -1));
-  };
+  const weeks = useMemo(() => getMonthWeeks(currentMonth, 0), [currentMonth]);
 
-  const handleNextMonth = () => {
-    setCurrentMonth((prev) => addMonths(prev, 1));
-  };
+  const found = weeks.findIndex((w) => w.some((d) => isSameDay(d, anchorDate)));
+  const selectedRow = found === -1 ? 0 : found;
 
   const {
     toggle,
@@ -55,15 +56,25 @@ export default function Calendar({
     gridContainerStyle,
     gridStyle,
     panGesture,
-    isExapnded,
+    isExpanded,
+    chevronRotation,
   } = useCalendarCollapse(selectedRow);
 
   useEffect(() => {
-    setCurrentMonth(startOfMonth(selectedDate));
-  }, [selectedDate, isExapnded]);
-  console.log(toDateKey(selectedDate));
+    setCurrentMonth(startOfMonth(fromDateKey(anchorKey)));
+  }, [anchorKey, isExpanded]);
+
+  const handlePrevMonth = () => setCurrentMonth((prev) => addMonths(prev, -1));
+  const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
+
+  const navButton = (
+    <Animated.View style={chevronRotation}>
+      <NavButton icon={"chevron-up-outline"} onPress={toggle} />
+    </Animated.View>
+  );
+
   return (
-    <View>
+    <View style={{ marginHorizontal: spacing.md }}>
       <Animated.View style={headerStyle}>
         <CalendarHeader
           month={currentMonth}
@@ -93,7 +104,7 @@ export default function Calendar({
               alignItems: "center",
             }}
           >
-            <NavButton icon={"reorder-three-outline"} onPress={toggle} />
+            {navButton}
           </View>
         </View>
       </GestureDetector>
@@ -105,7 +116,7 @@ export default function Calendar({
         <View style={{ alignItems: "center" }}>
           <DatePicker
             itemTextStyle={{ color: colors.text }}
-            date={toDateKey(selectedDate)}
+            date={toDateKey(anchorDate)}
             onDateChanged={({ date }: { date: string }) =>
               onDayPress(new Date(date))
             }

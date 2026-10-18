@@ -42,3 +42,27 @@ export const fromDateKey = (key: string): Date => {
   if (!parsed) throw new Error(`Invalid date key: ${key}`);
   return parsed.toDate();
 };
+
+export const formatEntryDate = (date: Date): string => {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+export const formatCreatedMeta = (createdAt: Date, entryDate: Date): string => {
+  const isSame = isSameDay(createdAt, entryDate);
+  if (isSame) {
+    return createdAt.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+  const createdDateStr = createdAt.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  return `Created ${createdDateStr}`;
+};

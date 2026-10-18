@@ -7,10 +7,10 @@ import {
   saveEntry as saveEntryToDb,
 } from "../db/entries";
 import { runSync } from "../services/syncEngine";
-import type { Entry } from "../types/entry";
+import type { EntryWithCounts } from "../types/entry";
 
 export default function useEntries(diaryId: number) {
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [entries, setEntries] = useState<EntryWithCounts[]>([]);
   const { session } = useUserSession();
 
   const triggerSync = useCallback(async () => {
@@ -51,5 +51,5 @@ export default function useEntries(diaryId: number) {
     await triggerSync();
   };
 
-  return { entries, refresh, addEntry, deleteEntry };
+  return { entries, refresh, deleteEntry, addEntry };
 }

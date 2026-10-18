@@ -1,18 +1,22 @@
 import { and, count, eq } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { db } from ".";
-import type { Entry } from "../types/entry";
+import type { Entry, EntryWithCounts } from "../types/entry";
+import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
 import { entriesTable as entries } from "./schema";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,
-): Promise<Entry[]> => {
-  return (await db
+): Promise<EntryWithCounts[]> => {
+  const rows = await db
     .select()
     .from(entries)
-    .where(
-      and(eq(entries.diaryId, diaryId), eq(entries.deleted, 0)),
-    )) as Entry[];
+    .where(and(eq(entries.diaryId, diaryId), eq(entries.deleted, 0)));
+  const countByEntry = await getAttachmentCountsByDiaryId(diaryId);
+  return rows.map((r) => ({
+    ...r,
+    counts: countByEntry.get(r.id) ?? { ...EMPTY_COUNTS },
+  }));
 };
 
 export const saveEntry = async (
@@ -100,3 +104,5 @@ export const deleteEntry = async (id: number): Promise<void> => {
       .where(eq(entries.id, id));
   }
 };
+
+export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};

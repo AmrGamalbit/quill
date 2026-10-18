@@ -1,12 +1,16 @@
 import { useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { CardRect, useDiaryTransition } from "../context/DiaryTransitionContext";
+import {
+  CardRect,
+  useDiaryTransition,
+} from "../context/DiaryTransitionContext";
 import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 import { haptic } from "../services/haptics";
 import type { Diary } from "../types/diary";
 import { dialog } from "./Dialog/DialogProvider";
 import DiaryBook, { RIBBON_OVERHANG } from "./DiaryBook";
+import SwipeableCard from "./SwipeableCard";
 
 type DiaryCardProps = {
   diary: Diary;
@@ -17,7 +21,12 @@ type DiaryCardProps = {
 
 export const STACK_SIDE_PADDING = RIBBON_OVERHANG + 6;
 
-export default function DiaryCard({ diary, isFirst, onPress, onDelete }: DiaryCardProps) {
+export default function DiaryCard({
+  diary,
+  isFirst,
+  onPress,
+  onDelete,
+}: DiaryCardProps) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
@@ -31,10 +40,16 @@ export default function DiaryCard({ diary, isFirst, onPress, onDelete }: DiaryCa
 
   const measure = (cb: (r: CardRect) => void) =>
     ref.current?.measureInWindow((x, y, width, height) =>
-    titleRef.current?.measureInWindow((tx, ty, tw, th) =>
-    cb({ x, y, width, height, title: { x: tx, y: ty, width: tw, height: th }}),
-    ),
-  );
+      titleRef.current?.measureInWindow((tx, ty, tw, th) =>
+        cb({
+          x,
+          y,
+          width,
+          height,
+          title: { x: tx, y: ty, width: tw, height: th },
+        }),
+      ),
+    );
   const handlePress = () => measure(onPress);
   const handleLayout = () => {
     if (isFirst) requestAnimationFrame(() => measure(reportFirst));
@@ -60,20 +75,27 @@ export default function DiaryCard({ diary, isFirst, onPress, onDelete }: DiaryCa
   };
 
   return (
-    <Pressable
-      ref={ref}
-      onLayout={handleLayout}
-      onPress={handlePress}
-      onLongPress={handleLongPress}
-      delayLongPress={500}
-      onPressIn={() => animatePress(true)}
-      onPressOut={() => animatePress(false)}
-      accessibilityRole="button"
-      accessibilityLabel={`${diary.name}, ${entryLabel}`}
-      style={[styles.wrapper, activeId === diary.id && styles.hidden]}
-    ><DiaryBook diary={diary} backgroundColor={animatedColor} titleRef={titleRef} />
-    </Pressable>
-  )
+    <SwipeableCard onDelete={handleLongPress}>
+      <Pressable
+        ref={ref}
+        onLayout={handleLayout}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        delayLongPress={500}
+        onPressIn={() => animatePress(true)}
+        onPressOut={() => animatePress(false)}
+        accessibilityRole="button"
+        accessibilityLabel={`${diary.name}, ${entryLabel}`}
+        style={[styles.wrapper, activeId === diary.id && styles.hidden]}
+      >
+        <DiaryBook
+          diary={diary}
+          backgroundColor={animatedColor}
+          titleRef={titleRef}
+        />
+      </Pressable>
+    </SwipeableCard>
+  );
 }
 
 const styles = StyleSheet.create({

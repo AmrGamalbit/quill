@@ -6,7 +6,7 @@ type MonthGridProps = {
   entries: Entry[];
   weeks: Date[][];
   month: Date;
-  selectedDate: Date;
+  selectedDate: Date | null;
   onDayPress: (date: Date) => void;
   onDayLongPress: (date: Date) => void;
 };

@@ -1,0 +1,225 @@
+import { fonts } from "@/src/constants/typography";
+import usePressAnimation from "@/src/hooks/usePressAnimation";
+import useTheme from "@/src/hooks/useTheme";
+import type { EntryWithCounts } from "@/src/types/entry";
+import {
+  formatCreatedMeta,
+  formatEntryDate,
+  fromDateKey,
+} from "@/src/utils/dates";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import AttachmentSummary from "./AttachmentSummary";
+
+type EntryCardProps = {
+  entry: EntryWithCounts;
+  onPress: () => void;
+  onLongPress: (entry: EntryWithCounts) => void;
+  onOpenMembers?: () => void;
+  diaryAccent: string;
+  isMe: boolean;
+};
+
+export default function EntryCard({
+  entry,
+  onPress,
+  onLongPress,
+  onOpenMembers,
+  diaryAccent,
+  isMe,
+}: EntryCardProps) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors, diaryAccent);
+  const entryDate = fromDateKey(entry.entryDate);
+
+  const { animatePress, animatedColor } = usePressAnimation(
+    colors.card,
+    colors.cardPressed,
+  );
+  const cleanPreview =
+    entry.body
+      ?.replace(/<br\s*\/?>/gi, "\n")
+      ?.replace(/<\/p>|<\/div>/gi, "\n")
+      ?.replace(/<[^>]+>/g, "")
+      ?.replace(/\n\s*\n/g, "\n\n")
+      .trim() || "Empty entry.";
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={() => onLongPress(entry)}
+      onPressIn={() => animatePress(true)}
+      onPressOut={() => animatePress(false)}
+    >
+      <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {entry.title || "Untitled Entry"}
+          </Text>
+          <Text style={styles.cardDate}>{formatEntryDate(entryDate)}</Text>
+        </View>
+        <Text style={styles.cardPreview} numberOfLines={3}>
+          {cleanPreview}
+        </Text>
+        <View style={styles.hr}></View>
+        <View style={styles.cardFooter}>
+          <AttachmentSummary counts={entry.counts} />
+          <View style={styles.cardFooterRight}>
+            <Text style={styles.cardDate}>
+              {formatCreatedMeta(entry.createdAt, entryDate)}
+            </Text>
+            <Ionicons
+              size={16}
+              color={colors.textMuted}
+              name="chevron-forward-outline"
+            />
+            <View
+              style={[
+                styles.authorPill,
+                isMe ? styles.authorPillMe : styles.authorPillOther,
+              ]}
+            >
+              <View
+                style={[
+                  styles.authorDot,
+                  {
+                    backgroundColor: isMe ? diaryAccent : colors.textMuted,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.authorText,
+                  { color: isMe ? diaryAccent : colors.textMuted },
+                  { color: isMe ? diaryAccent : colors.textMuted },
+                ]}
+                numberOfLines={1}
+              >
+                {isMe ? `${entry.authorName} • YOU` : entry.authorName}
+              </Text>
+            </View>
+          </View>
+        </View>
+        {onOpenMembers && (
+          <TouchableOpacity
+            onPress={onOpenMembers}
+            hitSlop={10}
+            style={styles.membersButton}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="people" size={16} color="#000" />
+            {/*   <Text style={styles.membersButtonText}>Members</Text> */}
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+const getStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  diaryAccent: string,
+) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    cardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginBottom: 8,
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.text,
+      flex: 1,
+      marginRight: 12,
+    },
+    cardDate: {
+      fontSize: 12,
+      fontWeight: "500",
+      color: colors.textMuted,
+    },
+    cardPreview: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textMuted,
+    },
+    cardFooter: { flexDirection: "row", justifyContent: "space-between" },
+    cardFooterRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+    },
+    hr: {
+      width: "100%",
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+      marginVertical: 15,
+    },
+    membersButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: diaryAccent,
+    },
+    membersButtonText: {
+      fontSize: 12,
+      fontFamily: fonts.label,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    authorPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    authorPillMe: {
+      backgroundColor: colors.surface,
+      borderColor: diaryAccent,
+      borderColor: diaryAccent,
+    },
+    authorPillOther: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+    },
+    authorDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    authorText: {
+      fontSize: 11,
+      fontFamily: fonts.label,
+      fontWeight: "700",
+    },
+  });

@@ -1,4 +1,8 @@
-import { Gabarito_400Regular, Gabarito_500Medium, Gabarito_700Bold } from "@expo-google-fonts/gabarito";
+import {
+  Gabarito_400Regular,
+  Gabarito_500Medium,
+  Gabarito_700Bold,
+} from "@expo-google-fonts/gabarito";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import type { Session } from "@supabase/supabase-js";
 import "expo-blob";
@@ -27,7 +31,6 @@ import {
   signPublicBundle,
   type UserSecretKeyBundle,
 } from "../utils/crypto";
-
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -81,7 +84,7 @@ function AppNavigator() {
     Roboto_400Regular,
     Gabarito_400Regular,
     Gabarito_500Medium,
-    Gabarito_700Bold
+    Gabarito_700Bold,
   });
   const { session: userSession, setSession } = useUserSession();
   useSyncLifecycle();
@@ -131,142 +134,142 @@ function AppNavigator() {
             signKeys: null,
           });
           setIsAuthLoading(false);
-        } 
-        } catch (err) {
-          console.warn("Failed reading cached local profile: ", err);
-          await clearDerivedKey();
         }
+      } catch (err) {
+        console.warn("Failed reading cached local profile: ", err);
+        await clearDerivedKey();
+      }
 
-        try {
-          if (derivedKey) {
-            const profileRecord = await getUserProfileRecord(newSession.user.id);
-            const decryptedProfile = decryptUserProfile(
-              profileRecord.encrypted_profile,
-              profileRecord.profile_nonce,
+      try {
+        if (derivedKey) {
+          const profileRecord = await getUserProfileRecord(newSession.user.id);
+          const decryptedProfile = decryptUserProfile(
+            profileRecord.encrypted_profile,
+            profileRecord.profile_nonce,
+            derivedKey,
+          );
+
+          let kemKeys: {
+            x25519Priv: Uint8Array;
+            mlkem768Priv: Uint8Array;
+            publicKeyHex: string;
+          } | null = null;
+          let signKeys: {
+            ed25519Priv: Uint8Array;
+            mldsa65Priv: Uint8Array;
+            publicKeyHex: string;
+          } | null = null;
+
+          if (!profileRecord.keys_initialized_at) {
+            const kemPair = generateHybridKemKeyPair();
+            const signPair = generateDualSignKeyPair();
+            const { rawKey: recKeyBytes, formattedKey: recKeyDisplay } =
+              generateRecoveryKey();
+
+            const kemPubHex = bytesToHex(kemPair.publicKeyBytes);
+            const signPubHex = bytesToHex(signPair.publicKeyBytes);
+            const bundleSigHex = signPublicBundle(
+              newSession.user.id,
+              kemPubHex,
+              signPubHex,
+              signPair.ed25519Priv,
+              signPair.mldsa65Priv,
+            );
+            const secretBundle: UserSecretKeyBundle = {
+              kemX25519Priv: bytesToHex(kemPair.x25519Priv),
+              kemMlkem768Priv: bytesToHex(kemPair.mlkem768Priv),
+              signEd25519Priv: bytesToHex(signPair.ed25519Priv),
+              signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
+            };
+            await initKeysRpc({
+              kemPublicKey: kemPubHex,
+              signPublicKey: signPubHex,
+              bundleSignature: bundleSigHex,
+              encryptedKeyBundle: encryptKeyBundle(secretBundle, derivedKey),
+              recoveryKeyBundle: encryptKeyBundle(secretBundle, recKeyBytes),
+            });
+
+            setTimeout(() => {
+              dialog.alert(
+                "Save your recovery key",
+                `Please write this down and store it safely. It will NEVER be shown again and your diaries and entries will be gone if you lose it:\n\n${recKeyDisplay}`,
+              );
+            }, 500);
+
+            kemKeys = {
+              x25519Priv: kemPair.x25519Priv,
+              mlkem768Priv: kemPair.mlkem768Priv,
+              publicKeyHex: kemPubHex,
+            };
+            signKeys = {
+              ed25519Priv: signPair.ed25519Priv,
+              mldsa65Priv: signPair.mldsa65Priv,
+              publicKeyHex: signPubHex,
+            };
+          } else {
+            if (
+              !profileRecord.encrypted_key_bundle ||
+              !profileRecord.kem_public_key ||
+              !profileRecord.sign_public_key
+            ) {
+              throw new Error("Missing key bundle on initialized profile.");
+            }
+            const bundle = decryptKeyBundle(
+              profileRecord.encrypted_key_bundle,
               derivedKey,
             );
-
-            let kemKeys: {
-              x25519Priv: Uint8Array;
-              mlkem768Priv: Uint8Array;
-              publicKeyHex: string
-            } | null = null;
-            let signKeys: {
-              ed25519Priv: Uint8Array;
-              mldsa65Priv: Uint8Array;
-              publicKeyHex: string
-            } | null = null;
-
-            if (!profileRecord.keys_initialized_at) {
-              const kemPair = generateHybridKemKeyPair();
-              const signPair = generateDualSignKeyPair();
-              const {
-                rawKey: recKeyBytes,
-                formattedKey: recKeyDisplay
-              } = generateRecoveryKey();
-
-              const kemPubHex = bytesToHex(kemPair.publicKeyBytes);
-              const signPubHex = bytesToHex(signPair.publicKeyBytes);
-              const bundleSigHex = signPublicBundle(
-                newSession.user.id,
-                kemPubHex,
-                signPubHex,
-                signPair.ed25519Priv,
-                signPair.mldsa65Priv,
-              );
-              const secretBundle: UserSecretKeyBundle = {
-                kemX25519Priv: bytesToHex(kemPair.x25519Priv),
-                kemMlkem768Priv: bytesToHex(kemPair.mlkem768Priv),
-                signEd25519Priv: bytesToHex(signPair.ed25519Priv),
-                signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
-              };
-              await initKeysRpc({
-                kemPublicKey: kemPubHex,
-                signPublicKey: signPubHex,
-                bundleSignature: bundleSigHex,
-                encryptedKeyBundle: encryptKeyBundle(secretBundle, derivedKey),
-                recoveryKeyBundle: encryptKeyBundle(secretBundle, recKeyBytes),
-              });
-
-              setTimeout(() => {
-                dialog.alert(
-                  "Save your recovery key",
-                  `Please write this down and store it safely. It will NEVER be shown again and your diaries and entries will be gone if you lose it:\n\n${recKeyDisplay}`,
-                );
-              }, 500);
-
-              kemKeys = {
-                x25519Priv: kemPair.x25519Priv,
-                mlkem768Priv: kemPair.mlkem768Priv,
-                publicKeyHex: kemPubHex,
-              };
-              signKeys = {
-                ed25519Priv: signPair.ed25519Priv,
-                mldsa65Priv: signPair.mldsa65Priv,
-                publicKeyHex: signPubHex,
-              };
-            } else {
-              if (
-                !profileRecord.encrypted_key_bundle ||
-                !profileRecord.kem_public_key ||
-                !profileRecord.sign_public_key
-              ) {
-                throw new Error("Missing key bundle on initialized profile.");
-              }
-              const bundle = decryptKeyBundle(profileRecord.encrypted_key_bundle, derivedKey);
-              kemKeys = {
-                x25519Priv: hexToBytes(bundle.kemX25519Priv),
-                mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
-                publicKeyHex: profileRecord.sign_public_key,
-              };
-              signKeys = {
-                ed25519Priv: hexToBytes(bundle.signEd25519Priv),
-                mldsa65Priv: hexToBytes(bundle.signMldsa65Priv),
-                publicKeyHex: profileRecord.sign_public_key,
-              }
-            }
-
-            let decryptedPhotoUri: string | null = null;
-            if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
-              const storage = new SupabaseStorageAdapter("avatars");
-              try {
-                decryptedPhotoUri = await downloadAndDecryptPhoto(
-                  decryptedProfile.photoPath,
-                  decryptedProfile.photoNonce,
-                  derivedKey,
-                  storage,
-                );
-              } catch (photoErr) {
-                console.warn("Avatar restore failed: ", photoErr);
-                decryptedPhotoUri = cachedPhotoUri;
-              }
-            }
-            await saveLocalProfile(
-              newSession.user.id,
-              decryptedProfile.name,
-              decryptedPhotoUri,
-              kemKeys?.publicKeyHex ?? "",
-            );
-            
-            setSession({
-              userId: newSession.user.id,
-              username: profileRecord.username,
-              email: newSession.user.email ?? "",
-              name: decryptedProfile.name,
-              photoUri: decryptedPhotoUri,
-              localEncKey: derivedKey,
-              kemKeys,
-              signKeys,
-            });
+            kemKeys = {
+              x25519Priv: hexToBytes(bundle.kemX25519Priv),
+              mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
+              publicKeyHex: profileRecord.sign_public_key,
+            };
+            signKeys = {
+              ed25519Priv: hexToBytes(bundle.signEd25519Priv),
+              mldsa65Priv: hexToBytes(bundle.signMldsa65Priv),
+              publicKeyHex: profileRecord.sign_public_key,
+            };
           }
-        } catch (e) {
-          console.error("Fast restore failed: ", e);
-        } finally {
-          setIsAuthLoading(false);
+
+          let decryptedPhotoUri: string | null = null;
+          if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
+            const storage = new SupabaseStorageAdapter("avatars");
+            try {
+              decryptedPhotoUri = await downloadAndDecryptPhoto(
+                decryptedProfile.photoPath,
+                decryptedProfile.photoNonce,
+                derivedKey,
+                storage,
+              );
+            } catch (photoErr) {
+              console.warn("Avatar restore failed: ", photoErr);
+              decryptedPhotoUri = cachedPhotoUri;
+            }
+          }
+          await saveLocalProfile(
+            newSession.user.id,
+            decryptedProfile.name,
+            decryptedPhotoUri,
+            kemKeys?.publicKeyHex ?? "",
+          );
+
+          setSession({
+            userId: newSession.user.id,
+            username: profileRecord.username,
+            email: newSession.user.email ?? "",
+            name: decryptedProfile.name,
+            photoUri: decryptedPhotoUri,
+            localEncKey: derivedKey,
+            kemKeys,
+            signKeys,
+          });
         }
-    
-  });
-  return () => unsubscribe();
+      } catch (e) {
+        console.error("Fast restore failed: ", e);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
   const isSignedIn = supabaseSession !== null;
   const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
@@ -297,10 +300,7 @@ function AppNavigator() {
       <SafeAreaView
         style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
       >
-        <ActivityIndicator
-          size="large"
-          color={colors.accent}
-        />
+        <ActivityIndicator size="large" color={colors.accent} />
       </SafeAreaView>
     );
   }
