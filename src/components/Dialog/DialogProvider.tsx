@@ -1,7 +1,7 @@
 import { fonts } from '@/src/constants/typography';
 import useTheme from '@/src/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-// CHECK HANDLECOPY FUNCTION SIRR import * as Clipboard from 'expo-clipboard';
+import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
     Alert,
@@ -166,7 +166,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     };
 
     const handleCopy = async (codeText: string) => {
-       // await Clipboard.setStringAsync(codeText);
+       await Clipboard.setStringAsync(codeText);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };

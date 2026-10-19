@@ -35,7 +35,7 @@ import {
 } from "@/src/utils/crypto";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
 import { supabase } from "@/src/utils/supabase";
-// import * as Clipboard from 'expo-clipboard';
+import * as Clipboard from 'expo-clipboard';
 import { useRef, useState } from "react";
 import {
   Animated,
@@ -177,7 +177,7 @@ export default function Auth() {
                 text: 'Copy to clipboard',
                 style: 'default',
                 onPress: async () => {
-                //  Clipboard.setStringAsync(`${recKeyDisplay}`);
+                Clipboard.setStringAsync(`${recKeyDisplay}`);
                 }
               },
               {
