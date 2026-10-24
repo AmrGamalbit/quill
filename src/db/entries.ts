@@ -24,13 +24,13 @@ export const saveEntry = async (
   title: string,
   entryDate: string,
   body: string,
-  authorId?: string,
+  authorId: string,
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   const result = await db.insert(entries).values({
     remoteId,
     diaryId,
-    authorId: authorId ?? null,
+    authorId,
     title,
     entryDate,
     body,

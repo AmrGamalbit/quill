@@ -16,7 +16,6 @@ import {
   updateEntry,
 } from "../db/entries";
 import type { Attachment } from "../types/attachment";
-import { db } from "../db";
 
 export const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 
@@ -182,8 +181,9 @@ export async function createEntryWithMedia(
   entryDate: string,
   body: string,
   added: PendingAttachment[],
+  authorId: string,
 ): Promise<number> {
-  const entryId = await saveEntry(diaryId, title, entryDate, body);
+  const entryId = await saveEntry(diaryId, title, entryDate, body, authorId);
   try {
     if (added.length) await persistAttachments(entryId, added);
   } catch (e) {
